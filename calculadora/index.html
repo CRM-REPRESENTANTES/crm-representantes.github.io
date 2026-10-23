@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Calculadora de consumo · CRM Studio Denim</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<script>try{ if(!sessionStorage.getItem('sd_carteira_chave')) location.replace('../'); }catch(e){}</script>
+<style>
+  html{-webkit-text-size-adjust:100%;} body{margin:0;} [hidden]{display:none!important;} img{max-width:100%;}
+  /* Layout: coluna única — cabeçalho índigo, pesquisa do agente, painel de indicadores, lista de atrasados em destaque. */
+  :root{
+    --bg:#f4f7fb; --surface:#ffffff; --surface-2:#fbfcff; --ink:#1c2233; --muted:#646b78; --border:#d5dfee;
+    --title:#0a2c5e; --accent:#0b3c7d; --accent-strong:#0b3c7d; --accent-fg:#ffffff; --link:#1c5fb0;
+    --tint:#e6eef8; --tint-strong:#cfdcf0;
+    --rust:#c0392b; --rust-light:#fbeceb; --rust-ink:#8f2419; --rust-solid:#c0392b; --rust-solid-fg:#ffffff; --rust-border:#f0c4be;
+    --warn:#a8520f; --warn-bg:#fdf1e4;
+    --good:#0b7a45; --good-bg:#e4f5eb;
+    --head-a:#061f45; --head-b:#0a2c5e; --head-c:#0b3c7d; --head-fg:#ffffff; --head-muted:#cfdcf0; --stitch:#3d8fd6; --head-chip:rgba(255,255,255,.12);
+    --font: 'Poppins','Segoe UI',Roboto,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#08111f; --surface:#0f1b2f; --surface-2:#132238; --ink:#e7edf7; --muted:#9aa8bf; --border:#233654;
+      --title:#cfe0f7; --accent:#6fb0ee; --accent-strong:#1c5fb0; --accent-fg:#ffffff; --link:#7fb8ee;
+      --tint:#15294a; --tint-strong:#1f3a66;
+      --rust:#ff8375; --rust-light:#3a1a1c; --rust-ink:#ffb4a8; --rust-solid:#c0392b; --rust-solid-fg:#ffffff; --rust-border:#6a2a27;
+      --warn:#f0a35e; --warn-bg:#3a2815;
+      --good:#4fd08e; --good-bg:#12301f;
+      --head-a:#040d1c; --head-b:#08204a; --head-c:#0b3c7d; --head-fg:#ffffff; --head-muted:#cfdcf0; --stitch:#3d8fd6; --head-chip:rgba(255,255,255,.12);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#08111f; --surface:#0f1b2f; --surface-2:#132238; --ink:#e7edf7; --muted:#9aa8bf; --border:#233654;
+    --title:#cfe0f7; --accent:#6fb0ee; --accent-strong:#1c5fb0; --accent-fg:#ffffff; --link:#7fb8ee;
+    --tint:#15294a; --tint-strong:#1f3a66;
+    --rust:#ff8375; --rust-light:#3a1a1c; --rust-ink:#ffb4a8; --rust-solid:#c0392b; --rust-solid-fg:#ffffff; --rust-border:#6a2a27;
+    --warn:#f0a35e; --warn-bg:#3a2815;
+    --good:#4fd08e; --good-bg:#12301f;
+    --head-a:#040d1c; --head-b:#08204a; --head-c:#0b3c7d; --head-fg:#ffffff; --head-muted:#cfdcf0; --stitch:#3d8fd6; --head-chip:rgba(255,255,255,.12);
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:var(--font); background:var(--bg); color:var(--ink); font-size:14px; line-height:1.5; padding-inline:16px; padding-block:20px 40px;}
+  .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:18px;}
+  button, input{font-family:inherit;}
+  :focus-visible{outline:2px solid var(--stitch); outline-offset:2px;}
+
+  /* Cabeçalho */
+  .top{
+    background:linear-gradient(135deg, var(--head-a) 0%, var(--head-b) 55%, var(--head-c) 100%);
+    color:var(--head-fg); border-radius:14px; padding:22px 26px; border:1px solid var(--head-c);
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; position:relative;
+  }
+  .top::after{ /* pesponto */
+    content:""; position:absolute; left:14px; right:14px; bottom:7px; border-bottom:2px dashed var(--stitch); opacity:.55; pointer-events:none;
+  }
+  .brand{display:flex; align-items:center; gap:16px; flex-wrap:wrap; min-width:0;}
+  .wordmark{display:inline-flex; flex-direction:column; line-height:1; font-weight:800;}
+  .wordmark .studio{font-size:10px; font-weight:600; letter-spacing:6px; color:var(--head-muted);}
+  .wordmark .denim{font-size:30px; letter-spacing:1px; margin-top:4px;}
+  .divider{width:1px; height:40px; background:var(--head-fg); opacity:.3;}
+  .top h1{margin:0; font-size:19px; font-weight:700; letter-spacing:.3px; text-wrap:balance;}
+  .top .subtitle{margin:2px 0 0; font-size:12.5px; color:var(--head-muted);}
+  .filebox{display:flex; flex-direction:column; align-items:flex-end; gap:8px; min-width:0;}
+  .filechip{background:var(--head-chip); border-radius:10px; padding:8px 12px; font-size:12px; max-width:100%; text-align:right;}
+  .filechip b{display:block; font-weight:600; font-size:12.5px; overflow-wrap:anywhere;}
+  .filechip span{color:var(--head-muted);}
+  .btn-light{background:var(--head-fg); color:var(--head-b); border:0; border-radius:8px; padding:8px 14px; font-size:12.5px; font-weight:700; cursor:pointer;}
+  .btn-light:hover{background:var(--head-muted);}
+  .btn-light:disabled{opacity:.6; cursor:progress;}
+  .filemsg{font-size:11.5px; color:var(--head-muted); text-align:right; min-height:1em;}
+
+
+  /* Menu de módulos do CRM */
+  .modnav{flex-basis:100%; display:flex; gap:6px; overflow-x:auto; padding:12px 2px 2px; border-top:1px solid rgba(255,255,255,.16); scrollbar-width:none; -webkit-overflow-scrolling:touch;}
+  .modnav::-webkit-scrollbar{display:none;}
+  .modnav a{white-space:nowrap; text-decoration:none; color:var(--head-muted); font-size:13px; font-weight:600; padding:8px 14px; border-radius:8px; background:var(--head-chip); display:inline-flex; gap:7px; align-items:center; flex:0 0 auto;}
+  .modnav a:hover{color:var(--head-fg); background:rgba(255,255,255,.22);}
+  .modnav a[aria-current="page"]{background:var(--head-fg); color:var(--head-b);}
+  .modnav .soon{font-size:9.5px; text-transform:uppercase; letter-spacing:.6px; background:var(--stitch); color:#fff; border-radius:10px; padding:1px 7px; font-weight:700;}
+  .modnav .ext{font-size:11px; opacity:.8;}
+  @media (max-width:600px){ .modnav{flex-wrap:wrap;} .modnav a{padding:7px 11px; font-size:12.5px;} }
+
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 22px;}
+  .card h2{margin:0 0 14px; font-size:14px; color:var(--title); text-transform:uppercase; letter-spacing:1px; border-bottom:2px solid var(--accent); padding-bottom:8px; font-weight:700;}
+  .badge{background:linear-gradient(120deg,#29abe2 0%,#1a3fa0 100%); color:#fff; padding:6px 16px; border-radius:20px; font-size:12px; font-weight:700; letter-spacing:.3px; align-self:center;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr)); gap:14px;}
+  label{display:block; font-size:12px; color:var(--muted); margin-bottom:5px; font-weight:600;}
+  input[type=number], input[type=text], select{width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-size:14px; background:var(--surface-2); color:var(--ink); font-family:inherit;}
+  input:focus, select:focus{outline:2px solid var(--accent); border-color:var(--accent);}
+  .hint{font-size:11px; color:var(--muted); margin-top:3px;}
+  .tablewrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th, td{padding:9px 10px; text-align:left; border-bottom:1px solid var(--border);}
+  th{background:var(--tint); color:var(--title); font-weight:700; font-size:11.5px; text-transform:uppercase; white-space:nowrap;}
+  td{white-space:nowrap;}
+  tr.best td{background:var(--good-bg);}
+  tr.best td:first-child{border-left:4px solid var(--good); font-weight:700;}
+  .tag-best{background:var(--good); color:#fff; font-size:10px; padding:2px 8px; border-radius:10px; margin-left:6px;}
+  .fabric-row{display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr 0.6fr; gap:10px; align-items:end; padding:12px; border:1px solid var(--border); border-radius:10px; margin-bottom:10px; background:var(--surface-2);}
+  .fabric-row .remove{background:none; border:1px solid #f7941d; color:#c56a00; border-radius:8px; padding:9px 8px; cursor:pointer; font-size:12px; font-weight:600;}
+  .btn{background:var(--surface); color:var(--title); border:1px solid var(--accent); padding:10px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;}
+  .btn:hover{background:var(--tint);}
+  .summary-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-top:6px;}
+  .stat{background:var(--tint); border-radius:10px; padding:14px 16px;}
+  .stat .val{font-size:20px; font-weight:800; color:var(--title);}
+  .stat .lbl{font-size:11.5px; color:var(--muted); text-transform:uppercase; font-weight:600;}
+  .stat.rust{background:var(--warn-bg);} .stat.rust .val{color:var(--warn);}
+  .footnote{font-size:11.5px; color:var(--muted); line-height:1.5; margin-top:10px;}
+  .gasto-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .gasto-card{border:1px solid var(--border); border-radius:12px; padding:16px 18px; background:var(--surface-2);}
+  .gasto-card.best{border:2px solid var(--good); background:var(--good-bg);}
+  .gasto-card h3{margin:0 0 10px; font-size:14px; color:var(--title);}
+  .gasto-card .line{display:flex; justify-content:space-between; gap:10px; font-size:13px; padding:5px 0; border-bottom:1px dashed var(--border);}
+  .gasto-card .line:last-child{border-bottom:none;}
+  .gasto-card .line span:first-child{color:var(--muted);}
+  .gasto-card .line span:last-child{font-weight:700; text-align:right;}
+  .gasto-card .destaque{font-size:20px; font-weight:800; color:var(--title); margin:8px 0 4px;}
+  .gasto-card.best .destaque{color:var(--good);}
+  .diff-box{background:var(--warn-bg); border-radius:10px; padding:14px 16px; margin-top:14px; font-size:13.5px; color:var(--warn); font-weight:700; text-align:center;}
+  .risco-block{border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:16px; background:var(--surface-2);}
+  .risco-block h3{margin:0 0 4px; font-size:15px;}
+  .risco-meta{display:flex; gap:8px 22px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); margin-bottom:10px;}
+  .risco-meta b{color:var(--ink); font-size:13.5px;}
+  .ruler{position:relative; height:46px; background:repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px 40px); border:1px solid var(--border); border-radius:6px; overflow:hidden; display:flex;}
+  .ruler .risco-seg{height:100%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:700; border-right:2px solid rgba(255,255,255,.6); flex-shrink:0; overflow:hidden; white-space:nowrap;}
+  .ruler .sobra-seg{height:100%; background:repeating-linear-gradient(45deg, #e4e6ec 0 6px, #d8dae2 6px 12px); display:flex; align-items:center; justify-content:center; color:#4a4f5a; font-size:11px; font-weight:600;}
+  .ruler-labels{display:flex; justify-content:space-between; font-size:10.5px; color:var(--muted); margin-top:3px;}
+  .piece-strip{display:flex; height:26px; border-radius:5px; overflow:hidden; margin-top:8px; border:1px solid var(--border);}
+  .piece-strip .piece{display:flex; align-items:center; justify-content:center; font-size:9.5px; color:#fff; font-weight:700; border-right:1px solid rgba(255,255,255,.5);}
+  .size-detail{display:none; margin-top:8px;} .size-detail.open{display:block;}
+  .toggle-link{display:inline-block; margin-top:10px; font-size:12.5px; color:var(--link); cursor:pointer; text-decoration:underline; font-weight:600; background:none; border:0; padding:0;}
+  @media (max-width:720px){ .fabric-row{grid-template-columns:1fr 1fr;} }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="wordmark" aria-label="Studio Denim"><span class="studio">STUDIO</span><span class="denim">DENIM</span></div>
+      <div class="divider" aria-hidden="true"></div>
+      <div>
+        <h1>Calculadora de consumo</h1>
+        <p class="subtitle">Comparativo de tecidos · consumo, risco e gasto por modelagem</p>
+      </div>
+    </div>
+    <div class="badge" id="gradeBadge">Grade 36 ao 46</div>
+    <nav class="modnav" aria-label="Módulos do CRM">
+      <a href="../">Carteira</a>
+      <a href="../calculadora/" aria-current="page">Calculadora de consumo</a>
+      <a href="../tendencias/">Tendências</a>
+      <a href="../reclamacao/">Reclamação de qualidade</a>
+      <a href="../arquivos/">Arquivos</a>
+    </nav>
+  </header>
+  <div class="card">
+    <h2>Modelagem</h2>
+    <div class="grid">
+      <div>
+        <label for="modelagem">Escolha a modelagem</label>
+        <select id="modelagem" onchange="aplicarModelagem()">
+          <optgroup label="Feminina">
+            <option value="wideleg">Wide Leg</option>
+            <option value="retafem">Reta</option>
+            <option value="skinnyfem">Skinny</option>
+            <option value="barrelfem">Barrel (Balloon)</option>
+            <option value="momfem">Mom Jeans</option>
+            <option value="flarefem">Flare</option>
+            <option value="pantalonafem">Pantalona</option>
+            <option value="baggyfem">Baggy</option>
+            <option value="boyfriendfem">Boyfriend</option>
+            <option value="cenourafem">Cenoura (Carrot)</option>
+            <option value="joggerfem">Jogger</option>
+          </optgroup>
+          <optgroup label="Masculina">
+            <option value="slimmasc">Slim</option>
+            <option value="skinnymasc">Skinny</option>
+            <option value="retamasc">Reta (clássica)</option>
+            <option value="joggermasc">Jogger</option>
+            <option value="cargomasc">Cargo</option>
+            <option value="baggymasc">Baggy</option>
+          </optgroup>
+        </select>
+        <div class="hint">Cada modelagem carrega uma área de molde de referência por tamanho — ajuste os valores abaixo se tiver os números reais do seu risco</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Parâmetros da mesa e da grade</h2>
+    <div class="grid">
+      <div>
+        <label for="mesa">Comprimento da mesa de corte (m)</label>
+        <input type="number" id="mesa" value="15" step="0.1" min="1">
+      </div>
+      <div>
+        <label for="tamanhos">Tamanhos da grade (separados por vírgula)</label>
+        <input type="text" id="tamanhos" value="36,38,40,42,44,46">
+      </div>
+      <div>
+        <label for="eficiencia">Eficiência do encaixe</label>
+        <input type="number" id="eficiencia" value="0.9" step="0.01" min="0.1" max="1">
+        <div class="hint">Aproveitamento do encaixe na mesa (0 a 1). Ex: 0,90 = 90%</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;">
+      <label>Área do molde por tamanho (m²) — mesma para todos os tecidos, varia por modelagem</label>
+      <div class="grid" id="areaList" style="margin-top:8px;"></div>
+      <div class="hint">Fórmula: Consumo (m) = (Área × (1 + Encolhimento)) / (Largura × Eficiência) — igual à sua planilha</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Tecidos para comparar</h2>
+    <div id="fabricList"></div>
+    <button class="btn" type="button" onclick="addFabric()">+ Adicionar tecido</button>
+  </div>
+
+  <div class="card">
+    <h2>Resultado comparativo — custo por peça e por mesa</h2>
+    <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Tecido</th><th>Largura</th><th>Preço/m</th><th>Encolh.</th>
+          <th>Consumo médio/peça (m)*</th><th>Grades por mesa</th><th>Gasto médio/peça*</th><th>Gasto total mesa</th>
+        </tr>
+      </thead>
+      <tbody id="resultBody"></tbody>
+    </table>
+    </div>
+    <div class="footnote">*Consumo médio/peça = soma do consumo de todos os tamanhos da grade dividida pelo nº de tamanhos, igual à "Consumo médio geral" da sua planilha. *Gasto médio/peça = Consumo médio/peça × Preço. O gasto real de cada tamanho individualmente está no detalhamento abaixo.</div>
+    <button class="toggle-link" type="button" onclick="toggleDetail()">Ver consumo e gasto peça a peça, por tamanho ▾</button>
+    <div class="size-detail" id="sizeDetail"></div>
+  </div>
+
+  <div class="card">
+    <h2>Consumo do risco inteiro (estilo Audaces)</h2>
+    <div class="footnote" style="margin-top:0; margin-bottom:14px;">
+      O "risco" é o encaixe de uma peça de cada tamanho da grade enfestado de uma vez no tecido.
+      Abaixo, o comprimento real do risco de cada tecido e quantos riscos cabem na mesa de corte.
+    </div>
+    <div id="riscoContainer"></div>
+  </div>
+
+  <div class="card">
+    <h2>Comparativo de valor gasto em tecido (preço × consumo)</h2>
+    <div class="footnote" style="margin-top:0; margin-bottom:12px;">Valor gasto = consumo de tecido (m) × preço do tecido (R$/m). Mostrado por grade fechada, por peça e para a mesa toda.</div>
+    <div class="gasto-cards" id="gastoCards"></div>
+  </div>
+
+  <div class="card">
+    <h2>Resumo — tecido mais econômico</h2>
+    <div class="summary-cards" id="summaryCards"></div>
+  </div>
+</div>
+<script>
+let fabrics = [
+  {nome:"Sarkozy Canatiba", largura:1.54, preco:19.20, encolhimento:18},
+  {nome:"Bardem Capricornio", largura:1.70, preco:20.90, encolhimento:18},
+];
+
+let areaPadrao = {36:1.40, 38:1.48, 40:1.55, 42:1.62, 44:1.68, 46:1.75, 48:1.82};
+let areaPorTamanho = {};
+
+const MODELAGENS = {
+  wideleg: { nome: "Wide Leg Feminina", tamanhos: "36,38,40,42,44,46", area: {36:1.40, 38:1.48, 40:1.55, 42:1.62, 44:1.68, 46:1.75, 48:1.82} },
+  retafem: { nome: "Reta Feminina", tamanhos: "36,38,40,42,44,46", area: {36:1.25, 38:1.31, 40:1.37, 42:1.43, 44:1.49, 46:1.55, 48:1.61} },
+  skinnyfem: { nome: "Skinny Feminina", tamanhos: "36,38,40,42,44,46", area: {36:1.15, 38:1.21, 40:1.27, 42:1.33, 44:1.39, 46:1.45, 48:1.51} },
+  barrelfem: { nome: "Barrel Feminina", tamanhos: "36,38,40,42,44,46", area: {36:1.38, 38:1.45, 40:1.52, 42:1.59, 44:1.66, 46:1.73, 48:1.80} },
+  momfem: { nome: "Mom Jeans Feminina", tamanhos: "36,38,40,42,44,46", area: {36:1.201, 38:1.270, 40:1.330, 42:1.390, 44:1.442, 46:1.502, 48:1.562} },
+  flarefem: { nome: "Flare Feminina", tamanhos: "36,38,40,42,44,46", area: {36:1.310, 38:1.385, 40:1.450, 42:1.515, 44:1.572, 46:1.637, 48:1.703} },
+  pantalonafem: { nome: "Pantalona Feminina", tamanhos: "36,38,40,42,44,46", area: {36:1.463, 38:1.547, 40:1.620, 42:1.693, 44:1.756, 46:1.829, 48:1.902} },
+  baggyfem: { nome: "Baggy Feminina", tamanhos: "36,38,40,42,44,46", area: {36:1.517, 38:1.604, 40:1.680, 42:1.756, 44:1.821, 46:1.897, 48:1.973} },
+  boyfriendfem: { nome: "Boyfriend Feminina", tamanhos: "36,38,40,42,44,46", area: {36:1.427, 38:1.509, 40:1.580, 42:1.651, 44:1.713, 46:1.784, 48:1.855} },
+  cenourafem: { nome: "Cenoura (Carrot) Feminina", tamanhos: "36,38,40,42,44,46", area: {36:1.337, 38:1.413, 40:1.480, 42:1.547, 44:1.604, 46:1.671, 48:1.738} },
+  joggerfem: { nome: "Jogger Feminina", tamanhos: "36,38,40,42,44,46", area: {36:1.283, 38:1.356, 40:1.420, 42:1.484, 44:1.539, 46:1.603, 48:1.667} },
+  slimmasc: { nome: "Slim Masculina", tamanhos: "38,40,42,44,46,48", area: {36:1.30, 38:1.35, 40:1.40, 42:1.46, 44:1.52, 46:1.58, 48:1.64} },
+  skinnymasc: { nome: "Skinny Masculina", tamanhos: "38,40,42,44,46,48", area: {36:1.174, 38:1.241, 40:1.300, 42:1.359, 44:1.409, 46:1.468, 48:1.526} },
+  retamasc: { nome: "Reta Masculina (clássica)", tamanhos: "38,40,42,44,46,48", area: {36:1.319, 38:1.394, 40:1.460, 42:1.526, 44:1.582, 46:1.648, 48:1.714} },
+  joggermasc: { nome: "Jogger Masculina", tamanhos: "38,40,42,44,46,48", area: {36:1.301, 38:1.375, 40:1.440, 42:1.505, 44:1.561, 46:1.626, 48:1.691} },
+  cargomasc: { nome: "Cargo Masculina", tamanhos: "38,40,42,44,46,48", area: {36:1.445, 38:1.528, 40:1.600, 42:1.672, 44:1.734, 46:1.806, 48:1.879} },
+  baggymasc: { nome: "Baggy Masculina", tamanhos: "38,40,42,44,46,48", area: {36:1.554, 38:1.642, 40:1.720, 42:1.798, 44:1.864, 46:1.942, 48:2.020} }
+};
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function aplicarModelagem(){
+  const key = document.getElementById('modelagem').value;
+  const m = MODELAGENS[key];
+  if(!m) return;
+  document.getElementById('tamanhos').value = m.tamanhos;
+  areaPadrao = {...m.area};
+  areaPorTamanho = {...m.area};
+  renderAreaList();
+  calcAll();
+}
+
+function fabricRowHTML(f, i){
+  return `
+  <div class="fabric-row" data-i="${i}">
+    <div>
+      <label>Nome do tecido</label>
+      <input type="text" value="${esc(f.nome)}" oninput="updateFabric(${i},'nome',this.value)">
+    </div>
+    <div>
+      <label>Largura útil (m)</label>
+      <input type="number" value="${f.largura}" step="0.01" oninput="updateFabric(${i},'largura',this.value)">
+    </div>
+    <div>
+      <label>Preço (R$/m)</label>
+      <input type="number" value="${f.preco}" step="0.01" oninput="updateFabric(${i},'preco',this.value)">
+    </div>
+    <div>
+      <label>Encolhimento (%)</label>
+      <input type="number" value="${f.encolhimento}" step="0.1" oninput="updateFabric(${i},'encolhimento',this.value)">
+    </div>
+    <button class="remove" type="button" onclick="removeFabric(${i})">Remover</button>
+  </div>`;
+}
+
+function renderFabricList(){
+  document.getElementById('fabricList').innerHTML = fabrics.map((f,i)=>fabricRowHTML(f,i)).join('');
+}
+function updateFabric(i, key, val){
+  fabrics[i][key] = (key==='nome') ? val : parseFloat(val);
+  calcAll();
+}
+function addFabric(){
+  fabrics.push({nome:"Novo tecido", largura:1.50, preco:20, encolhimento:5});
+  renderFabricList();
+  calcAll();
+}
+function removeFabric(i){
+  fabrics.splice(i,1);
+  renderFabricList();
+  calcAll();
+}
+function toggleDetail(){
+  document.getElementById('sizeDetail').classList.toggle('open');
+}
+
+function getSizes(){
+  return document.getElementById('tamanhos').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+}
+
+function renderAreaList(){
+  const sizes = getSizes();
+  sizes.forEach(t=>{
+    if(areaPorTamanho[t] === undefined){
+      areaPorTamanho[t] = areaPadrao[t] !== undefined ? areaPadrao[t] : (1.55 + (t-40)*0.035);
+    }
+  });
+  const el = document.getElementById('areaList');
+  el.innerHTML = sizes.map(t=>`
+    <div>
+      <label>Tamanho ${t} (m²)</label>
+      <input type="number" step="0.001" value="${areaPorTamanho[t].toFixed(3)}"
+        oninput="areaPorTamanho[${t}]=parseFloat(this.value)||0; calcAll();">
+    </div>
+  `).join('');
+}
+
+function calcAll(){
+  const mesa = parseFloat(document.getElementById('mesa').value) || 15;
+  const sizes = getSizes();
+  const eficiencia = parseFloat(document.getElementById('eficiencia').value) || 0.9;
+
+  const badge = document.getElementById('gradeBadge');
+  if(badge && sizes.length){
+    badge.textContent = `Grade ${sizes[0]} ao ${sizes[sizes.length-1]}`;
+  }
+
+  let results = [];
+
+  fabrics.forEach(f=>{
+    let porTamanho = {};
+    let totalGrade = 0;
+    sizes.forEach(t=>{
+      const area = areaPorTamanho[t] !== undefined ? areaPorTamanho[t] : (areaPadrao[t] || 1.55);
+      const consumoTamanho = (area * (1 + (f.encolhimento||0)/100)) / ((f.largura||1) * eficiencia);
+      porTamanho[t] = consumoTamanho;
+      totalGrade += consumoTamanho;
+    });
+
+    const grades = totalGrade > 0 ? Math.floor(mesa / totalGrade) : 0;
+    const consumoMedio = totalGrade / sizes.length;
+    const custoPorPeca = consumoMedio * f.preco;
+    const custoTotalMesa = grades * totalGrade * f.preco;
+    const metrosUsados = grades * totalGrade;
+    const sobraMesa = mesa - metrosUsados;
+
+    results.push({
+      f, porTamanho, totalGrade, consumoMedio, grades, custoPorPeca, custoTotalMesa, metrosUsados, sobraMesa
+    });
+  });
+
+  const ordenado = [...results].sort((a,b)=>a.custoPorPeca - b.custoPorPeca);
+  const melhorNome = ordenado.length ? ordenado[0].f.nome : null;
+
+  renderResults(results, melhorNome, sizes, mesa);
+}
+
+function fmt(n, dec=2){
+  return n.toLocaleString('pt-BR', {minimumFractionDigits:dec, maximumFractionDigits:dec});
+}
+
+function renderGasto(results, melhorNome, qtdTamanhos, mesa){
+  const container = document.getElementById('gastoCards');
+  if(!results.length){
+    container.innerHTML = `<div class="gasto-card"><div class="lbl">Adicione tecidos para comparar</div></div>`;
+    return;
+  }
+
+  const cardsHTML = results.map(r=>{
+    const gastoPeca = r.consumoMedio * r.f.preco;
+    const gastoGrade = r.totalGrade * r.f.preco;
+    const isBest = r.f.nome === melhorNome;
+    return `
+    <div class="gasto-card ${isBest?'best':''}">
+      <h3>${esc(r.f.nome)}${isBest?' 🏆':''}</h3>
+      <div class="destaque">R$ ${fmt(gastoPeca)}</div>
+      <div class="footnote" style="margin:0 0 10px;">gasto médio por peça</div>
+      <div class="line"><span>Consumo médio (m) × Preço (R$/m)</span><span>${fmt(r.consumoMedio)} × R$ ${fmt(r.f.preco)}</span></div>
+      <div class="line"><span>Gasto por grade fechada (${qtdTamanhos} peças)</span><span>R$ ${fmt(gastoGrade)}</span></div>
+      <div class="line"><span>Gasto na mesa toda (${r.grades} grades)</span><span>R$ ${fmt(r.custoTotalMesa)}</span></div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = cardsHTML;
+
+  if(results.length >= 2){
+    const comParaComparar = results.map(r=>({
+      nome:r.f.nome,
+      gastoGrade: r.totalGrade * r.f.preco,
+      gastoPeca: (r.totalGrade * r.f.preco)/qtdTamanhos
+    })).sort((a,b)=>a.gastoPeca - b.gastoPeca);
+
+    const maisBarato = comParaComparar[0];
+    const maisCaro = comParaComparar[comParaComparar.length-1];
+    const difPeca = maisCaro.gastoPeca - maisBarato.gastoPeca;
+    const difGrade = maisCaro.gastoGrade - maisBarato.gastoGrade;
+    const difPercent = maisBarato.gastoPeca>0 ? (difPeca/maisBarato.gastoPeca*100) : 0;
+
+    container.innerHTML += `
+      <div class="diff-box" style="grid-column:1/-1;">
+        "${esc(maisBarato.nome)}" sai R$ ${fmt(difPeca)} mais barato por peça que "${esc(maisCaro.nome)}"
+        (R$ ${fmt(difGrade)} a menos por grade fechada · ${fmt(difPercent,1)}% de economia)
+      </div>`;
+  }
+}
+
+const CORES_TECIDO = ['#1a3fa0','#f7941d','#29abe2','#17805a','#d86fa0','#c9a000'];
+
+function renderRisco(results, mesa, sizes){
+  const container = document.getElementById('riscoContainer');
+  if(!results.length){
+    container.innerHTML = `<div class="footnote">Adicione tecidos para ver o risco.</div>`;
+    return;
+  }
+
+  container.innerHTML = results.map((r, idx)=>{
+    const cor = CORES_TECIDO[idx % CORES_TECIDO.length];
+    const grades = r.grades;
+
+    let segmentos = '';
+    if(grades > 0){
+      const segPercent = (r.totalGrade / mesa) * 100;
+      for(let g=0; g<grades; g++){
+        segmentos += `<div class="risco-seg" style="width:${segPercent}%; background:${cor}${g%2===0?'':'cc'};">Risco ${g+1}</div>`;
+      }
+    }
+    const sobraPercent = Math.max(100 - (grades*(r.totalGrade/mesa)*100), 0);
+
+    const pieceStrip = sizes.map((t,i)=>{
+      const pct = (r.porTamanho[t] / r.totalGrade) * 100;
+      const shade = i % 2 === 0 ? cor : cor+'aa';
+      return `<div class="piece" style="width:${pct}%; background:${shade};">${t}</div>`;
+    }).join('');
+
+    return `
+    <div class="risco-block">
+      <h3 style="color:${cor}">${esc(r.f.nome)}</h3>
+      <div class="risco-meta">
+        <span>Comprimento do risco: <b>${fmt(r.totalGrade)} m</b></span>
+        <span>Riscos que cabem na mesa (${fmt(mesa,1)} m): <b>${r.grades}</b></span>
+        <span>Sobra de mesa: <b>${fmt(r.sobraMesa)} m</b></span>
+        <span>Peças por risco: <b>${sizes.length}</b> (grade ${sizes[0]} ao ${sizes[sizes.length-1]})</span>
+      </div>
+      <div class="ruler">
+        ${segmentos}
+        <div class="sobra-seg" style="width:${sobraPercent}%;">${r.sobraMesa>0.05?'sobra':''}</div>
+      </div>
+      <div class="ruler-labels"><span>0 m</span><span>${fmt(mesa,1)} m (mesa)</span></div>
+      <div class="footnote" style="margin-bottom:2px;">Composição de 1 risco (tamanhos ${sizes[0]} a ${sizes[sizes.length-1]}), proporcional ao consumo de cada peça:</div>
+      <div class="piece-strip">${pieceStrip}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderResults(results, melhorNome, sizes, mesa){
+  const tbody = document.getElementById('resultBody');
+  tbody.innerHTML = results.map(r=>{
+    const isBest = r.f.nome === melhorNome;
+    return `
+    <tr class="${isBest?'best':''}">
+      <td>${esc(r.f.nome)}${isBest?'<span class="tag-best">Mais econômico</span>':''}</td>
+      <td>${fmt(r.f.largura,2)} m</td>
+      <td>R$ ${fmt(r.f.preco)}</td>
+      <td>${fmt(r.f.encolhimento,1)}%</td>
+      <td>${fmt(r.consumoMedio)} m</td>
+      <td>${r.grades}</td>
+      <td>R$ ${fmt(r.custoPorPeca)}</td>
+      <td>R$ ${fmt(r.custoTotalMesa)}</td>
+    </tr>`;
+  }).join('');
+
+  const detail = document.getElementById('sizeDetail');
+  detail.innerHTML = results.map(r=>`
+    <div style="margin-bottom:18px;">
+      <div style="font-weight:700; color:var(--title); margin-bottom:6px;">${esc(r.f.nome)} <span style="color:var(--muted); font-weight:400; font-size:12px;">(preço R$ ${fmt(r.f.preco)}/m)</span></div>
+      <div class="tablewrap">
+      <table>
+        <thead><tr><th>Tamanho</th><th>Consumo do risco (m)</th><th>Preço (R$/m)</th><th>Gasto de tecido (R$)</th></tr></thead>
+        <tbody>
+          ${sizes.map(s=>{
+            const consumo = r.porTamanho[s];
+            const gasto = consumo * r.f.preco;
+            return `<tr><td>${s}</td><td>${fmt(consumo)} m</td><td>R$ ${fmt(r.f.preco)}</td><td><b>R$ ${fmt(gasto)}</b></td></tr>`;
+          }).join('')}
+          <tr style="background:var(--tint); font-weight:700;">
+            <td>Total do risco (grade completa)</td>
+            <td>${fmt(r.totalGrade)} m</td>
+            <td>—</td>
+            <td>R$ ${fmt(r.totalGrade * r.f.preco)}</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  `).join('');
+
+  renderRisco(results, mesa, sizes);
+  renderGasto(results, melhorNome, sizes.length, mesa);
+
+  const best = results.find(r=>r.f.nome===melhorNome);
+  const cards = document.getElementById('summaryCards');
+  if(best){
+    const others = results.filter(r=>r.f.nome!==melhorNome);
+    const economiaMedia = others.length
+      ? others.reduce((acc,r)=>acc + (r.custoPorPeca - best.custoPorPeca),0)/others.length
+      : 0;
+    cards.innerHTML = `
+      <div class="stat">
+        <div class="lbl">Tecido mais econômico</div>
+        <div class="val" style="font-size:16px">${esc(best.f.nome)}</div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Custo por peça</div>
+        <div class="val">R$ ${fmt(best.custoPorPeca)}</div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Grades fechadas por mesa (${fmt(mesa,1)} m)</div>
+        <div class="val">${best.grades}</div>
+      </div>
+      <div class="stat rust">
+        <div class="lbl">Economia média vs. outros tecidos</div>
+        <div class="val">R$ ${fmt(economiaMedia)} / peça</div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Sobra na mesa</div>
+        <div class="val">${fmt(best.sobraMesa)} m</div>
+      </div>
+    `;
+  } else {
+    cards.innerHTML = `<div class="stat"><div class="lbl">Adicione ao menos um tecido</div></div>`;
+  }
+}
+
+['mesa','eficiencia'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', calcAll);
+});
+document.getElementById('tamanhos').addEventListener('input', ()=>{ renderAreaList(); calcAll(); });
+
+renderFabricList();
+renderAreaList();
+calcAll();
+</script>
+</body>
+</html>

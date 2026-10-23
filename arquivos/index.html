@@ -7,6 +7,7 @@
 <title>Arquivos · CRM Studio Denim</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
 <script>try{ if(!sessionStorage.getItem('sd_carteira_chave')) location.replace('../'); }catch(e){}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
   html{-webkit-text-size-adjust:100%;} body{margin:0;} [hidden]{display:none!important;} img{max-width:100%;}
   /* Layout: coluna única — cabeçalho índigo, pesquisa do agente, painel de indicadores, lista de atrasados em destaque. */
@@ -75,11 +76,6 @@
   .filemsg{font-size:11.5px; color:var(--head-muted); text-align:right; min-height:1em;}
 
 
-  .card{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:36px 26px; text-align:center;}
-  .card h2{margin:0 0 8px; font-size:18px; color:var(--title);}
-  .card p{margin:0 auto; max-width:520px; color:var(--muted);}
-  .badge{display:inline-block; background:var(--tint); color:var(--title); border:1px solid var(--tint-strong); border-radius:20px; padding:4px 12px; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; margin-bottom:14px;}
-
   /* Menu de módulos do CRM */
   .modnav{flex-basis:100%; display:flex; gap:6px; overflow-x:auto; padding:12px 2px 2px; border-top:1px solid rgba(255,255,255,.16); scrollbar-width:none; -webkit-overflow-scrolling:touch;}
   .modnav::-webkit-scrollbar{display:none;}
@@ -89,6 +85,108 @@
   .modnav .soon{font-size:9.5px; text-transform:uppercase; letter-spacing:.6px; background:var(--stitch); color:#fff; border-radius:10px; padding:1px 7px; font-weight:700;}
   .modnav .ext{font-size:11px; opacity:.8;}
   @media (max-width:600px){ .modnav{flex-wrap:wrap;} .modnav a{padding:7px 11px; font-size:12.5px;} }
+
+/* Layout: coluna única — faixa índigo com o botão Fichas Técnicas, busca, famílias em blocos recolhíveis */
+:root{
+  --arq-bg:#f2f4f8; --surface:#ffffff; --ink:#18202f; --muted:#5d6676; --line:#d7dde8;
+  --indigo:#13325f; --indigo-2:#1d4a86; --accent:#c7652b; --ok:#167a4a; --ok-bg:#e3f4ea;
+  --warn:#9a5a12; --warn-bg:#fbf0e1; --field:#f7f9fc; --chip:#e6ecf5; --hover:#f1f5fb;
+  --display:'Archivo','Segoe UI',Arial,sans-serif;
+  --body:'IBM Plex Sans','Segoe UI',Roboto,Arial,sans-serif;
+  --mono:'IBM Plex Mono',Consolas,'Courier New',monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1220; --surface:#121b2d; --ink:#e6ebf4; --muted:#9aa5b8; --line:#26334b;
+    --indigo:#0e2547; --indigo-2:#2c64ad; --accent:#e58a52; --ok:#5fd39a; --ok-bg:#123224;
+    --warn:#f0b36a; --warn-bg:#33240f; --field:#0f1726; --chip:#1b2840; --hover:#17233a; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b1220; --surface:#121b2d; --ink:#e6ebf4; --muted:#9aa5b8; --line:#26334b;
+  --indigo:#0e2547; --indigo-2:#2c64ad; --accent:#e58a52; --ok:#5fd39a; --ok-bg:#123224;
+  --warn:#f0b36a; --warn-bg:#33240f; --field:#0f1726; --chip:#1b2840; --hover:#17233a; color-scheme:dark;
+}
+*{box-sizing:border-box}
+
+
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button,input{font-family:inherit}
+
+.arqtop{background:linear-gradient(120deg,#0a1e3d,#13325f 55%,#1d4a86);color:#fff;border-radius:14px;
+  padding:22px 24px 26px;position:relative;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.arqtop::after{content:"";position:absolute;left:14px;right:14px;bottom:8px;border-bottom:2px dashed rgba(229,138,82,.6)}
+.eyebrow{font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#c8d6ec;font-weight:600}
+.arqtop h1{margin:2px 0 0;font-family:var(--display);font-size:26px;font-weight:800}
+.arqtop p{margin:2px 0 0;color:#c8d6ec;font-size:13px}
+.launch{display:flex;align-items:center;gap:12px;background:#fff;color:#13325f;border:0;border-radius:10px;
+  padding:12px 18px;font-family:var(--display);font-weight:700;font-size:15px;cursor:pointer}
+.launch:hover{background:#ffe9db}
+.launch .ic{display:grid;place-items:center;width:26px;height:26px;border-radius:7px;background:#13325f;color:#fff;font-size:13px;font-family:var(--mono)}
+.launch[aria-expanded="true"]{box-shadow:0 0 0 3px #e58a52}
+
+.panel{display:flex;flex-direction:column;gap:14px}
+.bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.search{flex:1 1 280px;min-width:0;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:15px}
+.search:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+.fams{display:flex;flex-wrap:wrap;gap:6px}
+.fchip{background:var(--chip);color:var(--ink);border:1px solid transparent;border-radius:20px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer}
+.fchip[aria-pressed="true"]{background:var(--indigo-2);color:#fff}
+.fchip span{font-family:var(--mono);font-weight:400;opacity:.8;margin-left:4px}
+.notice{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;font-size:13px}
+
+.fam{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.fam > summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px}
+.fam > summary::-webkit-details-marker{display:none}
+.fam > summary h2{margin:0;font-family:var(--display);font-size:16px;font-weight:800;letter-spacing:.5px}
+.fam > summary .cnt{color:var(--muted);font-size:12.5px}
+.fam > summary .chev{transition:transform .15s;color:var(--muted)}
+.fam[open] > summary .chev{transform:rotate(90deg)}
+@media (prefers-reduced-motion: reduce){.fam > summary .chev{transition:none}}
+.list{border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:76px minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:9px 16px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row:hover{background:var(--hover)}
+.code{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.nm{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.nm small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.b{border-radius:8px;padding:6px 11px;font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);white-space:nowrap}
+.b:hover{border-color:var(--muted)}
+.b.pri{background:var(--indigo-2);border-color:var(--indigo-2);color:#fff}
+.b.pri:hover{filter:brightness(1.1)}
+.b.done{background:var(--ok);border-color:var(--ok);color:#fff}
+.pend{background:var(--warn-bg);color:var(--warn);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600}
+.empty{padding:14px 16px;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);
+  padding:10px 16px;border-radius:10px;font-size:13px;max-width:calc(100% - 32px)}
+@media (max-width:620px){
+  .row{grid-template-columns:64px minmax(0,1fr)}
+  .acts{grid-column:1 / -1;justify-content:flex-start}
+}
+
+.heads{display:flex;flex-wrap:wrap;gap:10px}
+.back{display:inline-flex;align-items:center;gap:8px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-weight:600;font-size:13.5px;cursor:pointer;align-self:flex-start}
+.back:hover{border-color:var(--muted)}
+.viewhead{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.viewhead h2{margin:0;font-family:var(--display);font-size:20px;font-weight:800}
+.panelhead{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+.panelhead h2{margin:0;font-family:var(--display);font-size:18px}
+.panelhead span{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+@media (max-width:400px){.grid{grid-template-columns:1fr}}
+.mod{background:var(--surface);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-width:0}
+.modhead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.modhead h3{margin:0;font-family:var(--display);font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:10px;min-width:0}
+.num{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:6px;background:var(--chip);color:var(--ink);font-family:var(--mono);font-size:12px}
+.mact{display:flex;gap:6px;flex:none}
+textarea{width:100%;flex:1;min-height:150px;resize:vertical;border:0;border-radius:0 0 12px 12px;background:var(--field);color:var(--ink);font-family:var(--mono);font-size:13px;line-height:1.6;padding:12px 14px}
+textarea:focus{outline:2px solid var(--accent);outline-offset:-2px}
+.hint{color:var(--muted);font-size:12.5px;margin:0}
+
+.arqtop .arqh{margin:2px 0 0;font-family:var(--display);font-size:24px;font-weight:800;color:#fff}
+.toast{z-index:50}
+
 </style>
 </head>
 <body>
@@ -99,22 +197,306 @@
       <div class="divider" aria-hidden="true"></div>
       <div>
         <h1>Arquivos</h1>
-        <p class="subtitle">Catálogos, fichas técnicas e materiais</p>
+        <p class="subtitle">Solicitações, fichas técnicas, tabelas, imagens e concorrentes</p>
       </div>
     </div>
     <nav class="modnav" aria-label="Módulos do CRM">
       <a href="../">Carteira</a>
-      <a href="https://calculadoradeconsumocdmtextil.netlify.app" target="_blank" rel="noopener">Calculadora de consumo <span class="ext" aria-hidden="true">↗</span></a>
-      <a href="../tendencias/">Tendências <span class="soon">em criação</span></a>
+      <a href="../calculadora/">Calculadora de consumo</a>
+      <a href="../tendencias/">Tendências</a>
       <a href="../reclamacao/">Reclamação de qualidade</a>
-      <a href="../arquivos/" aria-current="page">Arquivos <span class="soon">em criação</span></a>
+      <a href="../arquivos/" aria-current="page">Arquivos</a>
     </nav>
   </header>
-  <section class="card">
-    <span class="badge">Em criação</span>
-    <h2>Arquivos</h2>
-    <p>O módulo de arquivos está em criação. Em breve, aqui ficam catálogos, fichas técnicas, tabelas e materiais de apoio para os representantes.</p>
+
+  <section class="arqtop">
+    <div>
+      <div class="eyebrow">Capricórnio Têxtil</div>
+      <h2 class="arqh">Documentos do dia a dia</h2>
+      <p>Solicitações, fichas técnicas, tabelas e materiais de apoio.</p>
+    </div>
+    <div class="heads">
+      <button class="launch" id="btnCrm" aria-expanded="true" aria-controls="solic">
+        <span class="ic" aria-hidden="true">⇄</span>Solicitações CRM Capri
+      </button>
+      <button class="launch" id="btnFT">
+        <span class="ic" aria-hidden="true">FT</span>Fichas Técnicas
+      </button>
+      <button class="launch" id="btnTab">
+        <span class="ic" aria-hidden="true">R$</span>Tabelas
+      </button>
+      <button class="launch" id="btnImg">
+        <span class="ic" aria-hidden="true">IM</span>Imagens
+      </button>
+      <button class="launch" id="btnConc">
+        <span class="ic" aria-hidden="true">CO</span>Concorrentes
+      </button>
+    </div>
   </section>
+
+  <section class="panel" id="solic">
+    <div class="panelhead">
+      <h2>Solicitações CRM Capri</h2>
+      <span>Preencha os campos no próprio quadro e clique em Copiar</span>
+    </div>
+    <div class="grid" id="grid"></div>
+    <p class="hint">O texto que você editar fica salvo só neste navegador. "Limpar" volta o modelo ao original.</p>
+  </section>
+
+  <section class="panel" id="tabelas" hidden>
+    <div class="viewhead">
+      <button class="back" data-voltar type="button"><span aria-hidden="true">←</span>Voltar ao início</button>
+      <h2>Tabelas</h2>
+    </div>
+    <div class="fam"><div class="list" id="listaTab" style="border-top:0"></div></div>
+  </section>
+
+  <section class="panel" id="imagens" hidden>
+    <div class="viewhead">
+      <button class="back" data-voltar type="button"><span aria-hidden="true">←</span>Voltar ao início</button>
+      <h2>Imagens</h2>
+    </div>
+    <div class="fam"><div class="empty">Nenhuma imagem incluída ainda. Envie as imagens na conversa com o Claude para colocá-las aqui.</div></div>
+  </section>
+
+  <section class="panel" id="concorrentes" hidden>
+    <div class="viewhead">
+      <button class="back" data-voltar type="button"><span aria-hidden="true">←</span>Voltar ao início</button>
+      <h2>Concorrentes</h2>
+    </div>
+    <div class="fam"><div class="empty">Nenhum arquivo de concorrentes incluído ainda. Envie os arquivos na conversa com o Claude para colocá-los aqui.</div></div>
+  </section>
+
+  <section class="panel" id="painel" hidden>
+    <div class="viewhead">
+      <button class="back" data-voltar type="button"><span aria-hidden="true">←</span>Voltar ao início</button>
+      <h2>Fichas Técnicas</h2>
+    </div>
+    <div class="bar">
+      <input class="search" id="busca" type="search" placeholder="Buscar ficha: Algarve, 2601, black, baby blue…" aria-label="Buscar ficha técnica">
+    </div>
+    <div class="fams" id="fams" role="group" aria-label="Filtrar por família"></div>
+    <div class="notice" id="aviso" hidden></div>
+    <div id="lista" style="display:flex;flex-direction:column;gap:12px"></div>
+  </section>
+
 </div>
+<div class="toast" id="toast" hidden></div>
+<script>
+const FICHAS = [{"fam": "GERAL", "name": "Fichas Tecnicas por Linha", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2302 - GUIMAS", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2303 - RUDÁ", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2304 - GUIMAS BLACK BP", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2305 - ADONIS BLACK BP", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2305 - ADONIS BP", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2305 - ADONIS", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2305 - ORFEU BLACK BP", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2402 - VIELA BABY BLUE", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2402 - VIELA BLUE BLACK", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2402 - VIELA BLACK BP", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2402 - VIELA BP", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2501 - BARTÔ - PT", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2501 - BARTÔ - TINTO", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2501 - TRANCOSO MAX BABY BLUE", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2501 - TRANCOSO MAX BLACK BP", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2501 - TRANCOSO MAX BLUE BLACK", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2501 - TRANCOSO MAX BP", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2601 - RIO BLACK BP 1", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2501 - TRANCOSO MAX", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2302 - BORBA BABY BLUE", "path": null, "kb": null}, {"fam": "POLY", "name": "FT.2601 - RIO", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2302 - BORBA", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2302 - BRAGA", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2303 - CIPÓ 1", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2303 - CIPÓ", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2304 - BORBA BLACK BLACK", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2401 - TRINDADE BRANCO", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2401 - TRINDADE NAT", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2401 - TRINDADE PRETO", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2401 - UBÁ BRANCO", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2401 - TRINDADE PT", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2401 - UBÁ NAT", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2401 - UBÁ PRETO", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2401 - UBÁ PT", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2402 - BORBA BABY BLACK", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2402 - BRAGA BLACK BLACK", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2402 - BRAGA BABY BLUE", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2402 - UNA", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2501 - ALBATROZ LIGHT", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2501 - ALBATROZ", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2501 - ARAGUAIA BLACK", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2501 - CRATO PRETO", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2501 - CRATO PT", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2501 - CRATO TINTO 1", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2501 - CRATO TINTO", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2501 - GRAÇA NAT 1", "path": null, "kb": null}, {"fam": "ORIGINAL", "name": "FT.2501 - GRAÇA NAT", "path": "fichas/original/ft-2501-graca-nat.pdf", "kb": 649}, {"fam": "ORIGINAL", "name": "FT.2501 - GRAÇA PRETO", "path": "fichas/original/ft-2501-graca-preto.pdf", "kb": 435}, {"fam": "ORIGINAL", "name": "FT.2501 - GRAÇA PT", "path": "fichas/original/ft-2501-graca-pt.pdf", "kb": 532}, {"fam": "ORIGINAL", "name": "FT.2501 - GRAÇA TINTO", "path": "fichas/original/ft-2501-graca-tinto.pdf", "kb": 394}, {"fam": "ORIGINAL", "name": "FT.2501 - LAPA PRETO", "path": "fichas/original/ft-2501-lapa-preto.pdf", "kb": 435}, {"fam": "ORIGINAL", "name": "FT.2501 - JERI", "path": "fichas/original/ft-2501-jeri.pdf", "kb": 1049}, {"fam": "ORIGINAL", "name": "FT.2501 - LAPA PT", "path": "fichas/original/ft-2501-lapa-pt.pdf", "kb": 537}, {"fam": "ORIGINAL", "name": "FT.2501 - LAPA TINTO", "path": "fichas/original/ft-2501-lapa-tinto.pdf", "kb": 393}, {"fam": "ORIGINAL", "name": "FT.2501 - PIPA", "path": "fichas/original/ft-2501-pipa.pdf", "kb": 1094}, {"fam": "ORIGINAL", "name": "FT.2502 - ARAGUAIA", "path": "fichas/original/ft-2502-araguaia.pdf", "kb": 724}, {"fam": "ORIGINAL", "name": "FT.2601 - ALBATROZ BLUE BLACK", "path": "fichas/original/ft-2601-albatroz-blue-black.pdf", "kb": 586}, {"fam": "ORIGINAL", "name": "FT.2601 - ALBATROZ LIGHT BLUE BLACK", "path": "fichas/original/ft-2601-albatroz-light-blue-black.pdf", "kb": 586}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 10 Oz  BABY BLUE", "path": "fichas/original/ft-2601-algarve-10-oz-baby-blue.pdf", "kb": 659}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 10 Oz  BLACK", "path": "fichas/original/ft-2601-algarve-10-oz-black.pdf", "kb": 680}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 10 Oz BABY BLACK BROWN", "path": "fichas/original/ft-2601-algarve-10-oz-baby-black-brown.pdf", "kb": 1035}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 10 Oz BABY BLACK", "path": "fichas/original/ft-2601-algarve-10-oz-baby-black.pdf", "kb": 791}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 10 Oz BABY BLUE BROWN.", "path": "fichas/original/ft-2601-algarve-10-oz-baby-blue-brown.pdf", "kb": 1030}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 10 Oz BABY BLUE MELON", "path": "fichas/original/ft-2601-algarve-10-oz-baby-blue-melon.pdf", "kb": 1010}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 10 Oz BABY BLUE ROYAL", "path": "fichas/original/ft-2601-algarve-10-oz-baby-blue-royal.pdf", "kb": 752}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 10 Oz BLACK BLACK", "path": "fichas/original/ft-2601-algarve-10-oz-black-black.pdf", "kb": 560}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 10 Oz BLUE BLACK.", "path": "fichas/original/ft-2601-algarve-10-oz-blue-black.pdf", "kb": 811}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 10 Oz DARK BLUE", "path": "fichas/original/ft-2601-algarve-10-oz-dark-blue.pdf", "kb": 800}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 10 Oz ÍNDIGO BLUE", "path": "fichas/original/ft-2601-algarve-10-oz-indigo-blue.pdf", "kb": 673}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 11 Oz BLACK BLACK", "path": "fichas/original/ft-2601-algarve-11-oz-black-black.pdf", "kb": 602}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 11 Oz BLACK", "path": "fichas/original/ft-2601-algarve-11-oz-black.pdf", "kb": 616}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 11 Oz BLUE BLACK", "path": "fichas/original/ft-2601-algarve-11-oz-blue-black.pdf", "kb": 739}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 11 Oz", "path": "fichas/original/ft-2601-algarve-11-oz.pdf", "kb": 746}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 12 Oz  BLACK", "path": "fichas/original/ft-2601-algarve-12-oz-black.pdf", "kb": 664}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 12 Oz  BLUE BLACK", "path": "fichas/original/ft-2601-algarve-12-oz-blue-black.pdf", "kb": 809}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 12 Oz BABY BLACK", "path": "fichas/original/ft-2601-algarve-12-oz-baby-black.pdf", "kb": 796}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 12 Oz BABY BLUE ROYAL", "path": "fichas/original/ft-2601-algarve-12-oz-baby-blue-royal.pdf", "kb": 759}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 12 Oz BABY BLUE", "path": "fichas/original/ft-2601-algarve-12-oz-baby-blue.pdf", "kb": 668}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 12 Oz BLACK BLACK", "path": "fichas/original/ft-2601-algarve-12-oz-black-black.pdf", "kb": 672}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 12 Oz ÍNDIGO BLUE", "path": "fichas/original/ft-2601-algarve-12-oz-indigo-blue.pdf", "kb": 669}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 12 Oz", "path": "fichas/original/ft-2601-algarve-12-oz.pdf", "kb": 695}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 13 Oz", "path": "fichas/original/ft-2601-algarve-13-oz.pdf", "kb": 1039}, {"fam": "ORIGINAL", "name": "FT.2601 - ALGARVE 14 Oz", "path": "fichas/original/ft-2601-algarve-14-oz.pdf", "kb": 1006}, {"fam": "ORIGINAL", "name": "FT.2601 - ATINS", "path": "fichas/original/ft-2601-atins.pdf", "kb": 796}, {"fam": "ORIGINAL", "name": "FT.2601 - BRAVA", "path": "fichas/original/ft-2601-brava.pdf", "kb": 1096}, {"fam": "ORIGINAL", "name": "FT.2601 - GERIBÁ", "path": "fichas/original/ft-2601-geriba.pdf", "kb": 854}, {"fam": "ORIGINAL", "name": "FT.2601 - PREÁ 1", "path": "fichas/original/ft-2601-prea-1.pdf", "kb": 599}, {"fam": "ORIGINAL", "name": "FT.2601 - GLORIA", "path": "fichas/original/ft-2601-gloria.pdf", "kb": 1051}, {"fam": "ORIGINAL", "name": "FT.2601 - PREÁ BABY BLACK", "path": "fichas/original/ft-2601-prea-baby-black.pdf", "kb": 1065}, {"fam": "ORIGINAL", "name": "FT.2601 - PREÁ BLACK", "path": "fichas/original/ft-2601-prea-black.pdf", "kb": 1026}, {"fam": "ORIGINAL", "name": "FT.2601 - PREÁ", "path": "fichas/original/ft-2601-prea.pdf", "kb": 599}, {"fam": "ORIGINAL", "name": "FT.2601 - SAGI", "path": "fichas/original/ft-2601-sagi.pdf", "kb": 1130}, {"fam": "ORIGINAL", "name": "FT.2601 - TANGUÁ BLACK BLACK", "path": "fichas/original/ft-2601-tangua-black-black.pdf", "kb": 605}, {"fam": "ORIGINAL", "name": "FT.2601 - TAÍBA", "path": "fichas/original/ft-2601-taiba.pdf", "kb": 837}, {"fam": "ORIGINAL", "name": "FT.2601 - UNA BLUE BLACK", "path": "fichas/original/ft-2601-una-blue-black.pdf", "kb": 725}, {"fam": "ORIGINAL", "name": "FT.2602 - GLORIA", "path": "fichas/original/ft-2602-gloria.pdf", "kb": 791}, {"fam": "ORIGINAL", "name": "FT.2602 - TANGUÁ 1", "path": "fichas/original/ft-2602-tangua-1.pdf", "kb": 1082}, {"fam": "ORIGINAL", "name": "FT.2602 - TANGUÁ", "path": "fichas/original/ft-2602-tangua.pdf", "kb": 1082}, {"fam": "LIGHT", "name": "FT.2303 - LIZ BABY BLUE", "path": "fichas/light/ft-2303-liz-baby-blue.pdf", "kb": 577}, {"fam": "LIGHT", "name": "FT.2303 - LUNA BABY BLUE", "path": "fichas/light/ft-2303-luna-baby-blue.pdf", "kb": 582}, {"fam": "LIGHT", "name": "FT.2303 - LIZ", "path": "fichas/light/ft-2303-liz.pdf", "kb": 570}, {"fam": "LIGHT", "name": "FT.2303 - LUNA", "path": "fichas/light/ft-2303-luna.pdf", "kb": 633}, {"fam": "LIGHT", "name": "FT.2405 - EVA", "path": "fichas/light/ft-2405-eva.pdf", "kb": 690}, {"fam": "FLAT", "name": "FT.2303 - FEBE BABY BLUE", "path": "fichas/flat/ft-2303-febe-baby-blue.pdf", "kb": 522}, {"fam": "FLAT", "name": "FT.2303 - FEBE BLACK BP", "path": "fichas/flat/ft-2303-febe-black-bp.pdf", "kb": 555}, {"fam": "FLAT", "name": "FT.2303 - FEBE BLUE BLACK", "path": "fichas/flat/ft-2303-febe-blue-black.pdf", "kb": 544}, {"fam": "FLAT", "name": "FT.2303 - FEBE BP", "path": "fichas/flat/ft-2303-febe-bp.pdf", "kb": 585}, {"fam": "FLAT", "name": "FT.2303 - FEBE", "path": "fichas/flat/ft-2303-febe.pdf", "kb": 573}, {"fam": "FLAT", "name": "FT.2401 - ALLOS - BRANCO", "path": "fichas/flat/ft-2401-allos-branco.pdf", "kb": 381}, {"fam": "FLAT", "name": "FT.2401 - MIRA - BRANCO", "path": "fichas/flat/ft-2401-mira-branco.pdf", "kb": 388}, {"fam": "FLAT", "name": "FT.2401 - RUES - PRETO", "path": "fichas/flat/ft-2401-rues-preto.pdf", "kb": 404}, {"fam": "FLAT", "name": "FT.2401 - RUES - TINTO-SPO-QLD-N07", "path": "fichas/flat/ft-2401-rues-tinto-spo-qld-n07.pdf", "kb": 385}, {"fam": "FLAT", "name": "FT.2401 - RUES - TINTO", "path": "fichas/flat/ft-2401-rues-tinto.pdf", "kb": 391}, {"fam": "FLAT", "name": "FT.2401 - RUES NAT", "path": "fichas/flat/ft-2401-rues-nat.pdf", "kb": 762}, {"fam": "CONFORT", "name": "FT.2302 - ALCARAZ BABY BLUE", "path": "fichas/confort/ft-2302-alcaraz-baby-blue.pdf", "kb": 538}, {"fam": "CONFORT", "name": "FT.2302 - ALCARAZ", "path": "fichas/confort/ft-2302-alcaraz.pdf", "kb": 569}, {"fam": "CONFORT", "name": "FT.2302 - BOSCO BLACK BLACK", "path": "fichas/confort/ft-2302-bosco-black-black.pdf", "kb": 557}, {"fam": "CONFORT", "name": "FT.2302 - BOSCO", "path": "fichas/confort/ft-2302-bosco.pdf", "kb": 630}, {"fam": "CONFORT", "name": "FT.2302 - IBIRA FLEX BABY BLUE", "path": "fichas/confort/ft-2302-ibira-flex-baby-blue.pdf", "kb": 532}, {"fam": "CONFORT", "name": "FT.2302 - IBIRA FLEX BLACK", "path": "fichas/confort/ft-2302-ibira-flex-black.pdf", "kb": 614}, {"fam": "CONFORT", "name": "FT.2302 - IBIRA FLEX BLACK BLACK", "path": "fichas/confort/ft-2302-ibira-flex-black-black.pdf", "kb": 597}, {"fam": "CONFORT", "name": "FT.2302 - IBIRA FLEX", "path": "fichas/confort/ft-2302-ibira-flex.pdf", "kb": 561}, {"fam": "CONFORT", "name": "FT.2303 - GUGA BABY BLUE", "path": "fichas/confort/ft-2303-guga-baby-blue.pdf", "kb": 602}, {"fam": "CONFORT", "name": "FT.2303 - GUGA BLACK BLACK", "path": "fichas/confort/ft-2303-guga-black-black.pdf", "kb": 505}, {"fam": "CONFORT", "name": "FT.2303 - GUGA", "path": "fichas/confort/ft-2303-guga.pdf", "kb": 626}, {"fam": "CONFORT", "name": "FT.2303 - NADAL", "path": "fichas/confort/ft-2303-nadal.pdf", "kb": 614}, {"fam": "CONFORT", "name": "FT.2401 - LEE - BRANCO", "path": "fichas/confort/ft-2401-lee-branco.pdf", "kb": 429}, {"fam": "CONFORT", "name": "FT.2401 - LEE - NAT", "path": "fichas/confort/ft-2401-lee-nat.pdf", "kb": 684}, {"fam": "CONFORT", "name": "FT.2401 - LEE - PRETO", "path": "fichas/confort/ft-2401-lee-preto.pdf", "kb": 412}, {"fam": "CONFORT", "name": "FT.2401 - LEE - PT", "path": "fichas/confort/ft-2401-lee-pt.pdf", "kb": 532}, {"fam": "CONFORT", "name": "FT.2401 - MONTE - BRANCO", "path": "fichas/confort/ft-2401-monte-branco.pdf", "kb": 384}, {"fam": "CONFORT", "name": "FT.2401 - MONTE - PRETO", "path": "fichas/confort/ft-2401-monte-preto.pdf", "kb": 412}, {"fam": "CONFORT", "name": "FT.2401 - MONTE - PT", "path": "fichas/confort/ft-2401-monte-pt.pdf", "kb": 573}, {"fam": "CONFORT", "name": "FT.2402 - ALCARAZ BABY BLACK", "path": "fichas/confort/ft-2402-alcaraz-baby-black.pdf", "kb": 698}, {"fam": "CONFORT", "name": "FT.2402 - ALCARAZ BLACK BLACK", "path": "fichas/confort/ft-2402-alcaraz-black-black.pdf", "kb": 599}, {"fam": "CONFORT", "name": "FT.2402 - BOSCO BABY BLACK", "path": "fichas/confort/ft-2402-bosco-baby-black.pdf", "kb": 575}, {"fam": "CONFORT", "name": "FT.2402 - BOSCO BABY BLUE", "path": "fichas/confort/ft-2402-bosco-baby-blue.pdf", "kb": 663}, {"fam": "CONFORT", "name": "FT.2402 - IBIRA FLEX BABY BLACK", "path": "fichas/confort/ft-2402-ibira-flex-baby-black.pdf", "kb": 663}, {"fam": "CONFORT", "name": "FT.2402 - IBIRA FLEX BABY BLUE ROYAL", "path": "fichas/confort/ft-2402-ibira-flex-baby-blue-royal.pdf", "kb": 703}, {"fam": "CONFORT", "name": "FT.2402 - MONTE - NAT", "path": "fichas/confort/ft-2402-monte-nat.pdf", "kb": 758}, {"fam": "CONFORT", "name": "FT.2402 - MONTE - TINTO", "path": "fichas/confort/ft-2402-monte-tinto.pdf", "kb": 395}, {"fam": "CONFORT", "name": "FT.2403 - GUGA BABY BLACK", "path": "fichas/confort/ft-2403-guga-baby-black.pdf", "kb": 617}, {"fam": "CONFORT", "name": "FT.2403 - NADAL BABY BLACK", "path": "fichas/confort/ft-2403-nadal-baby-black.pdf", "kb": 630}, {"fam": "CONFORT", "name": "FT.2403 - NADAL BABY BLUE", "path": "fichas/confort/ft-2403-nadal-baby-blue.pdf", "kb": 584}, {"fam": "CONFORT", "name": "FT.2403 - NADAL BLACK BLACK", "path": "fichas/confort/ft-2403-nadal-black-black.pdf", "kb": 612}, {"fam": "CONFORT", "name": "FT.2501 - LAMAR", "path": "fichas/confort/ft-2501-lamar.pdf", "kb": 618}];
+const ORDEM = ["ORIGINAL","CONFORT","POLY","FLAT","LIGHT","GERAL"];
+const ROTULO = {GERAL:"ÍNDICE GERAL"};
+let famAtiva = "TODAS";
+
+const toastEl = document.getElementById("toast"); let tt;
+function toast(msg){ toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(tt); tt = setTimeout(()=>toastEl.hidden = true, 2600); }
+
+function partes(nome){
+  const m = nome.match(/^(FT\.\d{4})\s*-\s*(.*)$/);
+  return m ? {code:m[1], rest:m[2].replace(/\s+/g," ").replace(/\.+$/,"").trim()} : {code:"", rest:nome};
+}
+const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+
+async function baixar(f, btn){
+  const txt = btn.textContent; btn.textContent = "…";
+  try{
+    let blob;
+    if(f.enc){ try{ blob = await abrirCifrado(f); }catch(e){ erroCifrado(e); btn.textContent = txt; return; } }
+    else { const r = await fetch(f.path); if(!r.ok) throw new Error(); blob = await r.blob(); }
+    const nome = f.name + "." + (f.ext || "pdf");
+    if(navigator.canShare && /Android|iPhone|iPad/i.test(navigator.userAgent)){
+      const file = new File([blob], nome, {type: blob.type || "application/octet-stream"});
+      if(navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file], title:nome}); btn.textContent = txt; return; }catch(e){ if(e && e.name === "AbortError"){ btn.textContent = txt; return; } } }
+    }
+    const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = nome;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 4000);
+    btn.textContent = "Baixado"; btn.classList.add("done");
+    setTimeout(()=>{btn.textContent = txt; btn.classList.remove("done");}, 1800);
+  }catch(e){ toast("Não foi possível baixar. Tente pelo botão Abrir."); btn.textContent = txt; }
+}
+
+function copiarLink(f, btn){
+  const url = new URL(f.path, location.href).href;
+  const ok = () => { btn.textContent = "Link copiado"; btn.classList.add("done");
+    setTimeout(()=>{btn.textContent = "Copiar link"; btn.classList.remove("done");}, 1800); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(ok, () => toast(url));
+  } else toast(url);
+}
+
+function render(){
+  const q = norm(document.getElementById("busca").value.trim());
+  const termos = q.split(/\s+/).filter(Boolean);
+  const lista = document.getElementById("lista"); lista.innerHTML = "";
+  let total = 0;
+  ORDEM.forEach(fam => {
+    if(famAtiva !== "TODAS" && famAtiva !== fam) return;
+    const itens = FICHAS.filter(f => f.fam === fam && termos.every(t => norm(f.fam + " " + f.name).includes(t)));
+    if(!itens.length) return;
+    total += itens.length;
+    itens.sort((a,b)=>partes(a.name).rest.localeCompare(partes(b.name).rest,"pt") || a.name.localeCompare(b.name));
+    const det = document.createElement("details"); det.className = "fam";
+    det.open = !!termos.length || famAtiva !== "TODAS" || fam === "ORIGINAL";
+    det.innerHTML = `<summary><h2>${ROTULO[fam]||fam}</h2><span style="display:flex;gap:10px;align-items:center"><span class="cnt">${itens.length} ficha${itens.length>1?"s":""}</span><span class="chev" aria-hidden="true">›</span></span></summary>`;
+    const ul = document.createElement("div"); ul.className = "list";
+    itens.forEach(f => {
+      const p = partes(f.name);
+      const row = document.createElement("div"); row.className = "row";
+      row.innerHTML = `<span class="code">${p.code || "—"}</span><span class="nm"></span><span class="acts"></span>`;
+      const nm = row.querySelector(".nm"); nm.textContent = p.rest;
+      if(f.kb){ const s = document.createElement("small"); s.textContent = `PDF · ${f.kb >= 1024 ? (f.kb/1024).toFixed(1).replace(".",",")+" MB" : f.kb+" KB"}`; nm.appendChild(s); }
+      const acts = row.querySelector(".acts");
+      if(f.path){
+        const a = document.createElement("a"); a.className = "b"; a.href = f.path; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Abrir";
+        const d = document.createElement("button"); d.className = "b pri"; d.type = "button"; d.textContent = "Baixar / Enviar"; d.onclick = () => baixar(f, d);
+        const c = document.createElement("button"); c.className = "b"; c.type = "button"; c.textContent = "Copiar link"; c.onclick = () => copiarLink(f, c);
+        acts.append(a, d, c);
+      } else {
+        const s = document.createElement("span"); s.className = "pend"; s.textContent = "Arquivo pendente"; acts.append(s);
+      }
+      ul.appendChild(row);
+    });
+    det.appendChild(ul); lista.appendChild(det);
+  });
+  if(!total){ lista.innerHTML = `<div class="fam"><div class="empty">Nenhuma ficha encontrada para essa busca.</div></div>`; }
+}
+
+function chips(){
+  const box = document.getElementById("fams");
+  const opts = ["TODAS", ...ORDEM];
+  box.innerHTML = "";
+  opts.forEach(fam => {
+    const n = fam === "TODAS" ? FICHAS.length : FICHAS.filter(f=>f.fam===fam).length;
+    if(!n) return;
+    const b = document.createElement("button"); b.type = "button"; b.className = "fchip";
+    b.setAttribute("aria-pressed", String(fam === famAtiva));
+    b.innerHTML = `${fam === "TODAS" ? "Todas" : (ROTULO[fam]||fam)}<span>${n}</span>`;
+    b.onclick = () => { famAtiva = fam; chips(); render(); };
+    box.appendChild(b);
+  });
+}
+
+const pend = FICHAS.filter(f=>!f.path).length;
+if(pend){ const av = document.getElementById("aviso"); av.hidden = false;
+  av.textContent = `${pend} fichas ainda estão sem o arquivo anexado e aparecem como "Arquivo pendente".`; }
+
+document.getElementById("busca").addEventListener("input", render);
+const MODELOS = [
+ {t:"Cancelamento", x:`Número do Pedido: 123087
+Nome do cliente: XXXXX
+Solicitação: Cancelamento
+Motivo: Atraso no faturamento`},
+ {t:"Alteração de Preço", x:`Número do Pedido: 123087
+Nome do cliente: XXXXX
+Solicitação: Alteração de Preço
+Motivo: Preço digitado errado
+Preço digitado:
+Preço correto:`},
+ {t:"Redução de Quantidade", x:`Número do Pedido: 123087
+Nome do cliente: XXXXX
+Solicitação: Redução de quantidade
+Motivo:
+Metragem digitada:
+Metragem correta:`},
+ {t:"Alteração de Condição de Pagamento", x:`Número do Pedido: 123087
+Nome do cliente: XXXXX
+Solicitação: Alteração de condição de pagamento
+Motivo:
+Condição digitada:
+Nova condição:`},
+ {t:"Alteração de Data", x:`Número do Pedido: 123087
+Nome do cliente: XXXXX
+Solicitação: Alteração de data
+Motivo:`},
+ {t:"Prorrogação de Duplicata", x:`Número do Pedido: 123087
+Nome do cliente: XXXXX
+Solicitação: Prorrogação de duplicata
+Motivo:`},
+ {t:"Devolução de NF", x:`Número do Pedido/NF: 123087 / NFXXXXX
+Nome do cliente: XXXXX
+Solicitação: Devolução de NF
+Motivo:`}
+];
+const KEY = i => "crmcapri-modelo-" + i;
+const load = i => { try { return localStorage.getItem(KEY(i)); } catch(e) { return null; } };
+const save = (i,v) => { try { localStorage.setItem(KEY(i), v); } catch(e) {} };
+const drop = i => { try { localStorage.removeItem(KEY(i)); } catch(e) {} };
+const grid = document.getElementById("grid");
+MODELOS.forEach((m,i) => {
+  const card = document.createElement("article"); card.className = "mod";
+  card.innerHTML = `<div class="modhead"><h3><span class="num">${i+1}</span><span>${m.t}</span></h3>
+    <div class="mact"><button class="b" type="button" data-r>Limpar</button><button class="b pri" type="button" data-c>Copiar</button></div></div>
+    <textarea id="modelo-${i+1}" spellcheck="false" aria-label="Texto do modelo ${m.t}"></textarea>`;
+  const ta = card.querySelector("textarea");
+  ta.rows = m.x.split("\n").length + 1;
+  ta.value = load(i) ?? m.x;
+  ta.addEventListener("input", () => save(i, ta.value));
+  card.querySelector("[data-r]").onclick = () => { ta.value = m.x; drop(i); };
+  const bc = card.querySelector("[data-c]");
+  bc.onclick = () => {
+    const ok = () => { bc.textContent = "Copiado"; bc.classList.add("done"); setTimeout(()=>{bc.textContent="Copiar"; bc.classList.remove("done");},1600); };
+    const fb = () => { ta.focus(); ta.select(); try{ if(document.execCommand("copy")){ ok(); return; } }catch(e){} toast("Texto selecionado. Use Ctrl+C para copiar."); };
+    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(ok, fb); else fb();
+  };
+  grid.appendChild(card);
+});
+
+const solic = document.getElementById("solic"), painel = document.getElementById("painel"), topo = document.querySelector(".arqtop");
+const btnCrm = document.getElementById("btnCrm");
+btnCrm.addEventListener("click", () => { const abrir = solic.hidden; solic.hidden = !abrir; btnCrm.setAttribute("aria-expanded", String(abrir)); });
+const tabelasEl = document.getElementById("tabelas");
+const TABELAS = [
+  {name:"TABELA DE PREÇOS SP ATÉ JULHO 2026 3", enc:"tabelas/tabela-de-precos-sp-ate-julho-2026-3.pdf.enc", ext:"pdf", tipo:"PDF", kb:92, mime:"application/pdf"},
+  {name:"TABELA SP SETEMBRO 2", enc:"tabelas/tabela-sp-setembro-2.xlsx.enc", ext:"xlsx", tipo:"Excel", kb:18, mime:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
+];
+/* As tabelas ficam cifradas no site (AES-256-GCM, mesma chave da carteira). Só abrem depois da senha do CRM. */
+function b64d(t){ const b = atob(t), u = new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i] = b.charCodeAt(i); return u; }
+async function abrirCifrado(f){
+  let k = null; try{ k = sessionStorage.getItem("sd_carteira_chave"); }catch(e){}
+  if(!k || !window.crypto || !crypto.subtle) throw new Error("chave");
+  const r = await fetch(f.enc + "?t=" + Date.now(), {cache:"no-store"}); if(!r.ok) throw new Error("rede");
+  const buf = new Uint8Array(await r.arrayBuffer());
+  const key = await crypto.subtle.importKey("raw", b64d(k), "AES-GCM", false, ["decrypt"]);
+  let plain;
+  try{ plain = await crypto.subtle.decrypt({name:"AES-GCM", iv:buf.slice(0,12)}, key, buf.slice(12)); }
+  catch(e){ throw new Error("chave"); }
+  return new Blob([plain], {type: f.mime || "application/octet-stream"});
+}
+function erroCifrado(e){
+  toast(e && e.message === "chave" ? "Não foi possível abrir a tabela. Saia e entre de novo com a senha do CRM." : "Não foi possível baixar a tabela. Verifique a conexão.");
+}
+const listaTab = document.getElementById("listaTab");
+TABELAS.forEach(f => {
+  const row = document.createElement("div"); row.className = "row";
+  row.innerHTML = `<span class="code">${f.tipo}</span><span class="nm"></span><span class="acts"></span>`;
+  const nm = row.querySelector(".nm"); nm.textContent = f.name;
+  const s = document.createElement("small"); s.textContent = `${f.tipo} · ${f.kb} KB · protegido pela senha`; nm.appendChild(s);
+  const acts = row.querySelector(".acts");
+  if(f.ext === "pdf"){
+    const a = document.createElement("button"); a.className = "b"; a.type = "button"; a.textContent = "Abrir";
+    a.onclick = async () => {
+      const w = window.open("", "_blank");
+      try{ const blob = await abrirCifrado(f); const url = URL.createObjectURL(blob);
+        if(w){ w.location.href = url; } else { location.href = url; } setTimeout(()=>URL.revokeObjectURL(url), 60000); }
+      catch(e){ if(w) w.close(); erroCifrado(e); }
+    };
+    acts.append(a);
+  }
+  const d = document.createElement("button"); d.className = "b pri"; d.type = "button"; d.textContent = "Baixar / Enviar"; d.onclick = () => baixar(f, d);
+  acts.append(d);
+  listaTab.appendChild(row);
+});
+const VIEWS = ["painel","tabelas","imagens","concorrentes"].map(id => document.getElementById(id));
+function irView(id){ topo.hidden = true; solic.hidden = true; VIEWS.forEach(v => v.hidden = v.id !== id); window.scrollTo(0,0); }
+function irTabelas(){ irView("tabelas"); }
+document.getElementById("btnImg").addEventListener("click", () => irView("imagens"));
+document.getElementById("btnConc").addEventListener("click", () => irView("concorrentes"));
+function irFichas(){ topo.hidden = true; solic.hidden = true; tabelasEl.hidden = true; painel.hidden = false; window.scrollTo(0,0); document.getElementById("busca").focus({preventScroll:true}); }
+function irInicio(){ VIEWS.forEach(v => v.hidden = true); topo.hidden = false; solic.hidden = btnCrm.getAttribute("aria-expanded") !== "true"; window.scrollTo(0,0); }
+document.getElementById("btnFT").addEventListener("click", irFichas);
+document.querySelectorAll("[data-voltar]").forEach(b => b.addEventListener("click", irInicio));
+document.getElementById("btnTab").addEventListener("click", irTabelas);
+chips(); render();
+</script>
 </body>
 </html>
