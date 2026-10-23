@@ -203,6 +203,14 @@
   .cli{font-weight:600;} .cli small{display:block; font-weight:400; color:var(--muted); font-size:11.5px;}
   .empty{padding:18px 4px 4px; color:var(--muted);}
   .empty.ok{color:var(--good); font-weight:600;}
+  .prevcell{white-space:nowrap;} .prevcell small{display:block; white-space:normal; max-width:220px; color:var(--muted); font-size:11.5px;}
+  .pill.prev{background:var(--good-bg); color:var(--good);}
+  .pill.prev.vencida{background:var(--warn-bg); color:var(--warn);}
+  .pill.prev.texto{background:var(--tint); color:var(--title); white-space:normal;}
+  .semprev{color:var(--muted);}
+  .prevbar{display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; font-size:12.5px; color:var(--rust-ink); padding:10px 22px 0;}
+  .prevbar b{font-weight:700;}
+  .prevbar button{background:none; border:0; padding:0; color:var(--link); font:inherit; font-weight:600; text-decoration:underline; cursor:pointer;}
   .card.late.none{border:1px solid var(--border);}
   .card.late.none .latehead{background:var(--good-bg); border-bottom-color:var(--border);}
   .card.late.none .latehead h2{color:var(--good);}
@@ -269,6 +277,7 @@
       <div class="filechip"><b id="fileName">Abrindo a carteira…</b><span id="fileDate">&nbsp;</span></div>
       <div class="fileactions">
         <button class="btn-light" id="btnUpdate" type="button">Atualizar carteira</button>
+        <button class="btn-light" id="btnPrev" type="button">Previsão de atendimento</button>
         <button class="btn-ghost" id="btnLock" type="button">Sair</button>
       </div>
       <div class="filemsg" id="fileMsg" aria-live="polite"></div>
@@ -350,17 +359,19 @@
       <h2 id="hLate">Pedidos atrasados <span class="count" id="lateCount">—</span></h2>
       <div class="latesum" id="lateSum">&nbsp;</div>
     </div>
+    <div class="prevbar" id="prevBar" hidden></div>
     <div class="latebody" id="lateBody"><p class="empty">Aguardando a carteira para listar os pedidos com embarque vencido e saldo a faturar.</p></div>
   </section>
 
   <p class="footnote" id="footnote">
     <b>Como os números são calculados.</b> Cada pedido conta uma vez, mesmo com várias linhas. <b>Em aberto</b>: pedido com alguma linha não cancelada e saldo a faturar. <b>Faturado</b>: pedido sem saldo e com quantidade faturada. <b>Cancelado</b>: todas as linhas canceladas.
     <b>Valor total</b> = Quantidade × Valor Unitário Líquido das linhas não canceladas; <b>valor faturado</b> = qtde_faturada × Valor Unitário Líquido; <b>valor em aberto</b> = Saldo × Valor Unitário Líquido (a coluna “Valor Total” do arquivo).
-    <b>Atrasado</b>: linha não cancelada, com saldo, e Embarque anterior a hoje.
+    <b>Atrasado</b>: linha não cancelada, com saldo, e Embarque anterior a hoje. <b>Previsão</b>: vem do arquivo enviado em “Previsão de atendimento”, ligado pelo número do pedido; fica guardada neste navegador até ser removida ou trocada.
     <b>Filtro de mês</b>: considera só as linhas cuja data de Embarque (ou de Emissão, conforme a escolha) cai no mês selecionado; a lista de pedidos atrasados mostra sempre todos os atrasados.
   </p>
 </div>
 <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm,.csv" hidden>
+<input type="file" id="prevInput" accept=".xlsx,.xls,.xlsm,.csv" hidden>
 
 <script>
 (function(){
@@ -488,6 +499,7 @@ function renderChart(){
 }
 function renderLate(k){
   var card=$('lateCard'), body=$('lateBody');
+  renderPrevBar(k);
   $('lateCount').textContent=fmtInt(k.latePeds);
   if(!k.late.length){
     card.classList.add('none');
@@ -497,7 +509,7 @@ function renderLate(k){
   }
   card.classList.remove('none');
   $('lateSum').textContent=fmtBRL(k.lateValor)+' em aberto com embarque vencido · referência '+fmtDate(k.today);
-  var h='<div class="tablewrap"><table><thead><tr><th>Atraso</th><th>Pedido</th><th>Cliente</th><th>Tecido</th><th>Embarque</th><th class="num">Saldo</th><th class="num">Valor em aberto</th><th>Situação</th></tr></thead><tbody>';
+  var h='<div class="tablewrap"><table><thead><tr><th>Atraso</th><th>Pedido</th><th>Cliente</th><th>Tecido</th><th>Embarque</th><th>Previsão</th><th class="num">Saldo</th><th class="num">Valor em aberto</th><th>Situação</th></tr></thead><tbody>';
   k.late.forEach(function(r){
     var d=daysLate(r.embarque,k.today), cls=d>14?'d3':d>7?'d2':'d1';
     var block=norm(r.sit).indexOf('bloq')>=0;
@@ -506,6 +518,7 @@ function renderLate(k){
        '<td class="cli">'+esc(r.cliente)+(r.remessa? '<small>Entrega: '+esc(r.remessa)+'</small>':'')+'</td>'+
        '<td>'+esc(r.desc)+'</td>'+
        '<td>'+fmtDate(r.embarque)+'</td>'+
+       '<td class="prevcell">'+prevCell(r,k.today)+'</td>'+
        '<td class="num">'+fmtNum(r.saldo)+'</td>'+
        '<td class="num"><b>'+fmtBRL(r.saldo*r.unit)+'</b></td>'+
        '<td><span class="pill sit'+(block?' block':'')+'">'+esc(r.sit)+'</span><br><small>'+esc(r.sitLinha)+'</small></td></tr>';
@@ -614,6 +627,90 @@ function onFile(file){
   }).then(function(){ btn.disabled=false; $('fileInput').value=''; });
 }
 
+/* ---------- previsão de atendimento (arquivo enviado pelo representante) ---------- */
+var PREV_LS='sd_previsao_atendimento', PREV=null;
+try{ PREV=JSON.parse(localStorage.getItem(PREV_LS)||'null'); }catch(e){ PREV=null; }
+function pedKey(v){ var d=String(v==null?'':v).replace(/\.0+$/,'').replace(/\D/g,'').replace(/^0+/,''); return d; }
+function findPrev(r){
+  if(!PREV||!PREV.mapa) return null;
+  var lst=PREV.mapa[pedKey(r.pedido)]; if(!lst||!lst.length) return null;
+  if(lst.length===1||!r.desc) return lst[0];
+  var dn=norm(r.desc), best=null, bestN=0;
+  lst.forEach(function(x){ if(!x.item) return; var t=norm(x.item).split(/[^a-z0-9]+/).filter(function(w){return w.length>1;}); var n=t.filter(function(w){return dn.indexOf(w)>=0;}).length; if(n>bestN){ bestN=n; best=x; } });
+  return best||lst[0];
+}
+function prevCell(r,today){
+  var pv=findPrev(r);
+  if(!pv) return '<span class="semprev">—</span>';
+  var h;
+  if(pv.data){ var venc=pv.data<today; h='<span class="pill prev'+(venc?' vencida':'')+'" title="'+(venc?'A previsão já passou':'Previsão de atendimento')+'">'+fmtDate(pv.data)+'</span>'; }
+  else h='<span class="pill prev texto">'+esc(pv.texto)+'</span>';
+  if(pv.obs) h+='<small>'+esc(pv.obs)+'</small>';
+  return h;
+}
+function renderPrevBar(k){
+  var bar=$('prevBar');
+  if(!PREV||!PREV.mapa){ bar.hidden=true; bar.innerHTML=''; return; }
+  var com=0, peds={}; (k.late||[]).forEach(function(r){ if(!peds[r.pedido]){ peds[r.pedido]=1; if(findPrev(r)) com++; } });
+  var tot=Object.keys(peds).length;
+  bar.hidden=false;
+  bar.innerHTML='<span>Previsão: <b>'+esc(PREV.arquivo||'arquivo')+'</b>, enviado em '+esc(fmtDateTime(PREV.carregadoEm))+'</span>'+
+    '<span>'+fmtInt(com)+' de '+fmtInt(tot)+' pedido'+(tot===1?'':'s')+' atrasado'+(tot===1?'':'s')+' com previsão</span>'+
+    '<button type="button" id="prevClear">Remover previsão</button>';
+  $('prevClear').addEventListener('click',function(){ PREV=null; try{ localStorage.removeItem(PREV_LS); }catch(e){} if(S.k) renderLate(S.k); setFileMsg('Previsão removida.'); });
+}
+function findCol(names, tests, avoid){
+  for(var t=0;t<tests.length;t++){ for(var i=0;i<names.length;i++){ var n=names[i]; if(!n) continue; if(avoid&&avoid.some(function(a){return n.indexOf(a)>=0;})) continue; if(n===tests[t]||n.indexOf(tests[t])>=0) return i; } }
+  return -1;
+}
+function parsePrevisao(XLSX, buf){
+  var wb=XLSX.read(new Uint8Array(buf),{type:'array',cellDates:false}), best=null;
+  wb.SheetNames.forEach(function(name){
+    var rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:''});
+    for(var hi=0;hi<Math.min(15,rows.length);hi++){
+      var names=(rows[hi]||[]).map(function(c){ return norm(String(c==null?'':c).trim()).replace(/\s+/g,' '); });
+      var ip=findCol(names,['pedido','ped.','ped ','n. ped','no ped','num ped'],['cliente','compra']);
+      if(ip<0) ip=findCol(names,['pedido']);
+      var iv=findCol(names,['previsao de atendimento','previsao atendimento','previsao de entrega','previsao de embarque','previsao de faturamento','previsao','prev.','prev ','nova data','data prevista','data de atendimento','atendimento','reprogramacao','nova entrega']);
+      if(ip<0||iv<0||ip===iv) continue;
+      var score=1+(rows.length-hi>1?1:0);
+      if(!best||score>best.score) best={score:score,rows:rows,hi:hi,ip:ip,iv:iv,
+        ii:findCol(names,['descricao','tecido','artigo','produto','item','material'],['previs']),
+        io:findCol(names,['observacao','obs','motivo','status','comentario','situacao'],['previs','linha'])};
+    }
+  });
+  if(!best) throw new Error('colunas');
+  var mapa={}, linhas=0;
+  for(var r=best.hi+1;r<best.rows.length;r++){
+    var row=best.rows[r]; if(!row) continue;
+    var key=pedKey(row[best.ip]), v=row[best.iv];
+    if(!key||v===''||v==null) continue;
+    var iso=toISO(v), item={};
+    if(/^\d{4}-\d{2}-\d{2}$/.test(iso)) item.data=iso; else item.texto=String(v).trim();
+    if(best.ii>=0&&row[best.ii]!=='') item.item=String(row[best.ii]).trim();
+    if(best.io>=0&&row[best.io]!==''&&row[best.io]!=null) item.obs=String(row[best.io]).trim();
+    (mapa[key]=mapa[key]||[]).push(item); linhas++;
+  }
+  if(!linhas) throw new Error('vazio');
+  return {mapa:mapa, linhas:linhas, colPedido:best.rows[best.hi][best.ip], colPrev:best.rows[best.hi][best.iv]};
+}
+function onPrevFile(file){
+  var btn=$('btnPrev'); btn.disabled=true; setFileMsg('Lendo a previsão '+file.name+'…');
+  Promise.all([loadXLSX(), file.arrayBuffer()]).then(function(a){
+    var res=parsePrevisao(a[0],a[1]);
+    PREV={arquivo:file.name, carregadoEm:new Date().toISOString(), mapa:res.mapa};
+    try{ localStorage.setItem(PREV_LS, JSON.stringify(PREV)); }catch(e){}
+    if(S.k) renderLate(S.k);
+    var achou=0, peds={}; ((S.k&&S.k.late)||[]).forEach(function(r){ if(!peds[r.pedido]){ peds[r.pedido]=1; if(findPrev(r)) achou++; } });
+    setFileMsg('Previsão lida: '+fmtInt(Object.keys(res.mapa).length)+' pedidos no arquivo (colunas “'+res.colPedido+'” e “'+res.colPrev+'”); '+fmtInt(achou)+' estão na lista de atrasados.');
+  }).catch(function(e){
+    setFileMsg(e&&e.message==='colunas'? 'Não encontrei no arquivo uma coluna de pedido e uma de previsão. Os títulos precisam ter, por exemplo, “Pedido” e “Previsão”.' :
+               e&&e.message==='vazio'? 'O arquivo de previsão não tem linhas com pedido e data preenchidos.' :
+               e&&e.message==='lib'? 'Não foi possível carregar o leitor de Excel. Verifique a conexão e tente de novo.' :
+               'Não foi possível ler esse arquivo de previsão.');
+  }).then(function(){ btn.disabled=false; $('prevInput').value=''; });
+}
+
 /* ---------- consultas (usadas pelo agente e pela busca direta) ---------- */
 function tokensIn(hay, q){ var h=norm(hay); return norm(q).split(/\s+/).filter(Boolean).every(function(t){return h.indexOf(t)>=0;}); }
 function filterRows(f){
@@ -657,7 +754,7 @@ function rowOut(r, today){
   if(r.datas) o['Datas']=r.datas;
   o['Descrição']=r.desc; o['Quantidade']=fmtNum(r.qtd); o['qtde_faturada']=fmtNum(r.fat); o['Saldo']=fmtNum(r.saldo);
   o['Valor Unitário Liquido']=fmtBRL(r.unit); o['Valor Total']=fmtBRL(r.total); o['valor_pedido']=fmtBRL(r.qtd*r.unit);
-  if(isLate(r,today)) o['dias_de_atraso']=daysLate(r.embarque,today);
+  if(isLate(r,today)){ o['dias_de_atraso']=daysLate(r.embarque,today); var pv=findPrev(r); if(pv){ o['previsao_atendimento']=pv.data? fmtDate(pv.data) : pv.texto; if(pv.obs) o['obs_previsao']=pv.obs; } }
   return o;
 }
 var SORTS={embarque:function(r){return r.embarque;}, emissao:function(r){return r.emissao;}, saldo:function(r){return r.saldo;}, quantidade:function(r){return r.qtd;}, valor_em_aberto:function(r){return r.saldo*r.unit;}, valor_pedido:function(r){return r.qtd*r.unit;}, pedido:function(r){return +r.pedido||0;}};
@@ -1005,6 +1102,8 @@ $('monthSel').addEventListener('change',function(){ S.month=this.value; if(S.dat
 $('chartBy').addEventListener('change',renderChart);
 $('monthBy').addEventListener('change',function(){ S.monthBy=this.value; if(S.data){ fillMonths(); renderTiles(); renderLists(); } });
 $('fileInput').addEventListener('change',function(){ var f=this.files&&this.files[0]; if(f) onFile(f); });
+$('btnPrev').addEventListener('click',function(){ $('prevInput').click(); });
+$('prevInput').addEventListener('change',function(){ var f=this.files&&this.files[0]; if(f) onPrevFile(f); });
 
 /* ---------- capacidades ---------- */
 function noDb(){ if(!S.data) showNoData('Não foi possível abrir a carteira salva nesta visualização. Use “Atualizar carteira” e escolha o arquivo carteira_….xlsx mais recente.'); }
