@@ -186,6 +186,12 @@ textarea:focus{outline:2px solid var(--accent);outline-offset:-2px}
 
 .arqtop .arqh{margin:2px 0 0;font-family:var(--display);font-size:24px;font-weight:800;color:#fff}
 .toast{z-index:50}
+.tablock{border:1px solid var(--border);border-radius:12px;padding:18px;margin-top:6px;max-width:520px;background:var(--surface)}
+.tablock .tlh{margin:0 0 12px;font-size:14px}
+.tablock .tlrow{display:flex;gap:8px;flex-wrap:wrap}
+.tablock input{flex:1 1 200px;min-width:0;padding:11px 13px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:15px;background:var(--surface);color:var(--ink)}
+.tablock input:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+.tablock .tlmsg{margin:8px 0 0;min-height:1.3em;font-size:12.5px;font-weight:600;color:#c0392b}
 
 </style>
 </head>
@@ -251,7 +257,15 @@ textarea:focus{outline:2px solid var(--accent);outline-offset:-2px}
       <button class="back" data-voltar type="button"><span aria-hidden="true">←</span>Voltar ao início</button>
       <h2>Tabelas</h2>
     </div>
-    <div class="fam"><div class="list" id="listaTab" style="border-top:0"></div></div>
+    <form class="tablock" id="tabLock" autocomplete="off">
+      <p class="tlh"><b>Tabelas de preço protegidas.</b> Digite a senha de entrada do CRM para abrir.</p>
+      <div class="tlrow">
+        <input type="password" id="tabPw" aria-label="Senha de entrada do CRM" placeholder="Senha de entrada" autocomplete="current-password" required>
+        <button class="b pri" type="submit" id="tabOk">Desbloquear</button>
+      </div>
+      <p class="tlmsg" id="tabMsg" aria-live="polite"></p>
+    </form>
+    <div class="fam" id="tabFam" hidden><div class="list" id="listaTab" style="border-top:0"></div></div>
   </section>
 
   <section class="panel" id="manual" hidden>
@@ -460,21 +474,43 @@ const TABELAS = [
   {name:"TABELA DE PREÇOS SP ATÉ JULHO 2026 3", enc:"tabelas/tabela-de-precos-sp-ate-julho-2026-3.pdf.enc", ext:"pdf", tipo:"PDF", kb:92, mime:"application/pdf"},
   {name:"TABELA SP SETEMBRO 2", enc:"tabelas/tabela-sp-setembro-2.xlsx.enc", ext:"xlsx", tipo:"Excel", kb:18, mime:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
 ];
-/* As tabelas ficam cifradas no site (AES-256-GCM, mesma chave da carteira). Só abrem depois da senha do CRM. */
+/* As tabelas ficam cifradas no site (AES-256-GCM, mesma chave da carteira).
+   Para abrir, a senha de entrada é pedida de novo a cada vez que a tela Tabelas é aberta;
+   a chave fica só na memória desta tela e é apagada ao voltar ao início. */
 function b64d(t){ const b = atob(t), u = new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i] = b.charCodeAt(i); return u; }
+let chaveTab = null;
+async function chaveDaSenha(pass){
+  if(!window.crypto || !crypto.subtle) throw new Error("navegador");
+  const r = await fetch("../carteira.enc.json?t=" + Date.now(), {cache:"no-store"}); if(!r.ok) throw new Error("rede");
+  const enc = await r.json();
+  const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveBits"]);
+  const raw = new Uint8Array(await crypto.subtle.deriveBits({name:"PBKDF2", hash:"SHA-256", salt:b64d(enc.salt), iterations:enc.iter}, km, 256));
+  const key = await crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
+  try{ await crypto.subtle.decrypt({name:"AES-GCM", iv:b64d(enc.iv)}, key, b64d(enc.ct)); }catch(e){ throw new Error("senha"); }
+  return key;
+}
+function travarTabelas(){ chaveTab = null; document.getElementById("tabFam").hidden = true; document.getElementById("tabLock").hidden = false; document.getElementById("tabPw").value = ""; document.getElementById("tabMsg").textContent = ""; }
+document.getElementById("tabLock").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const pw = document.getElementById("tabPw"), msg = document.getElementById("tabMsg"), ok = document.getElementById("tabOk"), pass = pw.value;
+  pw.value = ""; ok.disabled = true; msg.textContent = "Conferindo…";
+  try{ chaveTab = await chaveDaSenha(pass); msg.textContent = ""; document.getElementById("tabLock").hidden = true; document.getElementById("tabFam").hidden = false; }
+  catch(e){ chaveTab = null; msg.textContent = e && e.message === "senha" ? "Senha incorreta. Tente de novo." : e && e.message === "rede" ? "Não foi possível conferir a senha. Verifique a conexão." : "Este navegador não consegue abrir as tabelas."; pw.focus(); }
+  ok.disabled = false;
+});
 async function abrirCifrado(f){
-  let k = null; try{ k = sessionStorage.getItem("sd_carteira_chave"); }catch(e){}
-  if(!k || !window.crypto || !crypto.subtle) throw new Error("chave");
+  if(!chaveTab) throw new Error("chave");
   const r = await fetch(f.enc + "?t=" + Date.now(), {cache:"no-store"}); if(!r.ok) throw new Error("rede");
   const buf = new Uint8Array(await r.arrayBuffer());
-  const key = await crypto.subtle.importKey("raw", b64d(k), "AES-GCM", false, ["decrypt"]);
+  const key = chaveTab;
   let plain;
   try{ plain = await crypto.subtle.decrypt({name:"AES-GCM", iv:buf.slice(0,12)}, key, buf.slice(12)); }
   catch(e){ throw new Error("chave"); }
   return new Blob([plain], {type: f.mime || "application/octet-stream"});
 }
 function erroCifrado(e){
-  toast(e && e.message === "chave" ? "Não foi possível abrir a tabela. Saia e entre de novo com a senha do CRM." : "Não foi possível baixar a tabela. Verifique a conexão.");
+  if(e && e.message === "chave"){ travarTabelas(); toast("Digite a senha de entrada para abrir as tabelas."); return; }
+  toast( "Não foi possível baixar a tabela. Verifique a conexão.");
 }
 const MANUAL = [{name:"MANUAL DE QUALIDADE – TECIDOS CAPRICÓRNIO", path:"manual/manual-de-qualidade-capricornio.pdf", ext:"pdf", tipo:"PDF", kb:11889}];
 function linhaArquivo(f, alvo){
@@ -513,11 +549,11 @@ TABELAS.forEach(f => {
 });
 const VIEWS = ["painel","tabelas","imagens","concorrentes","manual"].map(id => document.getElementById(id));
 function irView(id){ topo.hidden = true; solic.hidden = true; VIEWS.forEach(v => v.hidden = v.id !== id); window.scrollTo(0,0); }
-function irTabelas(){ irView("tabelas"); }
+function irTabelas(){ travarTabelas(); irView("tabelas"); setTimeout(()=>document.getElementById("tabPw").focus(), 50); }
 document.getElementById("btnImg").addEventListener("click", () => irView("imagens"));
 document.getElementById("btnConc").addEventListener("click", () => irView("concorrentes"));
 function irFichas(){ topo.hidden = true; solic.hidden = true; tabelasEl.hidden = true; painel.hidden = false; window.scrollTo(0,0); document.getElementById("busca").focus({preventScroll:true}); }
-function irInicio(){ VIEWS.forEach(v => v.hidden = true); topo.hidden = false; solic.hidden = btnCrm.getAttribute("aria-expanded") !== "true"; window.scrollTo(0,0); }
+function irInicio(){ travarTabelas(); VIEWS.forEach(v => v.hidden = true); topo.hidden = false; solic.hidden = btnCrm.getAttribute("aria-expanded") !== "true"; window.scrollTo(0,0); }
 document.getElementById("btnFT").addEventListener("click", irFichas);
 document.querySelectorAll("[data-voltar]").forEach(b => b.addEventListener("click", irInicio));
 document.getElementById("btnTab").addEventListener("click", irTabelas);
