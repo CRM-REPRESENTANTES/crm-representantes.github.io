@@ -160,8 +160,13 @@
   .lres table{min-width:980px;}
   .lres .note{font-size:12px; color:var(--warn);}
   .btn-link{background:transparent; border:0; color:var(--link); font-weight:600; font-size:12px; cursor:pointer; padding:0; text-decoration:underline;}
-  @media (max-width:900px){ .lfilters{grid-template-columns:repeat(2, minmax(0,1fr));} }
-  @media (max-width:430px){ .lfilters{grid-template-columns:1fr;} }
+  .lfilters.six{grid-template-columns:repeat(6, minmax(0,1fr));}
+  .lblock.t-filtro{margin-top:18px; border-color:var(--accent);}
+  .lblock.t-filtro .lhead h3{color:var(--title);}
+  .lblock.t-filtro .lres .empty{color:var(--muted);}
+  @media (max-width:1060px){ .lfilters.six{grid-template-columns:repeat(3, minmax(0,1fr));} }
+  @media (max-width:900px){ .lfilters,.lfilters.six{grid-template-columns:repeat(2, minmax(0,1fr));} }
+  @media (max-width:430px){ .lfilters,.lfilters.six{grid-template-columns:1fr;} }
   /* Gráfico de compras por cliente */
   .chartblock{margin-top:22px; border-top:1px solid var(--border); padding-top:16px;}
   .charthead{display:flex; justify-content:space-between; align-items:flex-end; gap:10px 16px; flex-wrap:wrap;}
@@ -336,7 +341,19 @@
       <div class="tile open"><div class="lbl">Valor em aberto</div><div class="val money" id="kValorAberto">—</div><div class="sub" id="kValorAbertoSub">&nbsp;</div></div>
       <div class="tile"><div class="lbl">Preço médio praticado</div><div class="val money" id="kPreco">—</div><div class="sub" id="kPrecoSub">&nbsp;</div></div>
     </div>
-    <p class="hint">Clique em <b>Pedidos na carteira</b>, <b>Pedidos faturados</b> ou <b>Pedidos em aberto</b> para ver a listagem desses pedidos.</p>
+    <div class="lblock t-filtro" id="filterBlock" data-tipo="filtro">
+      <div class="lhead"><h3>Filtrar pedidos</h3><button type="button" class="btn-link" data-act="reset">Limpar filtros</button></div>
+      <div class="lfilters six">
+        <label><span data-k="mesLbl">Mês</span><select data-k="mes"><option value="todos">Todos os meses</option></select></label>
+        <label>Tecido<select data-k="tecido"><option value="">Todos os tecidos</option></select></label>
+        <label>Cliente<select data-k="cliente"><option value="">Todos os clientes</option></select></label>
+        <label>Embarque de<input type="date" data-k="de"></label>
+        <label>Embarque até<input type="date" data-k="ate"></label>
+        <label>Situação<select data-k="sit"><option value="">Todas</option><option value="aberto">Em aberto</option><option value="faturados">Faturados</option><option value="cancelado">Cancelados</option></select></label>
+      </div>
+      <div class="lres"><p class="empty">Aguardando a carteira.</p></div>
+    </div>
+    <p class="hint">O filtro acompanha o mês escolhido acima. Clique também em <b>Pedidos na carteira</b>, <b>Pedidos faturados</b> ou <b>Pedidos em aberto</b> para ver a listagem desses pedidos.</p>
     <div class="listbar" id="listBar" hidden>
       <span id="listCount">Listagens</span>
       <button type="button" class="btn-clear" id="btnClearLists">Limpar pesquisas</button>
@@ -1075,10 +1092,10 @@ function runAgent(q, ae, withTools){
 
 /* ---------- grupos de clientes (índice de compras por cliente) ---------- */
 var CLIENT_GROUPS=[
-  {nome:'BANGLA JEANS + PARAIBUNA', re:/\bbangla\b|\bparaibuna\b/},
-  {nome:'23 GRAUS + CDM', re:/\b23\s*graus\b|\bcdm\b/}
+  {nome:'BANGLA JEANS + PARAIBUNA', re:/bangla|paraibuna/},
+  {nome:'23 GRAUS + CDM', re:/23\s*(o\s*)?graus|vinte\s*e\s*tres\s*graus|\bc\.?\s*d\.?\s*m\b/}
 ];
-var CLIENT_SAMPLES=[/\bm\.?\s*f\.?\s*almeida\b/, /\bdenegri\b/]; /* só amostras: fora do índice */
+var CLIENT_SAMPLES=[/\bm\s*\.?\s*f\s*\.?\s*(de\s*)?almeida\b/, /denegri/]; /* só amostras: fora do índice */
 function clientGroup(c){ var n=norm(c); for(var i=0;i<CLIENT_GROUPS.length;i++){ if(CLIENT_GROUPS[i].re.test(n)) return CLIENT_GROUPS[i].nome; } return c; }
 function isSampleClient(c){ var n=norm(c); return CLIENT_SAMPLES.some(function(re){ return re.test(n); }); }
 
@@ -1098,13 +1115,14 @@ function listRows(tipo, f){
     if(f.ate&&!(r.embarque<=f.ate)) return false;
     return true;
   });
+  if(tipo==='filtro') tipo=f.sit||'total';
   if(tipo==='total') return rows;
   var by={}; rows.forEach(function(r){ (by[r.pedido]=by[r.pedido]||[]).push(r); });
   return rows.filter(function(r){ return pedStatus(by[r.pedido])===tipo; });
 }
 function opts(list, val, all){ return '<option value="">'+all+'</option>'+list.map(function(v){ return '<option value="'+esc(v)+'"'+(v===val?' selected':'')+'>'+esc(v)+'</option>'; }).join(''); }
 function renderList(tipo){
-  var L=LS[tipo], f=L.f, el=L.el, today=todayISO();
+  var L= tipo==='filtro'? FB : LS[tipo], f=L.f, el=L.el, today=todayISO();
   var mset={}; S.data.linhas.forEach(function(r){ var k=monthKey(r); if(k) mset[k]=1; });
   if(f.mes!=='todos'&&!mset[f.mes]) f.mes='todos';
   var tecs=uniq(S.data.linhas.map(function(r){return r.desc;})), clis=uniq(S.data.linhas.map(function(r){return r.cliente;}));
@@ -1118,6 +1136,9 @@ function renderList(tipo){
   var rows=listRows(tipo, f), res=el.querySelector('.lres');
   var labels=[]; if(f.mes!=='todos') labels.push(monthLabel(f.mes)); if(f.tecido) labels.push(f.tecido); if(f.cliente) labels.push(f.cliente);
   if(f.de||f.ate) labels.push('embarque '+(f.de? 'de '+fmtDate(f.de)+' ':'')+(f.ate? 'até '+fmtDate(f.ate):''));
+  if(f.sit) labels.push({aberto:'em aberto',faturados:'faturados',cancelado:'cancelados'}[f.sit]);
+  if(tipo==='filtro'){ el.querySelector('[data-k=sit]').value=f.sit||''; el.querySelector('.lhead [data-act=reset]').hidden=!labels.length;
+    if(!labels.length){ el.querySelector('.lres').innerHTML='<p class="empty">Escolha mês, tecido, cliente, data de embarque ou situação para listar os pedidos.</p>'; return; } }
   var filtros= labels.length? ' · filtros: '+labels.join(' · ') : ' · sem filtros';
   var limpar= labels.length? ' <button type="button" class="btn-link" data-act="reset">Limpar filtros</button>' : '';
   if(!rows.length){ res.innerHTML='<p>Nenhum pedido encontrado'+esc(filtros)+'.'+limpar+'</p>'; return; }
@@ -1153,7 +1174,10 @@ function openList(tipo){
   renderList(tipo); updateListBar();
   LS[tipo].el.scrollIntoView({behavior:'smooth', block:'start'});
 }
-function renderLists(){ if(!S.data) return; Object.keys(LS).forEach(renderList); }
+var FB={el:$('filterBlock'), f:{mes:'todos', tecido:'', cliente:'', de:'', ate:'', sit:''}};
+function renderLists(){ if(!S.data) return; renderList('filtro'); Object.keys(LS).forEach(renderList); }
+FB.el.addEventListener('change',function(ev){ var k=ev.target.getAttribute('data-k'); if(!k||!S.data) return; FB.f[k]=ev.target.value; renderList('filtro'); });
+FB.el.addEventListener('click',function(ev){ var a=ev.target.closest('[data-act=reset]'); if(!a||!S.data) return; FB.f={mes:S.month, tecido:'', cliente:'', de:'', ate:'', sit:''}; renderList('filtro'); });
 function clearLists(){ LS={}; $('lists').innerHTML=''; updateListBar(); }
 $('lists').addEventListener('change',function(ev){
   var k=ev.target.getAttribute('data-k'), b=ev.target.closest('.lblock'); if(!k||!b) return;
@@ -1180,7 +1204,7 @@ $('btnStop').addEventListener('click',function(){ if(S.ctl) S.ctl.abort(); });
 $('btnClear').addEventListener('click',function(){ clearThread(); $('q').focus(); });
 $('chips').addEventListener('click',function(ev){ var b=ev.target.closest('.chip'); if(b) ask(b.textContent); });
 $('btnUpdate').addEventListener('click',function(){ $('fileInput').click(); });
-$('monthSel').addEventListener('change',function(){ S.month=this.value; if(S.data) renderTiles(); });
+$('monthSel').addEventListener('change',function(){ S.month=this.value; FB.f.mes=S.month; if(S.data){ renderTiles(); renderList('filtro'); } });
 $('chartBy').addEventListener('change',renderChart);
 $('monthBy').addEventListener('change',function(){ S.monthBy=this.value; if(S.data){ fillMonths(); renderTiles(); renderLists(); } });
 $('fileInput').addEventListener('change',function(){ var f=this.files&&this.files[0]; if(f) onFile(f); });
