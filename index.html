@@ -276,7 +276,7 @@
     <div class="filebox">
       <div class="filechip"><b id="fileName">Abrindo a carteira…</b><span id="fileDate">&nbsp;</span></div>
       <div class="fileactions">
-        <button class="btn-light" id="btnUpdate" type="button">Atualizar carteira</button>
+        <button class="btn-light" id="btnUpdate" type="button" title="Escolha o arquivo carteira_….xls ou .xlsx baixado do sistema">Carregar carteira (.xls)</button>
         <button class="btn-light" id="btnPrev" type="button">Previsão de atendimento</button>
         <button class="btn-ghost" id="btnLock" type="button">Sair</button>
       </div>
@@ -534,11 +534,11 @@ function showNoData(msg){
 /* ---------- banco (db) ---------- */
 function subscribe(){
   S.db.doc('carteira/atual').onSnapshot(function(snap){
-    if(!snap.exists){ if(!S.data) showNoData('Ainda não há carteira salva. Use “Atualizar carteira” e escolha o arquivo carteira_….xlsx mais recente.'); return; }
+    if(!snap.exists){ if(!S.data) showNoData('Ainda não há carteira salva. Use “Carregar carteira” e escolha o arquivo carteira_….xlsx mais recente.'); return; }
     var meta=snap.data();
     if(meta.versao===S.loadedVersion) return;
     loadParts(meta,0);
-  }, function(){ if(!S.data) showNoData('Não foi possível abrir a carteira salva. Use “Atualizar carteira” para carregar o arquivo.'); });
+  }, function(){ if(!S.data) showNoData('Não foi possível abrir a carteira salva. Use “Carregar carteira” para carregar o arquivo.'); });
 }
 function loadParts(meta, attempt){
   var token=++S.loadToken, n=Math.max(1, Number(meta.partes)||1), gets=[];
@@ -546,11 +546,11 @@ function loadParts(meta, attempt){
   Promise.all(gets).then(function(snaps){
     if(token!==S.loadToken) return;
     var ok=snaps.every(function(s){return s.exists&&s.data().versao===meta.versao;});
-    if(!ok){ if(attempt<3) setTimeout(function(){ if(token===S.loadToken) loadParts(meta,attempt+1); },1500); else if(!S.data) showNoData('A carteira salva está incompleta. Use “Atualizar carteira” para carregar o arquivo de novo.'); return; }
+    if(!ok){ if(attempt<3) setTimeout(function(){ if(token===S.loadToken) loadParts(meta,attempt+1); },1500); else if(!S.data) showNoData('A carteira salva está incompleta. Use “Carregar carteira” para carregar o arquivo de novo.'); return; }
     var arrs=JSON.parse(snaps.map(function(s){return s.data().dados;}).join(''));
     S.loadedVersion=meta.versao;
     setData({arquivo:meta.arquivo, modificadoEm:meta.modificadoEm, atualizadoEm:meta.atualizadoEm}, arrs);
-  }).catch(function(){ if(token===S.loadToken&&!S.data) showNoData('Não foi possível abrir a carteira salva. Use “Atualizar carteira” para carregar o arquivo.'); });
+  }).catch(function(){ if(token===S.loadToken&&!S.data) showNoData('Não foi possível abrir a carteira salva. Use “Carregar carteira” para carregar o arquivo.'); });
 }
 function saveToDb(meta, arrs){
   var dados=JSON.stringify(arrs), parts=[];
@@ -1044,7 +1044,7 @@ function localSearch(q, ae, lead){
 function ask(q){
   q=String(q||'').trim(); if(!q||S.busy) return;
   var ae=addQA(q); $('q').value='';
-  if(!S.data){ ae.innerHTML='<p>A carteira ainda não foi carregada. Use “Atualizar carteira” e escolha o arquivo carteira_….xlsx.</p>'; return; }
+  if(!S.data){ ae.innerHTML='<p>A carteira ainda não foi carregada. Use “Carregar carteira” e escolha o arquivo carteira_….xlsx.</p>'; return; }
   if(!S.sample||S.agentOff){ localSearch(q,ae); return; }
   runAgent(q, ae, S.useTools);
 }
@@ -1188,7 +1188,7 @@ $('btnPrev').addEventListener('click',function(){ $('prevInput').click(); });
 $('prevInput').addEventListener('change',function(){ var f=this.files&&this.files[0]; if(f) onPrevFile(f); });
 
 /* ---------- capacidades ---------- */
-function noDb(){ if(!S.data) showNoData('Não foi possível abrir a carteira salva nesta visualização. Use “Atualizar carteira” e escolha o arquivo carteira_….xlsx mais recente.'); }
+function noDb(){ if(!S.data) showNoData('Não foi possível abrir a carteira salva nesta visualização. Use “Carregar carteira” e escolha o arquivo carteira_….xlsx mais recente.'); }
 /* ---------- carteira criptografada: só abre com a senha ---------- */
 var DATA_URL='carteira.enc.json', KEY_SS='sd_carteira_chave', keyRaw=null, lastIv=null, pollTimer=null;
 function b64d(s){ var bin=atob(s), u=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }

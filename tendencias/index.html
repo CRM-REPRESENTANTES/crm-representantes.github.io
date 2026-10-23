@@ -93,6 +93,9 @@
   .cbtn{background:var(--surface); color:var(--title); border:1px solid var(--border); border-radius:8px; padding:8px 14px; font-size:13px; font-weight:700; cursor:pointer;}
   .cbtn:hover{border-color:var(--accent);}
   .cbtn[aria-pressed="true"]{background:var(--accent-strong); color:#fff; border-color:var(--accent-strong);}
+  .cbtn.pdf{background:var(--accent-strong); color:#fff; border-color:var(--accent-strong); text-decoration:none; display:inline-flex; align-items:center;}
+  .cbtn.pdf:hover{filter:brightness(1.1);}
+  .sharemsg{margin:0; background:var(--good-bg); color:var(--good); border-radius:10px; padding:10px 14px; font-size:13px; font-weight:600;}
   .count{font-variant-numeric:tabular-nums; font-weight:700; color:var(--muted); min-width:64px; text-align:center;}
   .stage{position:relative; width:100%; aspect-ratio:16/9; background:#0E1A33; border-radius:12px; overflow:hidden; border:1px solid var(--border);}
   .stage:fullscreen{border-radius:0; border:0; background:#000;}
@@ -151,6 +154,8 @@
       <button class="cbtn" type="button" id="next" aria-label="Próxima lâmina">→</button>
       <button class="cbtn" type="button" id="notasBtn" aria-pressed="false">Notas</button>
       <button class="cbtn" type="button" id="fsBtn">Tela cheia</button>
+      <a class="cbtn pdf" id="pdfBtn" href="denim-radar-2026-27.pdf" download="Denim Radar 2026-27.pdf">Baixar PDF</a>
+      <button class="cbtn pdf" type="button" id="shareBtn">Compartilhar</button>
     </div>
   </section>
   <div class="stage" id="stage">
@@ -158,6 +163,7 @@
     <button class="navzone prev" type="button" aria-label="Lâmina anterior" id="zprev"></button>
     <button class="navzone next" type="button" aria-label="Próxima lâmina" id="znext"></button>
   </div>
+  <p class="sharemsg" id="shareMsg" aria-live="polite" hidden></p>
   <div class="notes" id="notas" hidden><b>Notas do apresentador</b><span id="notaTxt"></span></div>
   <div class="thumbs" id="thumbs" aria-label="Todas as lâminas"></div>
 </div>
@@ -207,6 +213,25 @@ SLIDES.forEach((s,k)=>{
 });
 function escalaThumbs(){ const t = thumbs.querySelector(".tv"); if(t) thumbs.style.setProperty("--ts", t.clientWidth/1920); }
 new ResizeObserver(()=>{ escala(); escalaThumbs(); }).observe(document.body);
+const PDF_URL = "denim-radar-2026-27.pdf", PDF_NOME = "Denim Radar 2026-27.pdf";
+function aviso(t){ const m = document.getElementById("shareMsg"); m.textContent = t; m.hidden = false; clearTimeout(aviso.t); aviso.t = setTimeout(()=>{ m.hidden = true; }, 5000); }
+document.getElementById("shareBtn").addEventListener("click", async (ev) => {
+  const btn = ev.currentTarget, txt = btn.textContent; btn.textContent = "Preparando…"; btn.disabled = true;
+  const link = new URL(PDF_URL, location.href).href;
+  try{
+    if(navigator.canShare){
+      const blob = await fetch(PDF_URL).then(r => { if(!r.ok) throw new Error(); return r.blob(); });
+      const file = new File([blob], PDF_NOME, {type:"application/pdf"});
+      if(navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"Denim Radar 2026–27", text:"Pesquisa de tendências em jeans e denim · Studio Denim"}); aviso("PDF compartilhado."); return; }
+    }
+    if(navigator.share){ await navigator.share({title:"Denim Radar 2026–27", url:link}); aviso("Link compartilhado."); return; }
+    await navigator.clipboard.writeText(link); aviso("Link do PDF copiado. Cole no WhatsApp ou no e-mail. Quem receber o link abre o PDF sem senha.");
+  }catch(e){
+    if(e && e.name === "AbortError"){ return; }
+    try{ await navigator.clipboard.writeText(link); aviso("Link do PDF copiado. Cole no WhatsApp ou no e-mail."); }
+    catch(e2){ aviso("Não foi possível compartilhar daqui. Use “Baixar PDF” e envie o arquivo."); }
+  }finally{ btn.textContent = txt; btn.disabled = false; }
+});
 mostrar(atual); escalaThumbs();
 </script>
 </body>
