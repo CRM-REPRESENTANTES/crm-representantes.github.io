@@ -128,6 +128,16 @@
   .saved td{padding:8px; border-bottom:1px solid var(--border); vertical-align:middle;}
   .saved td.acts{text-align:right; white-space:nowrap;}
   .empty{color:var(--muted); font-size:13px;}
+
+  /* Menu de módulos do CRM */
+  .modnav{flex-basis:100%; display:flex; gap:6px; overflow-x:auto; padding:12px 2px 2px; border-top:1px solid rgba(255,255,255,.16); scrollbar-width:none; -webkit-overflow-scrolling:touch;}
+  .modnav::-webkit-scrollbar{display:none;}
+  .modnav a{white-space:nowrap; text-decoration:none; color:var(--head-muted); font-size:13px; font-weight:600; padding:8px 14px; border-radius:8px; background:var(--head-chip); display:inline-flex; gap:7px; align-items:center; flex:0 0 auto;}
+  .modnav a:hover{color:var(--head-fg); background:rgba(255,255,255,.22);}
+  .modnav a[aria-current="page"]{background:var(--head-fg); color:var(--head-b);}
+  .modnav .soon{font-size:9.5px; text-transform:uppercase; letter-spacing:.6px; background:var(--stitch); color:#fff; border-radius:10px; padding:1px 7px; font-weight:700;}
+  .modnav .ext{font-size:11px; opacity:.8;}
+  @media (max-width:600px){ .modnav{flex-wrap:wrap;} .modnav a{padding:7px 11px; font-size:12.5px;} }
 </style>
 </head>
 <body>
@@ -141,8 +151,12 @@
         <p class="subtitle">Solicitação de atendimento · Mercado interno</p>
       </div>
     </div>
-    <nav class="topnav">
-      <a class="btn-ghost" href="../">Voltar à carteira</a>
+    <nav class="modnav" aria-label="Módulos do CRM">
+      <a href="../">Carteira</a>
+      <a href="https://calculadoradeconsumocdmtextil.netlify.app" target="_blank" rel="noopener">Calculadora de consumo <span class="ext" aria-hidden="true">↗</span></a>
+      <a href="../tendencias/">Tendências <span class="soon">em criação</span></a>
+      <a href="../reclamacao/" aria-current="page">Reclamação de qualidade</a>
+      <a href="../arquivos/">Arquivos <span class="soon">em criação</span></a>
     </nav>
   </header>
 
