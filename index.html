@@ -366,12 +366,12 @@
   <p class="footnote" id="footnote">
     <b>Como os números são calculados.</b> Cada pedido conta uma vez, mesmo com várias linhas. <b>Em aberto</b>: pedido com alguma linha não cancelada e saldo a faturar. <b>Faturado</b>: pedido sem saldo e com quantidade faturada. <b>Cancelado</b>: todas as linhas canceladas.
     <b>Valor total</b> = Quantidade × Valor Unitário Líquido das linhas não canceladas; <b>valor faturado</b> = qtde_faturada × Valor Unitário Líquido; <b>valor em aberto</b> = Saldo × Valor Unitário Líquido (a coluna “Valor Total” do arquivo).
-    <b>Atrasado</b>: linha não cancelada, com saldo, e Embarque anterior a hoje. <b>Previsão</b>: vem do arquivo enviado em “Previsão de atendimento”, ligado pelo número do pedido; fica guardada neste navegador até ser removida ou trocada.
+    <b>Atrasado</b>: linha não cancelada, com saldo, e Embarque anterior a hoje. <b>Previsão</b>: vem do arquivo (PDF ou Excel) enviado em “Previsão de atendimento”, ligado pelo número do pedido; fica guardada neste navegador até ser removida ou trocada.
     <b>Filtro de mês</b>: considera só as linhas cuja data de Embarque (ou de Emissão, conforme a escolha) cai no mês selecionado; a lista de pedidos atrasados mostra sempre todos os atrasados.
   </p>
 </div>
 <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm,.csv" hidden>
-<input type="file" id="prevInput" accept=".xlsx,.xls,.xlsm,.csv" hidden>
+<input type="file" id="prevInput" accept=".pdf,.xlsx,.xls,.xlsm,.csv" hidden>
 
 <script>
 (function(){
@@ -694,19 +694,101 @@ function parsePrevisao(XLSX, buf){
   if(!linhas) throw new Error('vazio');
   return {mapa:mapa, linhas:linhas, colPedido:best.rows[best.hi][best.ip], colPrev:best.rows[best.hi][best.iv]};
 }
+/* Leitura do relatório de previsão em PDF: o texto de cada página é agrupado em linhas pela altura;
+   em cada linha, o número do pedido é procurado entre os pedidos da carteira e a data é a que fica
+   abaixo do título "Previsão" (ou a última data da linha, se o título não for encontrado). */
+var PDFJS_URL='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+function loadPDFJS(){
+  return new Promise(function(res,rej){
+    if(window.pdfjsLib) return res(window.pdfjsLib);
+    var s=document.createElement('script'); s.src=PDFJS_URL+'pdf.min.js';
+    s.onload=function(){ if(!window.pdfjsLib) return rej(new Error('libpdf')); window.pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_URL+'pdf.worker.min.js'; res(window.pdfjsLib); };
+    s.onerror=function(){ rej(new Error('libpdf')); };
+    document.head.appendChild(s);
+  });
+}
+function pdfLines(pdfjs, buf){
+  return pdfjs.getDocument({data:new Uint8Array(buf)}).promise.then(function(doc){
+    var all=[], ps=[];
+    for(var n=1;n<=doc.numPages;n++) ps.push(doc.getPage(n).then(function(pg){ return pg.getTextContent().then(function(tc){ return {n:pg.pageNumber, items:tc.items}; }); }));
+    return Promise.all(ps).then(function(pages){
+      pages.sort(function(a,b){return a.n-b.n;}).forEach(function(pg){
+        var rows=[];
+        pg.items.forEach(function(it){
+          var t=String(it.str||'').trim(); if(!t) return;
+          var x=it.transform[4], y=it.transform[5], w=it.width||0;
+          var row=null; for(var i=0;i<rows.length;i++){ if(Math.abs(rows[i].y-y)<=3){ row=rows[i]; break; } }
+          if(!row){ row={y:y, items:[]}; rows.push(row); }
+          row.items.push({t:t, x:x, cx:x+w/2});
+        });
+        rows.sort(function(a,b){return b.y-a.y;});
+        rows.forEach(function(r){ r.items.sort(function(a,b){return a.x-b.x;}); r.page=pg.n; all.push(r); });
+      });
+      return all;
+    });
+  });
+}
+var RE_DATA=/\b(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})\b/;
+function parsePrevisaoPDF(lines){
+  var known={}, haveKnown=false;
+  if(S.data&&S.data.linhas) S.data.linhas.forEach(function(r){ var k=pedKey(r.pedido); if(k){ known[k]=1; haveKnown=true; } });
+  var colPrev=null, colObs=null, faixa=null, mapa={}, linhas=0, pend=null;
+  function faixaDe(L,hp){ var xs=L.items.map(function(i){return i.cx;}).sort(function(a,b){return a-b;}), k=xs.indexOf(hp.cx); return {a: k>0? (xs[k-1]+hp.cx)/2 : -1e9, b: k<xs.length-1? (xs[k+1]+hp.cx)/2 : 1e9}; }
+  lines.forEach(function(L){
+    var txt=norm(L.items.map(function(i){return i.t;}).join(' '));
+    // Linha de títulos: guarda a posição das colunas Previsão e Observação
+    var hp=null, ho=null;
+    L.items.forEach(function(i){ var n=norm(i.t); if(n.indexOf('previs')>=0||n==='prev.'||n==='dt. prev') hp=i; if(/^(obs|observ|motivo|status)/.test(n)) ho=i; });
+    if(hp&&/pedido|ped\.|cliente|artigo|tecido|produto|emiss|embarq/.test(txt)){ colPrev=hp.cx; faixa=faixaDe(L,hp); colObs=ho?ho.x:null; pend=null; return; }
+    if(hp&&!/\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}/.test(txt)){ colPrev=hp.cx; faixa=faixaDe(L,hp); if(ho) colObs=ho.x; pend=null; return; }
+    // Pedido da linha
+    var ped=null;
+    for(var i=0;i<L.items.length&&!ped;i++){
+      var toks=L.items[i].t.split(/[\s;|]+/);
+      for(var j=0;j<toks.length;j++){
+        var k=pedKey(toks[j]);
+        if(!k||toks[j].replace(/\D/g,'').length<4||RE_DATA.test(toks[j])) continue;
+        if(haveKnown? known[k] : /^\d{5,7}$/.test(k)){ ped=k; break; }
+      }
+    }
+    // Datas da linha, com a posição
+    var datas=[];
+    L.items.forEach(function(i){ var m, re=new RegExp(RE_DATA.source,'g'); while((m=re.exec(i.t))){ var y=m[3].length===2?'20'+m[3]:m[3]; datas.push({iso:y+'-'+pad(+m[2])+'-'+pad(+m[1]), cx:i.cx}); } });
+    var semPrev=/sem previs|a definir|indefinid/.test(txt);
+    var escolhida=null;
+    if(datas.length){
+      if(faixa){ var dentro=datas.filter(function(d){ return d.cx>=faixa.a&&d.cx<=faixa.b; }); escolhida= dentro.length? dentro.sort(function(a,b){return Math.abs(a.cx-colPrev)-Math.abs(b.cx-colPrev);})[0] : null; }
+      else escolhida=datas[datas.length-1];
+    }
+    var alvo=ped||(pend&&pend.ttl>0?pend.ped:null);
+    if(!alvo){ return; }
+    if(!escolhida&&!semPrev){ if(ped) pend={ped:ped, item:txt, ttl:2}; else if(pend) pend.ttl--; return; }
+    var item={item:(ped?txt:(pend?pend.item:txt)).replace(/[\d\/.,-]+/g,' ').replace(/\s+/g,' ').trim()};
+    if(escolhida) item.data=escolhida.iso; else item.texto='Sem previsão';
+    if(colObs!=null){ var obs=L.items.filter(function(i){ return i.x>=colObs-4&&!RE_DATA.test(i.t); }).map(function(i){return i.t;}).join(' ').trim(); if(obs) item.obs=obs; }
+    (mapa[alvo]=mapa[alvo]||[]).push(item); linhas++; pend=null;
+  });
+  if(!linhas) throw new Error(haveKnown? 'pdfvazio' : 'semcarteira');
+  return {mapa:mapa, linhas:linhas, colPedido:'número do pedido', colPrev: colPrev!=null? 'Previsão' : 'última data de cada linha'};
+}
 function onPrevFile(file){
   var btn=$('btnPrev'); btn.disabled=true; setFileMsg('Lendo a previsão '+file.name+'…');
-  Promise.all([loadXLSX(), file.arrayBuffer()]).then(function(a){
-    var res=parsePrevisao(a[0],a[1]);
+  var ehPdf=/\.pdf$/i.test(file.name)||file.type==='application/pdf';
+  (ehPdf? Promise.all([loadPDFJS(), file.arrayBuffer()]).then(function(a){ return pdfLines(a[0],a[1]).then(parsePrevisaoPDF); })
+        : Promise.all([loadXLSX(), file.arrayBuffer()]).then(function(a){ return parsePrevisao(a[0],a[1]); })
+  ).then(function(res){
     PREV={arquivo:file.name, carregadoEm:new Date().toISOString(), mapa:res.mapa};
     try{ localStorage.setItem(PREV_LS, JSON.stringify(PREV)); }catch(e){}
     if(S.k) renderLate(S.k);
     var achou=0, peds={}; ((S.k&&S.k.late)||[]).forEach(function(r){ if(!peds[r.pedido]){ peds[r.pedido]=1; if(findPrev(r)) achou++; } });
-    setFileMsg('Previsão lida: '+fmtInt(Object.keys(res.mapa).length)+' pedidos no arquivo (colunas “'+res.colPedido+'” e “'+res.colPrev+'”); '+fmtInt(achou)+' estão na lista de atrasados.');
+    setFileMsg('Previsão lida: '+fmtInt(Object.keys(res.mapa).length)+' pedidos no arquivo ('+(ehPdf? 'PDF, data pela coluna '+res.colPrev : 'colunas “'+res.colPedido+'” e “'+res.colPrev+'”')+'); '+fmtInt(achou)+' estão na lista de atrasados.');
   }).catch(function(e){
     setFileMsg(e&&e.message==='colunas'? 'Não encontrei no arquivo uma coluna de pedido e uma de previsão. Os títulos precisam ter, por exemplo, “Pedido” e “Previsão”.' :
                e&&e.message==='vazio'? 'O arquivo de previsão não tem linhas com pedido e data preenchidos.' :
                e&&e.message==='lib'? 'Não foi possível carregar o leitor de Excel. Verifique a conexão e tente de novo.' :
+               e&&e.message==='libpdf'? 'Não foi possível carregar o leitor de PDF. Verifique a conexão e tente de novo.' :
+               e&&e.message==='pdfvazio'? 'Não encontrei no PDF linhas com um pedido da carteira e uma data de previsão. Se o PDF for uma imagem escaneada, ele não tem texto para ler.' :
+               e&&e.message==='semcarteira'? 'Carregue a carteira antes de enviar a previsão em PDF.' :
                'Não foi possível ler esse arquivo de previsão.');
   }).then(function(){ btn.disabled=false; $('prevInput').value=''; });
 }
