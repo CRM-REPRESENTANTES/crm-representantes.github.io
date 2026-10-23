@@ -466,9 +466,13 @@ var CART={db:'reclamacao-carteira', st:'kv'};
 function loadXLSX(){
   return new Promise(function(res,rej){
     if(window.XLSX) return res(window.XLSX);
-    var s=document.createElement('script'); s.src='../representantes/xlsx.full.min.js';
-    s.onload=function(){ window.XLSX? res(window.XLSX) : rej(new Error('lib')); }; s.onerror=function(){ rej(new Error('lib')); };
-    document.head.appendChild(s);
+    function tentar(srcs){
+      if(!srcs.length) return rej(new Error('lib'));
+      var s=document.createElement('script'); s.src=srcs[0];
+      s.onload=function(){ window.XLSX? res(window.XLSX) : tentar(srcs.slice(1)); }; s.onerror=function(){ s.remove(); tentar(srcs.slice(1)); };
+      document.head.appendChild(s);
+    }
+    tentar(['../representantes/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js']);
   });
 }
 function readBook(XLSX, buf){
@@ -539,8 +543,13 @@ function initSource(){
       });
     });
   }).then(null,function(){
-    $('srcInfo').textContent='Nenhuma carteira aberta. Abra a carteira do site com a senha ou carregue o arquivo carteira .xls mais recente.';
-    $('pwForm').hidden=false;
+    fetchEnc().then(function(){
+      $('srcInfo').textContent='Nenhuma carteira aberta. Abra a carteira do site com a senha ou carregue o arquivo carteira .xls mais recente.';
+      $('pwForm').hidden=false;
+    },function(){
+      $('btnPw').hidden=true;
+      $('srcInfo').textContent='Nenhuma carteira aberta. Carregue o arquivo carteira .xls mais recente.';
+    });
   });
 }
 
@@ -756,7 +765,7 @@ $('saved').addEventListener('click',function(ev){
   var id=b.getAttribute('data-open')||b.getAttribute('data-pdf')||b.getAttribute('data-rmrq');
   if(b.hasAttribute('data-open')) rqGet(id).then(function(r){ if(!r) return; S.id=r.id; fill(r); setMsg('actMsg','Reclamação '+(r.chamado||'')+' aberta.','ok'); window.scrollTo({top:0,behavior:'smooth'}); });
   else if(b.hasAttribute('data-pdf')) rqGet(id).then(function(r){ if(r) makePDF(r); });
-  else if(b.hasAttribute('data-rmrq')){ if(confirm('Excluir esta reclamação deste navegador?')) rqDel(id).then(function(){ if(S.id===id) S.id=null; renderSaved(); }); }
+  else if(b.hasAttribute('data-rmrq')){ confirmar(b,'Confirmar exclusão',function(){ rqDel(id).then(function(){ if(S.id===id) S.id=null; renderSaved(); }); }); }
 });
 function save(quiet){
   var d=collect();
@@ -769,12 +778,17 @@ function save(quiet){
       function(){ setMsg('actMsg','Não foi possível salvar neste navegador (as fotos podem ser grandes demais). O PDF ainda pode ser gerado.','err'); return d; });
   });
 }
+function confirmar(btn, rotulo, acao){
+  if(btn.getAttribute('data-arm')==='1'){ btn.removeAttribute('data-arm'); btn.textContent=btn.getAttribute('data-txt'); acao(); return; }
+  btn.setAttribute('data-txt',btn.textContent); btn.setAttribute('data-arm','1'); btn.textContent=rotulo;
+  setTimeout(function(){ if(btn.getAttribute('data-arm')==='1'){ btn.removeAttribute('data-arm'); btn.textContent=btn.getAttribute('data-txt'); } },4000);
+}
 function blank(){
   S.id=null; fill({dtAbertura:todayISO(), representante:'Denegri Araújo Representações', tipo:'Reclamação', parecer:'', linhas:[], fotos:[], tipos:[]});
   $('qCli').value=''; $('qNf').value=''; $('nfChips').hidden=true; setMsg('lookMsg','');
   nextChamado().then(function(c){ if(!$('chamado').value) $('chamado').value=c; });
 }
-$('btnNew').addEventListener('click',function(){ if(confirm('Começar uma reclamação nova? O que não foi salvo será perdido.')){ blank(); setMsg('actMsg',''); window.scrollTo({top:0,behavior:'smooth'}); } });
+$('btnNew').addEventListener('click',function(){ confirmar(this,'Limpar tudo?',function(){ blank(); setMsg('actMsg',''); window.scrollTo({top:0,behavior:'smooth'}); }); });
 $('btnSave').addEventListener('click',function(){ save(false); });
 $('btnPdf').addEventListener('click',function(){
   var d=collect();
@@ -945,6 +959,15 @@ function makePDF(d){
     }
     var nome='Reclamacao_'+(d.chamado||'sem-numero')+(d.razao?'_'+safeName(d.razao):'')+'.pdf';
     if(window.__RQ_TEST__){ window.__RQ_TEST__.pdf=doc.output('datauristring'); window.__RQ_TEST__.nome=nome; return nome; }
+    if(window.claude&&window.claude.use){
+      return window.claude.use('downloads').then(function(dl){
+        if(!dl){ doc.save(nome); return nome; }
+        return dl.save({filename:nome, data:doc.output('blob')}).then(function(){ return nome; },function(e){
+          if(e&&e.code==='declined'){ setMsg('actMsg','Download cancelado. A reclamação ficou salva.'); return null; }
+          throw e;
+        });
+      });
+    }
     doc.save(nome);
     return nome;
   });
