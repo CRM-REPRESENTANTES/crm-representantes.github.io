@@ -149,6 +149,12 @@
   .lhead h3{margin:0; font-size:13.5px; color:var(--title); font-weight:700; text-transform:uppercase; letter-spacing:.6px;}
   .lblock.t-faturados .lhead{background:var(--good-bg);} .lblock.t-faturados .lhead h3{color:var(--good);}
   .lblock.t-aberto .lhead{background:var(--warn-bg);} .lblock.t-aberto .lhead h3{color:var(--warn);}
+  .lacts{display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap;}
+  .btn-pdf{background:var(--surface); color:var(--title); border:1px solid var(--accent); border-radius:8px; padding:6px 11px; font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;}
+  .btn-pdf:hover{background:var(--tint-strong);}
+  .btn-pdf:disabled{opacity:.6; cursor:progress;}
+  .qa .q{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .qa .q .btn-pdf{flex:0 0 auto;}
   .lclose{background:transparent; border:0; color:var(--muted); font-size:20px; line-height:1; cursor:pointer; padding:2px 6px; border-radius:6px;}
   .lclose:hover{background:var(--surface); color:var(--ink);}
   .lfilters{display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:10px; padding:12px 14px 4px;}
@@ -342,7 +348,7 @@
       <div class="tile"><div class="lbl">Preço médio praticado</div><div class="val money" id="kPreco">—</div><div class="sub" id="kPrecoSub">&nbsp;</div></div>
     </div>
     <div class="lblock t-filtro" id="filterBlock" data-tipo="filtro">
-      <div class="lhead"><h3>Filtrar pedidos</h3><button type="button" class="btn-link" data-act="reset">Limpar filtros</button></div>
+      <div class="lhead"><h3>Filtrar pedidos</h3><div class="lacts"><button type="button" class="btn-pdf" data-act="pdf" hidden>Gerar PDF</button><button type="button" class="btn-link" data-act="reset" hidden>Limpar filtros</button></div></div>
       <div class="lfilters six">
         <label><span data-k="mesLbl">Mês</span><select data-k="mes"><option value="todos">Todos os meses</option></select></label>
         <label>Tecido<select data-k="tecido"><option value="">Todos os tecidos</option></select></label>
@@ -351,20 +357,23 @@
         <label>Embarque até<input type="date" data-k="ate"></label>
         <label>Situação<select data-k="sit"><option value="">Todas</option><option value="aberto">Em aberto</option><option value="faturados">Faturados</option><option value="cancelado">Cancelados</option></select></label>
       </div>
-      <div class="lres"><p class="empty">Aguardando a carteira.</p></div>
+      <div class="lres" hidden></div>
     </div>
-    <p class="hint">O filtro acompanha o mês escolhido acima. Clique também em <b>Pedidos na carteira</b>, <b>Pedidos faturados</b> ou <b>Pedidos em aberto</b> para ver a listagem desses pedidos.</p>
+    <p class="hint">Escolha um ou mais filtros para listar os pedidos. Clique também em <b>Pedidos na carteira</b>, <b>Pedidos faturados</b> ou <b>Pedidos em aberto</b> para ver a listagem desses pedidos.</p>
     <div class="listbar" id="listBar" hidden>
-      <span id="listCount">Listagens</span>
+      <span id="listCount">Pesquisas</span>
       <button type="button" class="btn-clear" id="btnClearLists">Limpar pesquisas</button>
     </div>
     <div class="lists" id="lists" aria-live="polite"></div>
     <div class="chartblock">
       <div class="charthead">
         <h3 id="hChart">Compras por cliente</h3>
-        <label for="chartBy">Medida
-          <select id="chartBy"><option value="valor">Valor (R$)</option><option value="qtd">Quantidade</option></select>
-        </label>
+        <div class="lacts">
+          <label for="chartBy">Medida
+            <select id="chartBy"><option value="valor">Valor (R$)</option><option value="qtd">Quantidade</option></select>
+          </label>
+          <button type="button" class="btn-pdf" id="pdfChart">Gerar PDF</button>
+        </div>
       </div>
       <p class="chartnote" id="chartNote">Participação de cada cliente nas compras do período selecionado.</p>
       <div class="bars" id="clientBars" role="table" aria-labelledby="hChart"><p class="empty">Aguardando a carteira.</p></div>
@@ -374,7 +383,7 @@
   <section class="card late" id="lateCard" aria-labelledby="hLate">
     <div class="latehead">
       <h2 id="hLate">Pedidos atrasados <span class="count" id="lateCount">—</span></h2>
-      <div class="latesum" id="lateSum">&nbsp;</div>
+      <div class="lacts"><div class="latesum" id="lateSum">&nbsp;</div><button type="button" class="btn-pdf" id="pdfLate" hidden>Gerar PDF</button></div>
     </div>
     <div class="prevbar" id="prevBar" hidden></div>
     <div class="latebody" id="lateBody"><p class="empty">Aguardando a carteira para listar os pedidos com embarque vencido e saldo a faturar.</p></div>
@@ -519,12 +528,12 @@ function renderLate(k){
   renderPrevBar(k);
   $('lateCount').textContent=fmtInt(k.latePeds);
   if(!k.late.length){
-    card.classList.add('none');
+    card.classList.add('none'); $('pdfLate').hidden=true;
     $('lateSum').textContent='';
     body.innerHTML='<p class="empty ok">Nenhum pedido com embarque vencido e saldo a faturar em '+fmtDate(k.today)+'.</p>';
     return;
   }
-  card.classList.remove('none');
+  card.classList.remove('none'); $('pdfLate').hidden=false;
   $('lateSum').textContent=fmtBRL(k.lateValor)+' em aberto com embarque vencido · referência '+fmtDate(k.today);
   var h='<div class="tablewrap"><table><thead><tr><th>Atraso</th><th>Pedido</th><th>Cliente</th><th>Tecido</th><th>Embarque</th><th>Previsão</th><th class="num">Saldo</th><th class="num">Valor em aberto</th><th>Situação</th></tr></thead><tbody>';
   k.late.forEach(function(r){
@@ -990,14 +999,24 @@ var ERR={
 var OFF={not_granted:1,sampling_disabled:1,not_declared:1,capability_disabled:1,capability_removed:1};
 function addQA(q){
   var el=document.createElement('div'); el.className='qa';
-  var qe=document.createElement('div'); qe.className='q'; qe.textContent=q;
+  var qe=document.createElement('div'); qe.className='q'; var qt=document.createElement('span'); qt.textContent=q; qe.appendChild(qt);
+  var qb=document.createElement('button'); qb.type='button'; qb.className='btn-pdf'; qb.textContent='Gerar PDF';
   var ae=document.createElement('div'); ae.className='a';
+  qb.addEventListener('click',function(){ pdfBloco('Pesquisa: '+q, ae, [], qb); }); qe.appendChild(qb);
   el.appendChild(qe); el.appendChild(ae); $('thread').appendChild(el);
   updateThreadBar();
   return ae;
 }
-function updateThreadBar(){ var n=$('thread').children.length; $('threadBar').hidden=!n; $('threadCount').textContent=n+(n===1?' pesquisa realizada':' pesquisas realizadas'); }
-function clearThread(){ clearLists(); if(S.ctl) S.ctl.abort(); $('thread').innerHTML=''; S.turns=[]; updateThreadBar(); }
+function updateThreadBar(){ var n=$('thread').children.length; $('threadBar').hidden=!n; $('threadCount').textContent=n+(n===1?' pesquisa realizada':' pesquisas realizadas'); if(typeof updateListBar==='function'&&FB) updateListBar(); }
+function clearThread(){
+  if(S.ctl) S.ctl.abort(); $('thread').innerHTML=''; S.turns=[]; updateThreadBar();
+  LS={}; $('lists').innerHTML='';
+  FB.f=fbVazio(); FB.filtros=[];
+  if(S.data){ S.month='todos'; $('monthSel').value='todos'; renderTiles(); renderList('filtro'); }
+  else { FB.el.querySelector('.lres').hidden=true; FB.el.querySelector('.lres').innerHTML=''; }
+  FB.el.querySelectorAll('select,input').forEach(function(x){ if(x.tagName==='SELECT') x.selectedIndex=0; else x.value=''; });
+  updateListBar();
+}
 function setBusy(b){ S.busy=b; $('btnAsk').hidden=b; $('btnStop').hidden=!b; $('q').disabled=b; }
 function updateAskMode(){
   var agent=!!S.sample&&!S.agentOff;
@@ -1137,10 +1156,12 @@ function renderList(tipo){
   var labels=[]; if(f.mes!=='todos') labels.push(monthLabel(f.mes)); if(f.tecido) labels.push(f.tecido); if(f.cliente) labels.push(f.cliente);
   if(f.de||f.ate) labels.push('embarque '+(f.de? 'de '+fmtDate(f.de)+' ':'')+(f.ate? 'até '+fmtDate(f.ate):''));
   if(f.sit) labels.push({aberto:'em aberto',faturados:'faturados',cancelado:'cancelados'}[f.sit]);
-  if(tipo==='filtro'){ el.querySelector('[data-k=sit]').value=f.sit||''; el.querySelector('.lhead [data-act=reset]').hidden=!labels.length;
-    if(!labels.length){ el.querySelector('.lres').innerHTML='<p class="empty">Escolha mês, tecido, cliente, data de embarque ou situação para listar os pedidos.</p>'; return; } }
+  if(tipo==='filtro'){ el.querySelector('[data-k=sit]').value=f.sit||''; el.querySelector('.lhead [data-act=reset]').hidden=!labels.length; el.querySelector('.lhead [data-act=pdf]').hidden=!labels.length;
+    el.querySelector('.lres').hidden=!labels.length; updateListBar();
+    if(!labels.length){ el.querySelector('.lres').innerHTML=''; return; } }
   var filtros= labels.length? ' · filtros: '+labels.join(' · ') : ' · sem filtros';
   var limpar= labels.length? ' <button type="button" class="btn-link" data-act="reset">Limpar filtros</button>' : '';
+  L.filtros=labels;
   if(!rows.length){ res.innerHTML='<p>Nenhum pedido encontrado'+esc(filtros)+'.'+limpar+'</p>'; return; }
   var act=rows.filter(function(r){return !isCanc(r);}), nCanc=rows.length-act.length, tAll=totals(rows), t=totals(act);
   var h='<p><strong>'+fmtInt(tAll.pedidos_distintos)+(tAll.pedidos_distintos===1?' pedido':' pedidos')+'</strong> em '+fmtInt(tAll.linhas)+' linhas'+esc(filtros)+'.'+limpar+'<br>Quantidade '+t.quantidade+' · faturado '+t.qtde_faturada+' · saldo '+t.saldo+' · valor dos pedidos '+t.valor_pedido+' · valor faturado '+t.valor_faturado+' · em aberto '+t.valor_em_aberto+'.'+(nCanc? ' Quantidades e valores não incluem '+nCanc+(nCanc>1?' linhas canceladas.':' linha cancelada.'):'')+'</p>';
@@ -1153,14 +1174,14 @@ function renderList(tipo){
   res.innerHTML=h;
 }
 function updateListBar(){
-  var n=Object.keys(LS).length; $('listBar').hidden=!n; $('listCount').textContent=n+(n===1?' listagem aberta':' listagens abertas');
+  var n=Object.keys(LS).length+(fbAtivo()?1:0)+$('thread').children.length; $('listBar').hidden=!n; $('listCount').textContent=n+(n===1?' pesquisa aberta':' pesquisas abertas');
   Object.keys(LISTS).forEach(function(t){ $(LISTS[t].tile).parentNode.classList.toggle('on', !!LS[t]); });
 }
 function openList(tipo){
   if(!S.data) return;
   if(!LS[tipo]){
     var el=document.createElement('div'); el.className='lblock t-'+tipo; el.setAttribute('data-tipo',tipo);
-    el.innerHTML='<div class="lhead"><h3>'+esc(LISTS[tipo].titulo)+'</h3><button type="button" class="lclose" data-act="close" aria-label="Fechar listagem" title="Fechar">×</button></div>'+
+    el.innerHTML='<div class="lhead"><h3>'+esc(LISTS[tipo].titulo)+'</h3><div class="lacts"><button type="button" class="btn-pdf" data-act="pdf">Gerar PDF</button><button type="button" class="lclose" data-act="close" aria-label="Fechar listagem" title="Fechar">×</button></div></div>'+
       '<div class="lfilters">'+
         '<label><span data-k="mesLbl">Mês</span><select data-k="mes"></select></label>'+
         '<label>Tecido<select data-k="tecido"></select></label>'+
@@ -1174,10 +1195,16 @@ function openList(tipo){
   renderList(tipo); updateListBar();
   LS[tipo].el.scrollIntoView({behavior:'smooth', block:'start'});
 }
-var FB={el:$('filterBlock'), f:{mes:'todos', tecido:'', cliente:'', de:'', ate:'', sit:''}};
+function fbVazio(){ return {mes:'todos', tecido:'', cliente:'', de:'', ate:'', sit:''}; }
+var FB={el:$('filterBlock'), f:fbVazio()};
+function fbAtivo(){ var f=FB.f; return !!(f.mes!=='todos'||f.tecido||f.cliente||f.de||f.ate||f.sit); }
 function renderLists(){ if(!S.data) return; renderList('filtro'); Object.keys(LS).forEach(renderList); }
 FB.el.addEventListener('change',function(ev){ var k=ev.target.getAttribute('data-k'); if(!k||!S.data) return; FB.f[k]=ev.target.value; renderList('filtro'); });
-FB.el.addEventListener('click',function(ev){ var a=ev.target.closest('[data-act=reset]'); if(!a||!S.data) return; FB.f={mes:S.month, tecido:'', cliente:'', de:'', ate:'', sit:''}; renderList('filtro'); });
+FB.el.addEventListener('click',function(ev){
+  var a=ev.target.closest('[data-act]'); if(!a||!S.data) return;
+  if(a.getAttribute('data-act')==='pdf'){ pdfBloco('Pedidos filtrados', FB.el.querySelector('.lres'), FB.filtros, a); return; }
+  FB.f=fbVazio(); renderList('filtro');
+});
 function clearLists(){ LS={}; $('lists').innerHTML=''; updateListBar(); }
 $('lists').addEventListener('change',function(ev){
   var k=ev.target.getAttribute('data-k'), b=ev.target.closest('.lblock'); if(!k||!b) return;
@@ -1186,6 +1213,7 @@ $('lists').addEventListener('change',function(ev){
 $('lists').addEventListener('click',function(ev){
   var a=ev.target.closest('[data-act]'); if(!a) return;
   var b=a.closest('.lblock'), tipo=b.getAttribute('data-tipo');
+  if(a.getAttribute('data-act')==='pdf'){ pdfBloco(LISTS[tipo].titulo, b.querySelector('.lres'), LS[tipo].filtros, a); return; }
   if(a.getAttribute('data-act')==='close'){ b.remove(); delete LS[tipo]; updateListBar(); }
   else { LS[tipo].f={mes:'todos', tecido:'', cliente:'', de:'', ate:''}; renderList(tipo); }
 });
@@ -1198,13 +1226,93 @@ Object.keys(LISTS).forEach(function(tipo){
   t.addEventListener('keydown',function(ev){ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); openList(tipo); } });
 });
 
+/* ---------- relatórios em PDF ---------- */
+function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=function(){ rej(new Error('libpdfgen')); }; document.head.appendChild(s); }); }
+function loadJsPDF(){
+  if(window.jspdf&&window.jspdf.jsPDF&&window.jspdf.jsPDF.API.autoTable) return Promise.resolve(window.jspdf.jsPDF);
+  var tenta=function(local, cdn){ return loadScript(local).catch(function(){ return loadScript(cdn); }); };
+  var p= window.jspdf? Promise.resolve() : tenta('lib/jspdf.umd.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  return p.then(function(){ return window.jspdf.jsPDF.API.autoTable? null : tenta('lib/jspdf.plugin.autotable.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'); })
+          .then(function(){ if(!window.jspdf||!window.jspdf.jsPDF.API.autoTable) throw new Error('libpdfgen'); return window.jspdf.jsPDF; });
+}
+function slug(t){ return norm(t).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)||'relatorio'; }
+function txt(el){ return (el.innerText||el.textContent||'').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim(); }
+/* Monta o PDF: cabeçalho STUDIO DENIM, título, filtros, textos e tabelas na ordem em que aparecem. */
+function gerarPDF(titulo, filtros, partes, btn){
+  var old=btn? btn.textContent : ''; if(btn){ btn.disabled=true; btn.textContent='Gerando…'; }
+  return loadJsPDF().then(function(JsPDF){
+    var doc=new JsPDF({orientation:'landscape', unit:'pt', format:'a4'}), W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=36, y;
+    var m=S.data? S.data.meta : {};
+    doc.setFillColor(10,44,94); doc.rect(0,0,W,58,'F');
+    doc.setTextColor(207,220,240); doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text('S T U D I O', M, 24);
+    doc.setTextColor(255,255,255); doc.setFontSize(18); doc.text('DENIM', M, 44);
+    doc.setFontSize(13); doc.text(titulo.length>90? titulo.slice(0,88)+'…' : titulo, M+110, 32);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(207,220,240);
+    doc.text('Gerado em '+fmtDateTime(new Date().toISOString())+(m.arquivo? '  ·  Carteira: '+m.arquivo+' ('+fmtDateTime(m.modificadoEm)+')':''), M+110, 47);
+    y=78; doc.setTextColor(28,34,51);
+    var para=function(t, bold, size){
+      if(!t) return; doc.setFont('helvetica', bold?'bold':'normal'); doc.setFontSize(size||9.5);
+      doc.splitTextToSize(t, W-2*M).forEach(function(l){ if(y>H-40){ doc.addPage(); y=M; } doc.text(l, M, y); y+=(size||9.5)*1.35; });
+      y+=4;
+    };
+    if(filtros&&filtros.length) para('Filtros: '+filtros.join(' · '), true);
+    partes.forEach(function(pt){
+      if(pt.texto) return para(pt.texto, pt.bold, pt.size);
+      var opt={startY:y, margin:{left:M,right:M}, theme:'grid', styles:{fontSize:7.5, cellPadding:3, overflow:'linebreak', lineColor:[213,223,238], lineWidth:.5}, headStyles:{fillColor:[230,238,248], textColor:[10,44,94], fontStyle:'bold'}, alternateRowStyles:{fillColor:[251,252,255]}};
+      if(pt.tabela) opt.html=pt.tabela; else { opt.head=[pt.head]; opt.body=pt.body; if(pt.colStyles) opt.columnStyles=pt.colStyles; }
+      if(pt.tabela){ var ths=pt.tabela.querySelectorAll('thead th'), cs={}; ths.forEach(function(th,i){ if(th.classList.contains('num')) cs[i]={halign:'right'}; }); opt.columnStyles=cs; }
+      doc.autoTable(opt); y=doc.lastAutoTable.finalY+14;
+    });
+    var n=doc.internal.getNumberOfPages();
+    for(var i=1;i<=n;i++){ doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(100,107,120); doc.text('CRM Studio Denim · página '+i+' de '+n, W-M, H-16, {align:'right'}); }
+    var nome=slug(titulo)+'-'+todayISO()+'.pdf', blob=doc.output('blob');
+    var file=null; try{ file=new File([blob], nome, {type:'application/pdf'}); }catch(e){}
+    if(file&&navigator.canShare&&/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare({files:[file]})){
+      return navigator.share({files:[file], title:titulo}).catch(function(e){ if(!(e&&e.name==='AbortError')) baixarBlob(blob,nome); });
+    }
+    baixarBlob(blob,nome);
+  }).catch(function(e){
+    alertPdf(e&&e.message==='libpdfgen'? 'Não foi possível carregar o gerador de PDF. Verifique a conexão e tente de novo.' : 'Não foi possível gerar o PDF.');
+  }).then(function(){ if(btn){ btn.disabled=false; btn.textContent=old; } });
+}
+function baixarBlob(blob, nome){ var u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },4000); }
+function alertPdf(t){ setFileMsg(t); }
+/* Lê um bloco de resultado (listagem, pesquisa) e transforma em partes do PDF. */
+function pdfBloco(titulo, el, filtros, btn){
+  if(!el||!txt(el)) return;
+  var partes=[];
+  el.querySelectorAll('p, h4, ul, ol, table').forEach(function(n){
+    if(n.closest('table')&&n.tagName!=='TABLE') return;
+    if(n.tagName==='TABLE') partes.push({tabela:n});
+    else if(n.tagName==='UL'||n.tagName==='OL') partes.push({texto:Array.prototype.map.call(n.children,function(li){ return '• '+txt(li); }).join('\n')});
+    else { var t=txt(n).replace(/Limpar filtros/g,'').trim(); if(t) partes.push({texto:t, bold:n.tagName==='H4'}); }
+  });
+  gerarPDF(titulo, filtros, partes, btn);
+}
+$('pdfLate').addEventListener('click',function(){
+  var k=S.k; if(!k) return;
+  pdfBloco('Pedidos atrasados', $('lateBody'), [fmtInt(k.latePeds)+' pedidos · '+$('lateSum').textContent], this);
+});
+$('pdfChart').addEventListener('click',function(){
+  var k=S.kf; if(!k) return;
+  var list=Object.keys(k.cli).map(function(n){ return {n:n, o:k.cli[n]}; }).filter(function(x){ return x.o.valor>0||x.o.qtd>0; });
+  var by=$('chartBy').value==='qtd'?'qtd':'valor'; list.sort(function(a,b){ return b.o[by]-a.o[by]; });
+  var tv=list.reduce(function(a,x){return a+x.o.valor;},0), tq=list.reduce(function(a,x){return a+x.o.qtd;},0);
+  var pc=function(v,t){ return t? (v/t*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%' : '—'; };
+  var body=list.map(function(x,i){ return [String(i+1), x.n, String(Object.keys(x.o.peds).length), fmtNum(x.o.qtd), pc(x.o.qtd,tq), fmtBRL(x.o.valor), pc(x.o.valor,tv)]; });
+  body.push(['', 'TOTAL', '', fmtNum(tq), '100%', fmtBRL(tv), '100%']);
+  var R={halign:'right'};
+  gerarPDF('Compras por cliente', ['Período: '+S.kfLabel, 'ordenado por '+(by==='qtd'?'quantidade':'valor')],
+    [{texto:$('chartNote').textContent}, {head:['#','Cliente','Pedidos','Quantidade','% qtd.','Valor (R$)','% valor'], body:body, colStyles:{0:R,2:R,3:R,4:R,5:R,6:R}}], this);
+});
+
 /* ---------- eventos ---------- */
 $('askForm').addEventListener('submit',function(ev){ ev.preventDefault(); ask($('q').value); });
 $('btnStop').addEventListener('click',function(){ if(S.ctl) S.ctl.abort(); });
 $('btnClear').addEventListener('click',function(){ clearThread(); $('q').focus(); });
 $('chips').addEventListener('click',function(ev){ var b=ev.target.closest('.chip'); if(b) ask(b.textContent); });
 $('btnUpdate').addEventListener('click',function(){ $('fileInput').click(); });
-$('monthSel').addEventListener('change',function(){ S.month=this.value; FB.f.mes=S.month; if(S.data){ renderTiles(); renderList('filtro'); } });
+$('monthSel').addEventListener('change',function(){ S.month=this.value; if(S.data) renderTiles(); });
 $('chartBy').addEventListener('change',renderChart);
 $('monthBy').addEventListener('change',function(){ S.monthBy=this.value; if(S.data){ fillMonths(); renderTiles(); renderLists(); } });
 $('fileInput').addEventListener('change',function(){ var f=this.files&&this.files[0]; if(f) onFile(f); });
