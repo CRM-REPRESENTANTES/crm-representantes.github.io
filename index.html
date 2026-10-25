@@ -1266,6 +1266,7 @@ function gerarPDF(titulo, filtros, partes, btn){
     var n=doc.internal.getNumberOfPages();
     for(var i=1;i<=n;i++){ doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(100,107,120); doc.text('CRM Studio Denim · página '+i+' de '+n, W-M, H-16, {align:'right'}); }
     var nome=slug(titulo)+'-'+todayISO()+'.pdf', blob=doc.output('blob');
+    if(DL) return DL.save({filename:nome, data:blob}).catch(function(e){ var c=e&&e.code; if(c!=='declined') alertPdf(c==='rate_limited'? 'Já há um arquivo aguardando confirmação. Tente de novo em instantes.' : 'Não foi possível salvar o PDF nesta visualização.'); });
     var file=null; try{ file=new File([blob], nome, {type:'application/pdf'}); }catch(e){}
     if(file&&navigator.canShare&&/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare({files:[file]})){
       return navigator.share({files:[file], title:titulo}).catch(function(e){ if(!(e&&e.name==='AbortError')) baixarBlob(blob,nome); });
@@ -1275,6 +1276,9 @@ function gerarPDF(titulo, filtros, partes, btn){
     alertPdf(e&&e.message==='libpdfgen'? 'Não foi possível carregar o gerador de PDF. Verifique a conexão e tente de novo.' : 'Não foi possível gerar o PDF.');
   }).then(function(){ if(btn){ btn.disabled=false; btn.textContent=old; } });
 }
+/* Dentro do Claude (artifact), o arquivo é entregue pelo recurso de downloads; no site, baixa direto. */
+var DL=null;
+if(window.claude&&typeof window.claude.use==='function'){ window.claude.use('downloads').then(function(d){ DL=d; }, function(){}); }
 function baixarBlob(blob, nome){ var u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },4000); }
 function alertPdf(t){ setFileMsg(t); }
 /* Lê um bloco de resultado (listagem, pesquisa) e transforma em partes do PDF. */
