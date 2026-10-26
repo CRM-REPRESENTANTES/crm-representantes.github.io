@@ -285,7 +285,7 @@
       </div>
     </div>
     <div class="filebox">
-      <div class="filechip"><b id="fileName">Abrindo a carteira…</b><span id="fileDate">&nbsp;</span></div>
+      <div class="filechip"><b id="fileName">Nenhuma carteira carregada</b><span id="fileDate">&nbsp;</span></div>
       <div class="fileactions">
         <button class="btn-light" id="btnUpdate" type="button" title="Escolha o arquivo carteira_….xls ou .xlsx baixado do sistema">Carregar carteira (.xls)</button>
         <button class="btn-light" id="btnPrev" type="button">Previsão de atendimento</button>
@@ -386,7 +386,7 @@
       <div class="lacts"><div class="latesum" id="lateSum">&nbsp;</div><button type="button" class="btn-pdf" id="pdfLate" hidden>Gerar PDF</button></div>
     </div>
     <div class="prevbar" id="prevBar" hidden></div>
-    <div class="latebody" id="lateBody"><p class="empty">Aguardando a carteira para listar os pedidos com embarque vencido e saldo a faturar.</p></div>
+    <div class="latebody" id="lateBody"><p class="empty">Nenhuma carteira carregada. Use “Carregar carteira (.xls)” e escolha o arquivo da carteira selecionada.</p></div>
   </section>
 
   <p class="footnote" id="footnote">
@@ -555,6 +555,9 @@ function showNoData(msg){
   $('fileName').textContent='Nenhuma carteira carregada';
   $('fileDate').textContent=' ';
   $('lateBody').innerHTML='<p class="empty">'+esc(msg)+'</p>';
+  [].forEach.call(document.querySelectorAll('.tile .val'),function(e){ e.textContent='—'; });
+  [].forEach.call(document.querySelectorAll('.tile .sub'),function(e){ e.innerHTML='&nbsp;'; });
+  var ms=$('monthSel'); if(ms){ ms.innerHTML='<option value="todos">Todos os meses</option>'; ms.disabled=true; }
 }
 
 /* ---------- banco (db) ---------- */
@@ -644,7 +647,8 @@ function onFile(file){
       return saveToDb(meta,arrs).then(function(){ setData(meta,arrs); setFileMsg('Carteira atualizada e salva no site.'); },
         function(){ S.loadedVersion=prev; setData(meta,arrs); setFileMsg('Carteira carregada só nesta visita (não foi possível salvar).'); });
     }
-    S.localFile=true; setData(meta,arrs); setFileMsg('Arquivo carregado só nesta visita; o site volta à carteira publicada ao recarregar.');
+    S.localFile=true; setData(meta,arrs); saveSel(meta,arrs);
+    setFileMsg('Carteira carregada. Fica aberta nesta aba até você sair ou fechar a aba.');
   }).catch(function(e){
     setFileMsg(e&&e.message==='colunas'? 'Esse arquivo não tem as colunas da carteira (Pedido, Embarque, Cliente, Sit Linha, Saldo…).' :
                e&&e.message==='vazio'? 'O arquivo não tem linhas de pedidos.' :
@@ -1326,7 +1330,7 @@ $('prevInput').addEventListener('change',function(){ var f=this.files&&this.file
 /* ---------- capacidades ---------- */
 function noDb(){ if(!S.data) showNoData('Não foi possível abrir a carteira salva nesta visualização. Use “Carregar carteira” e escolha o arquivo carteira_….xlsx mais recente.'); }
 /* ---------- carteira criptografada: só abre com a senha ---------- */
-var DATA_URL='carteira.enc.json', KEY_SS='sd_carteira_chave', keyRaw=null, lastIv=null, pollTimer=null;
+var DATA_URL='carteira.enc.json', KEY_SS='sd_carteira_chave', keyRaw=null;
 function b64d(s){ var bin=atob(s), u=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
 function b64e(u){ var s2=''; for(var i=0;i<u.length;i++) s2+=String.fromCharCode(u[i]); return btoa(s2); }
 function fetchEnc(){ return fetch(DATA_URL+'?t='+Date.now(),{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('rede'); return r.json(); }, function(){ throw new Error('rede'); }); }
@@ -1341,12 +1345,18 @@ function decrypt(raw, enc){
     .then(function(buf){ return JSON.parse(new TextDecoder().decode(buf)); })
     .then(null, function(){ throw new Error('senha'); });
 }
-function applyEnc(payload, enc){ lastIv=enc.iv; S.localFile=false; setData(payload.meta, payload.linhas); }
-function openApp(){ $('lock').hidden=true; $('app').hidden=false; updateAskMode(); if(!pollTimer) pollTimer=setInterval(refresh, 10*60*1000); }
-function refresh(){
-  if(!keyRaw||$('app').hidden||S.localFile) return;
-  fetchEnc().then(function(enc){ if(enc.iv===lastIv) return; return decrypt(keyRaw,enc).then(function(p){ applyEnc(p,enc); setFileMsg('Carteira atualizada automaticamente.'); }); }).then(null,function(){});
+/* A carteira publicada só confere a senha (e a chave das tabelas). Os dados ficam limpos até o
+   representante carregar a carteira selecionada; ela fica só nesta aba (sessionStorage). */
+var SEL_SS='sd_carteira_sel';
+function saveSel(meta, arrs){ try{ sessionStorage.setItem(SEL_SS, JSON.stringify({meta:meta, linhas:arrs})); }catch(e){} }
+function dropSel(){ try{ sessionStorage.removeItem(SEL_SS); }catch(e){} }
+function emptyMsg(){ return 'Dados limpos. Use “Carregar carteira (.xls)” e escolha o arquivo da carteira selecionada.'; }
+function loadSel(){
+  var v=null; try{ v=JSON.parse(sessionStorage.getItem(SEL_SS)||'null'); }catch(e){ v=null; }
+  if(v&&v.meta&&v.linhas&&v.linhas.length){ S.localFile=true; setData(v.meta, v.linhas); return true; }
+  S.data=null; S.k=null; showNoData(emptyMsg()); return false;
 }
+function openApp(){ $('lock').hidden=true; $('app').hidden=false; updateAskMode(); loadSel(); }
 function lockMsg(t){ $('lockMsg').textContent=t||''; }
 $('lockForm').addEventListener('submit',function(ev){
   ev.preventDefault();
@@ -1358,7 +1368,7 @@ $('lockForm').addEventListener('submit',function(ev){
     return deriveRaw(pass,enc).then(function(raw){
       return decrypt(raw,enc).then(function(p){
         keyRaw=raw; try{ sessionStorage.setItem(KEY_SS,b64e(raw)); }catch(e){}
-        applyEnc(p,enc); lockMsg(''); openApp();
+        lockMsg(''); openApp();
       });
     });
   }).then(null,function(e){
@@ -1368,14 +1378,14 @@ $('lockForm').addEventListener('submit',function(ev){
 });
 $('btnLock').addEventListener('click',function(){
   try{ sessionStorage.removeItem(KEY_SS); }catch(e){}
-  keyRaw=null; S.data=null; clearThread();
+  keyRaw=null; S.data=null; S.k=null; dropSel(); clearThread(); clearLists(); showNoData(emptyMsg());
   $('app').hidden=true; $('lock').hidden=false; $('pw').focus();
 });
 (function(){
   var k=null; try{ k=sessionStorage.getItem(KEY_SS); }catch(e){}
   if(!k||!window.crypto||!crypto.subtle) return;
   var raw=b64d(k);
-  fetchEnc().then(function(enc){ return decrypt(raw,enc).then(function(p){ keyRaw=raw; applyEnc(p,enc); openApp(); }); })
+  fetchEnc().then(function(enc){ return decrypt(raw,enc).then(function(){ keyRaw=raw; openApp(); }); })
     .then(null,function(e){ if(e&&e.message==='senha'){ try{ sessionStorage.removeItem(KEY_SS); }catch(e2){} } });
 })();
 })();

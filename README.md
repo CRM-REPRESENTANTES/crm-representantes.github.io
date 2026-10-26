@@ -39,4 +39,4 @@ Depois, inclua a tabela na lista `TABELAS` de `arquivos/index.html` (campo `enc`
 ## Observações
 
 - Só entram no arquivo as colunas usadas pelo site (Pedido, Emissão, Embarque, Cliente, Cliente Remessa, Pedido Cliente, Cond Pgto, Prazo Medio, Situação, Sit Linha, Motivo Cancel Linha, Notas Fiscais, Datas, Descrição, Quantidade, qtde_faturada, Saldo, Valor Unitário Liquido, Valor Total).
-- A página aberta confere a cada 10 minutos se há carteira nova.
+- Os dados do CRM ficam limpos depois da senha: a carteira publicada serve só para conferir a senha (e abrir as tabelas). Os números aparecem quando o representante usa “Carregar carteira (.xls)”; a carteira escolhida fica aberta só naquela aba (vale também para Reclamação de qualidade) e some ao clicar em Sair ou fechar a aba.

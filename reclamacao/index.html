@@ -168,7 +168,7 @@
         <div id="srcInfo" class="msg">Procurando a carteira…</div>
       </div>
       <div class="row">
-        <button class="btn small" id="btnPw" type="button">Abrir carteira do site</button>
+        <button class="btn small" id="btnPw" type="button" hidden>Abrir carteira do site</button>
         <button class="btn small" id="btnFile" type="button">Carregar arquivo .xls</button>
         <input type="file" id="fileInput" accept=".xls,.xlsx,.csv,.htm,.html" hidden>
       </div>
@@ -535,9 +535,8 @@ function onCarteiraFile(file){
     var label='Arquivo '+file.name+' ('+new Date(file.lastModified||Date.now()).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})+')';
     setRows(res.rows,label);
     var extra= res.extras.length? ' Dados de cadastro encontrados: '+res.extras.join(', ')+'.' : '';
-    return idbDo(CART.db,CART.st,null,'readwrite',function(s){ return s.put({label:label, rows:res.rows},'atual'); })
-      .then(function(){ setMsg('srcMsg','Carteira carregada e guardada neste navegador.'+extra,'ok'); },
-            function(){ setMsg('srcMsg','Carteira carregada só nesta visita.'+extra,'ok'); });
+    try{ sessionStorage.setItem(REC_SS, JSON.stringify({label:label, rows:res.rows})); }catch(e){}
+    setMsg('srcMsg','Carteira carregada. Fica aberta nesta aba até você fechar a aba.'+extra,'ok');
   }).catch(function(e){
     var m=e&&e.message;
     setMsg('srcMsg', m==='colunas'? 'Esse arquivo não parece ser a carteira. Faltam as colunas: '+e.faltam.join(', ')+'.' : m==='vazio'? 'O arquivo não tem linhas.' : m==='lib'? 'Não foi possível carregar o leitor de Excel. Verifique a conexão.' : 'Não foi possível ler o arquivo.','err');
@@ -546,25 +545,17 @@ function onCarteiraFile(file){
 $('btnFile').addEventListener('click',function(){ $('fileInput').click(); });
 $('fileInput').addEventListener('change',function(){ var f=this.files&&this.files[0]; if(f) onCarteiraFile(f); this.value=''; });
 
-/* Ordem de busca: carteira do site já aberta nesta aba → arquivo guardado aqui → carteira guardada pela página dos representantes. */
+/* Dados limpos até carregar a carteira selecionada: usa só a carteira escolhida nesta aba
+   (no CRM ou aqui). A carteira publicada e cópias antigas guardadas no navegador não abrem sozinhas. */
+var SEL_SS='sd_carteira_sel', REC_SS='sd_reclamacao_sel';
 function initSource(){
-  tryStoredKey().then(null,function(){
-    return idbDo(CART.db,CART.st,null,'readonly',function(s){ return s.get('atual'); }).then(function(v){
-      if(v&&v.rows&&v.rows.length){ setRows(v.rows, v.label+' · guardado neste navegador'); return true; }
-      return idbDo('carteira-representante','kv',null,'readonly',function(s){ return s.get('atual'); }).then(function(r){
-        if(r&&r.linhas&&r.linhas.length){ setRows(fromArrays(r.linhas), 'Carteira do representante ('+((r.meta&&r.meta.arquivo)||'arquivo')+')'); return true; }
-        throw new Error('nada');
-      });
-    });
-  }).then(null,function(){
-    fetchEnc().then(function(){
-      $('srcInfo').textContent='Nenhuma carteira aberta. Abra a carteira do site com a senha ou carregue o arquivo carteira .xls mais recente.';
-      $('pwForm').hidden=false;
-    },function(){
-      $('btnPw').hidden=true;
-      $('srcInfo').textContent='Nenhuma carteira aberta. Carregue o arquivo carteira .xls mais recente.';
-    });
-  });
+  idbDo(CART.db,CART.st,null,'readwrite',function(s){ return s.delete('atual'); }).then(null,function(){});
+  var v=null;
+  try{ v=JSON.parse(sessionStorage.getItem(REC_SS)||'null'); }catch(e){ v=null; }
+  if(v&&v.rows&&v.rows.length){ setRows(v.rows, v.label); return; }
+  try{ v=JSON.parse(sessionStorage.getItem(SEL_SS)||'null'); }catch(e){ v=null; }
+  if(v&&v.linhas&&v.linhas.length){ setRows(fromArrays(v.linhas), 'Carteira carregada no CRM ('+((v.meta&&v.meta.arquivo)||'arquivo')+')'); return; }
+  $('srcInfo').textContent='Nenhuma carteira carregada. Carregue o arquivo da carteira selecionada (.xls).';
 }
 
 /* ---------- pesquisa de cliente ---------- */
