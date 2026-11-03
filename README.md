@@ -16,6 +16,8 @@ Site estático (GitHub Pages) para consultar a carteira de pedidos: busca direta
 - `arquivos/concorrentes/` — catálogo da Santana Textiles e o PDF de equivalências. A busca da aba Concorrentes usa os dados embutidos em `arquivos/index.html` (constante `CDATA`): só é equivalente o artigo Capricórnio com mesmo tingimento, peso (até 5%), ligamento e composição (até 3 pp por fibra).
 - `arquivos/tabelas/*.enc` — tabelas de preço **criptografadas** com a mesma chave da carteira. Só abrem dentro do CRM, depois da senha.
 - Calculadora, Tendências e Arquivos só abrem depois da senha de entrada.
+- `financeiro/` — carteira de títulos: botão “Carregar títulos (.xls)” (lê o histórico de títulos do sistema: Status, Cliente, Nota Fiscal, Número da Parcela, Vencimento, Pagamento, Valor Pago, Saldo, Valor de Comissão), filtros por cliente, nº do título (NF/parcela), NF, vencimento e pagamento; painéis de títulos pagos e vencidos por mês, evolução da comissão (por mês de pagamento) e clientes por prazo de pagamento. Cancelados ficam fora. Os dados ficam só na aba (sessionStorage `sd_titulos_sel`) e começam limpos.
+- `lib/nfdocs.js` — NF em PDF e romaneio por número da nota: o botão “Notas fiscais (PDF)” (Carteira e Financeiro) aceita os PDFs `danfe_<NF>-1.pdf` / `rom_<NF>_1.pdf` baixados do e-mail ou o .zip da pasta “NFs Capricórnio” do Drive. Ficam guardados só no navegador (IndexedDB `sd_nfdocs`); onde a NF aparece há os botões PDF, Romaneio e “+ Romaneio”.
 - `representantes/` — versão para outros representantes: sem senha e sem carteira embutida; cada um carrega o próprio arquivo, que é lido só no navegador dele. Fica em `/representantes/` no endereço do site.
 
 ## Atualizar a carteira
