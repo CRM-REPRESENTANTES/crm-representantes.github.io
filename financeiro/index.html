@@ -292,6 +292,8 @@
   .comchart{margin-top:22px; border-top:1px solid var(--border); padding-top:16px;}
   .comchart svg{display:block; overflow:visible;}
   .comchart .cbar{fill:var(--bar);} .comchart .cbar.sel{fill:var(--title);}
+  .comchart.proj .cbar{fill:var(--good);} .comchart.proj .cbar.sel{fill:var(--title);}
+  .comchart .clbl.zero{fill:var(--muted); font-weight:400;}
   .comchart .chit{fill:transparent; cursor:default;} .comchart .chit:hover + .cbar, .comchart g:hover .cbar{opacity:.85;}
   .comchart .clbl{font-size:11px; fill:var(--ink); font-weight:600; font-variant-numeric:tabular-nums;}
   .comchart .cax{font-size:11px; fill:var(--muted);}
@@ -373,11 +375,19 @@
 
     <div class="comchart">
       <div class="charthead">
-        <h3 id="hCom">Evolução da comissão</h3>
+        <h3 id="hCom">Comissão real · recebida</h3>
         <div class="lacts"><button type="button" class="btn-pdf" id="pdfCom" hidden>Gerar PDF</button><button type="button" class="btn-pdf share" id="pdfComSh">Compartilhar</button></div>
       </div>
       <p class="chartnote" id="comNote">Comissão por mês de pagamento dos títulos.</p>
       <div id="comChart" role="img" aria-labelledby="hCom"><p class="empty">Aguardando a carteira de títulos.</p></div>
+    </div>
+    <div class="comchart proj">
+      <div class="charthead">
+        <h3 id="hProj">Comissão futura · projeção</h3>
+        <div class="lacts"><button type="button" class="btn-pdf" id="pdfProj" hidden>Gerar PDF</button><button type="button" class="btn-pdf share" id="pdfProjSh">Compartilhar</button></div>
+      </div>
+      <p class="chartnote" id="projNote">Títulos a vencer considerados pagos na data de vencimento.</p>
+      <div id="projChart" role="img" aria-labelledby="hProj"><p class="empty">Aguardando a carteira de títulos.</p></div>
     </div>
   </section>
 
@@ -535,6 +545,7 @@ function prep(rows){
 function pctPadrao(){ var v=num($('pctCom').value); return v>0? v : 0; }
 function comissao(t){
   if(!t.pago) return 0;
+  if(t.pag&&mk(t.pag)<COM_INICIO) return 0;
   if(t.comissao!=null&&t.comissao>0) return t.comissao;
   if(t.pctCom!=null&&t.pctCom>0) return t.base*(t.pctCom>1? t.pctCom/100 : t.pctCom);
   return t.base*pctPadrao()/100;
@@ -569,9 +580,9 @@ function clearAll(msg){
   $('tVenc').classList.add('zero');
   ['bPagos','bVenc'].forEach(function(id){ $(id).innerHTML='<p class="empty">Aguardando a carteira de títulos.</p>'; });
   $('sPagos').textContent=''; $('sVenc').textContent=''; $('pVenc').classList.add('none');
-  $('comChart').innerHTML='<p class="empty">Aguardando a carteira de títulos.</p>'; $('comNote').textContent='Comissão por mês de pagamento dos títulos.';
+  $('comChart').innerHTML='<p class="empty">Aguardando a carteira de títulos.</p>'; $('projChart').innerHTML='<p class="empty">Aguardando a carteira de títulos.</p>'; $('comNote').textContent='Comissão por mês de pagamento dos títulos.';
   $('rankBody').innerHTML='<p class="empty">Aguardando a carteira de títulos.</p>';
-  ['pdfPagos','pdfVenc','pdfCom','pdfRank'].forEach(function(id){ $(id).hidden=true; });
+  ['pdfPagos','pdfVenc','pdfCom','pdfProj','pdfRank'].forEach(function(id){ $(id).hidden=true; });
   renderList();
 }
 
@@ -634,51 +645,79 @@ function tabela(list, modo){
 }
 
 /* ---------- gráfico: comissão por mês de pagamento ---------- */
-function serieCom(){
-  var by={};
-  T.rows.forEach(function(t){ if(!t.pago||!t.pag) return; var k=mk(t.pag); var o=by[k]=by[k]||{com:0, base:0, n:0}; o.com+=comissao(t); o.base+=t.base; o.n++; });
-  var ks=Object.keys(by).sort(); if(!ks.length) return [];
-  /* meses contínuos (mostra também os meses sem pagamento), até 12 */
-  var out=[], a=ks[0], b=ks[ks.length-1], y=+a.slice(0,4), m=+a.slice(5,7);
-  while(true){ var k=y+'-'+pad(m); out.push({k:k, o:by[k]||{com:0,base:0,n:0}}); if(k===b) break; m++; if(m>12){ m=1; y++; } if(out.length>60) break; }
-  return out.slice(-12);
+/* Comissão começa em setembro de 2026 (julho e agosto ficam fora) e o eixo vai até o último vencimento,
+   para que cada carga semanal mostre os meses crescendo. */
+var COM_INICIO='2026-09';
+function mesesCom(){
+  var fim=todayISO().slice(0,7);
+  T.rows.forEach(function(t){ var a=mk(t.pag), b=mk(t.venc); if(a>fim) fim=a; if(!t.pago&&b>fim) fim=b; });
+  var out=[], y=+COM_INICIO.slice(0,4), m=+COM_INICIO.slice(5,7);
+  while(out.length<24){ var k=y+'-'+pad(m); out.push(k); if(k>=fim) break; m++; if(m>12){ m=1; y++; } }
+  return out;
+}
+function serieReal(){
+  var by={}; mesesCom().forEach(function(k){ by[k]={com:0,base:0,n:0}; });
+  T.rows.forEach(function(t){ if(!t.pago||!t.pag) return; var o=by[mk(t.pag)]; if(!o) return; o.com+=comissao(t); o.base+=t.base; o.n++; });
+  return Object.keys(by).sort().map(function(k){ return {k:k, o:by[k]}; });
+}
+function comPrevista(t){
+  if(t.comissao!=null&&t.comissao>0) return t.comissao;
+  var b=t.aberto||t.valor;
+  if(t.pctCom!=null&&t.pctCom>0) return b*(t.pctCom>1? t.pctCom/100 : t.pctCom);
+  return b*pctPadrao()/100;
+}
+function serieProj(){
+  var by={}; mesesCom().forEach(function(k){ by[k]={com:0,base:0,n:0}; });
+  T.rows.forEach(function(t){ if(t.st!=='avencer') return; var o=by[mk(t.venc)]; if(!o) return; o.com+=comPrevista(t); o.base+=t.aberto||t.valor; o.n++; });
+  var cur=todayISO().slice(0,7);
+  return Object.keys(by).sort().filter(function(k){ return k>=cur; }).map(function(k){ return {k:k, o:by[k]}; });
 }
 function renderChart(){
-  var s=serieCom(), box=$('comChart');
   var semPct=!T.hasCom&&!pctPadrao();
-  $('pdfCom').hidden=!s.length||semPct;
-  if(!s.length){ box.innerHTML='<p class="empty">Nenhum título pago com data de pagamento.</p>'; $('comNote').textContent='Comissão por mês de pagamento dos títulos.'; return; }
-  if(semPct){ box.innerHTML='<p class="empty">A planilha não tem coluna de comissão. Informe o <b>% de comissão</b> acima para ver a evolução.</p>'; $('comNote').textContent='Comissão por mês de pagamento dos títulos.'; return; }
-  var tot=s.reduce(function(a,x){ return a+x.o.com; },0);
-  $('comNote').textContent='Comissão por mês de pagamento · '+s.length+(s.length===1?' mês':' meses')+' · total '+fmtBRL(tot)+(T.month!=='todos'?' · mês escolhido em destaque':'')+'.';
-  var cw=box.clientWidth||$('hCom').parentNode.clientWidth||800, W=Math.max(cw, s.length*64), H=240, L=8, R=8, Tp=26, B=36, ih=H-Tp-B, max=Math.max.apply(null,s.map(function(x){return x.o.com;}))||1;
-  var slot=(W-L-R)/s.length, bw=Math.min(44, slot*0.56);
-  var sc=function(v){ return ih*v/max; };
+  var r=serieReal(), pj=serieProj(); T.serie=r; T.proj=pj;
+  var tr=r.reduce(function(a,x){ return a+x.o.com; },0), tp=pj.reduce(function(a,x){ return a+x.o.com; },0);
+  var np=pj.reduce(function(a,x){ return a+x.o.n; },0);
+  $('pdfCom').hidden=semPct||!tr; $('pdfProj').hidden=semPct||!tp;
+  if(semPct){ ['comChart','projChart'].forEach(function(id){ $(id).innerHTML='<p class="empty">A planilha não tem coluna de comissão. Informe o <b>% de comissão</b> acima.</p>'; }); return; }
+  $('comNote').textContent='Comissão dos títulos pagos, pelo mês do pagamento, desde '+monthLabel(COM_INICIO)+' · total '+fmtBRL(tr)+'.';
+  $('projNote').textContent='Títulos a vencer considerados pagos na data de vencimento · '+fmtInt(np)+(np===1?' título':' títulos')+' · total previsto '+fmtBRL(tp)+'. Vencidos não entram na projeção.';
+  drawBars($('comChart'), r, 'real');
+  drawBars($('projChart'), pj, 'proj');
+}
+function drawBars(box, s, tipo){
+  if(!s.length){ box.innerHTML='<p class="empty">Sem meses para mostrar.</p>'; return; }
+  var cw=box.clientWidth||box.parentNode.clientWidth||800, W=Math.max(cw, s.length*64), H=230, L=8, R=8, Tp=26, B=36, ih=H-Tp-B;
+  var max=Math.max.apply(null,s.map(function(x){return x.o.com;}))||1;
+  var slot=(W-L-R)/s.length, bw=Math.min(44, slot*0.56), y0=Tp+ih, cur=todayISO().slice(0,7);
   var svg='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" aria-hidden="true" style="width:'+W+'px;max-width:none">';
   [0.5,1].forEach(function(f){ var yy=Tp+ih-ih*f; svg+='<line class="cgrid" x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'"/>'; });
   s.forEach(function(x,i){
-    var cx=L+slot*i+slot/2, h=Math.max(x.o.com>0?2:0, sc(x.o.com)), y0=Tp+ih, sel=x.k===T.month;
-    var r=Math.min(4,bw/2,h);
+    var cx=L+slot*i+slot/2, h=Math.max(x.o.com>0?2:0, ih*x.o.com/max), sel=x.k===T.month, r=Math.min(4,bw/2,h);
     var path= h>0? 'M'+(cx-bw/2)+','+y0+' V'+(y0-h+r)+' Q'+(cx-bw/2)+','+(y0-h)+' '+(cx-bw/2+r)+','+(y0-h)+' H'+(cx+bw/2-r)+' Q'+(cx+bw/2)+','+(y0-h)+' '+(cx+bw/2)+','+(y0-h+r)+' V'+y0+' Z' : '';
-    svg+='<g data-i="'+i+'">'+(path?'<path class="cbar'+(sel?' sel':'')+'" d="'+path+'"/>':'')+
+    var lbl= x.o.com>0? curto(x.o.com) : '—';
+    svg+='<g data-t="'+tipo+'" data-i="'+i+'">'+(path?'<path class="cbar'+(sel?' sel':'')+'" d="'+path+'"/>':'')+
       '<rect class="chit" x="'+(L+slot*i)+'" y="'+Tp+'" width="'+slot+'" height="'+(ih+B)+'"/>'+
-      '<text class="clbl" x="'+cx+'" y="'+(y0-h-7)+'" text-anchor="middle"'+(sel?' style="font-weight:800"':'')+'>'+esc(curto(x.o.com))+'</text>'+
-      '<text class="cax" x="'+cx+'" y="'+(H-B+16)+'" text-anchor="middle"'+(sel?' style="font-weight:700;fill:var(--title)"':'')+'>'+MES3[+x.k.slice(5,7)-1]+'/'+x.k.slice(2,4)+'</text></g>';
+      '<text class="clbl'+(x.o.com>0?'':' zero')+'" x="'+cx+'" y="'+(y0-h-7)+'" text-anchor="middle"'+(sel?' style="font-weight:800"':'')+'>'+esc(lbl)+'</text>'+
+      '<text class="cax" x="'+cx+'" y="'+(H-B+16)+'" text-anchor="middle"'+(sel||x.k===cur?' style="font-weight:700;fill:var(--title)"':'')+'>'+MES3[+x.k.slice(5,7)-1]+'/'+x.k.slice(2,4)+'</text></g>';
   });
-  svg+='<line class="cbase" x1="'+L+'" x2="'+(W-R)+'" y1="'+(Tp+ih)+'" y2="'+(Tp+ih)+'"/></svg>';
+  svg+='<line class="cbase" x1="'+L+'" x2="'+(W-R)+'" y1="'+y0+'" y2="'+y0+'"/></svg>';
   box.innerHTML='<div style="overflow-x:auto">'+svg+'</div>';
-  box.setAttribute('aria-label','Comissão por mês: '+s.map(function(x){ return monthLabel(x.k)+' '+fmtBRL(x.o.com); }).join('; '));
-  T.serie=s;
+  box.setAttribute('aria-label',(tipo==='real'?'Comissão recebida':'Comissão prevista')+' por mês: '+s.map(function(x){ return monthLabel(x.k)+' '+fmtBRL(x.o.com); }).join('; '));
 }
 function curto(v){ if(v>=1e6) return 'R$ '+(v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mi'; if(v>=1e4) return 'R$ '+(v/1e3).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mil'; return fmtBRL(v); }
-$('comChart').addEventListener('mousemove',function(ev){
+function tipMove(ev){
   var g=ev.target.closest&&ev.target.closest('g[data-i]'), tip=$('ctip');
   if(!g||!T.serie){ tip.hidden=true; return; }
-  var x=T.serie[+g.getAttribute('data-i')];
-  tip.innerHTML='<b>'+esc(monthLabel(x.k))+'</b><br>Comissão '+fmtBRL(x.o.com)+'<br>'+fmtInt(x.o.n)+(x.o.n===1?' título pago':' títulos pagos')+' · '+fmtBRL(x.o.base);
-  tip.hidden=false; tip.style.left=Math.min(ev.clientX+14, window.innerWidth-270)+'px'; tip.style.top=(ev.clientY+14)+'px';
-});
-$('comChart').addEventListener('mouseleave',function(){ $('ctip').hidden=true; });
+  var tp=g.getAttribute('data-t'), i=+g.getAttribute('data-i'), x=(tp==='real'?T.serie:T.proj)[i], k=x.k, z={o:{com:0,base:0,n:0}};
+  var real=T.serie.filter(function(y){ return y.k===k; })[0]||z, pj=T.proj.filter(function(y){ return y.k===k; })[0]||z;
+  var h='<b>'+esc(monthLabel(k))+'</b>';
+  h+= tp==='real'
+    ? '<br>Recebida '+fmtBRL(real.o.com)+'<br>'+fmtInt(real.o.n)+(real.o.n===1?' título pago':' títulos pagos')+' · '+fmtBRL(real.o.base)
+    : '<br>Prevista '+fmtBRL(pj.o.com)+'<br>'+fmtInt(pj.o.n)+(pj.o.n===1?' título a vencer':' títulos a vencer')+' · '+fmtBRL(pj.o.base);
+  if(real.o.com&&pj.o.com) h+='<br>Recebida + prevista no mês: <b>'+fmtBRL(real.o.com+pj.o.com)+'</b>';
+  tip.innerHTML=h; tip.hidden=false; tip.style.left=Math.min(ev.clientX+14, window.innerWidth-270)+'px'; tip.style.top=(ev.clientY+14)+'px';
+}
+['comChart','projChart'].forEach(function(id){ $(id).addEventListener('mousemove',tipMove); $(id).addEventListener('mouseleave',function(){ $('ctip').hidden=true; }); });
 
 /* ---------- clientes por prazo de pagamento ---------- */
 function rankData(){
@@ -841,10 +880,12 @@ function mesTxt(){ return T.month==='todos'? 'Todos os meses' : monthLabel(T.mon
 onPdf('pdfPagos',function(){ var share=this.classList.contains('share'); pdfDe('Títulos pagos', $('bPagos'), [mesTxt(), $('sPagos').textContent], this, share); });
 onPdf('pdfVenc',function(){ var share=this.classList.contains('share'); pdfDe('Títulos vencidos', $('bVenc'), [mesTxt(), $('sVenc').textContent], this, share); });
 onPdf('pdfRank',function(){ var share=this.classList.contains('share'); pdfDe('Clientes - prazo de pagamento', $('rankBody'), ['todos os títulos carregados'], this, share); });
-onPdf('pdfCom',function(){ var share=this.classList.contains('share');
-  if(!T.serie) return; var R={halign:'right'};
-  gerarPDF('Evolução da comissão', [$('comNote').textContent], [{head:['Mês','Títulos pagos','Valor recebido','Comissão'], body:T.serie.map(function(x){ return [monthLabel(x.k), fmtInt(x.o.n), fmtBRL(x.o.base), fmtBRL(x.o.com)]; }), colStyles:{1:R,2:R,3:R}}], this, share);
-});
+function pdfSerie(titulo, nota, serie, col, btn, share){
+  var R={halign:'right'};
+  gerarPDF(titulo, [nota], [{head:['Mês', col, 'Valor dos títulos', 'Comissão'], body:serie.map(function(x){ return [monthLabel(x.k), fmtInt(x.o.n), fmtBRL(x.o.base), fmtBRL(x.o.com)]; }), colStyles:{1:R,2:R,3:R}}], btn, share);
+}
+onPdf('pdfCom',function(){ if(T.serie) pdfSerie('Comissão real', $('comNote').textContent, T.serie, 'Títulos pagos', this, this.classList.contains('share')); });
+onPdf('pdfProj',function(){ if(T.proj) pdfSerie('Comissão futura - projeção', $('projNote').textContent, T.proj, 'Títulos a vencer', this, this.classList.contains('share')); });
 
 /* ---------- carregar ---------- */
 function onFile(file){
