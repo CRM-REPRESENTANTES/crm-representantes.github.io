@@ -403,8 +403,8 @@
 
   <p class="footnote">
     <b>Como os números são calculados.</b> <b>Pago</b>: título com data de pagamento (ou situação pago/liquidado). <b>Vencido</b>: sem pagamento e vencimento anterior a hoje. <b>A vencer</b>: sem pagamento e vencimento a partir de hoje.
-    Com um mês escolhido, os pagos contam pela <b>data de pagamento</b> e os vencidos e a vencer pela <b>data de vencimento</b>. <b>Comissão</b>: a coluna de comissão da planilha; sem ela, o % informado sobre o valor pago, no mês do pagamento.
-    <b>Prazo de pagamento</b>: considera todos os títulos carregados; “em dia” = pago até o vencimento.
+    Com um mês escolhido, os pagos contam pela <b>data de pagamento</b>, os a vencer pela <b>data de vencimento</b> no mês e os vencidos somam tudo o que está em aberto com vencimento até o fim do mês. <b>Comissão</b>: a coluna de comissão da planilha; sem ela, o % informado sobre o valor pago, no mês do pagamento.
+    <b>Prazo de pagamento</b>: considera todos os títulos carregados; “em dia” = pago até o vencimento; Denegri e MF Almeida (amostras) ficam fora.
     Os dados ficam só nesta aba e somem ao fechá-la ou ao clicar em Sair na Carteira. Carregue a planilha nova toda semana para atualizar os painéis.
   </p>
 </div>
@@ -547,7 +547,7 @@ function setData(meta, rows, cols){
   var ms={}; T.rows.forEach(function(t){ var a=mk(t.pag), b=mk(t.venc); if(a) ms[a]=1; if(b) ms[b]=1; });
   var keys=Object.keys(ms).sort().reverse(), cur=todayISO().slice(0,7);
   if(T.month!=='todos'&&!ms[T.month]) T.month= ms[cur]? cur : 'todos';
-  if(!T.loadedOnce){ T.month= ms[cur]? cur : 'todos'; T.loadedOnce=true; }
+  if(!T.loadedOnce){ var pm={}; T.rows.forEach(function(t){ var a=mk(t.pag); if(a) pm[a]=1; }); var pk=Object.keys(pm).sort(); T.month= pm[cur]? cur : (pk.length? pk[pk.length-1] : 'todos'); T.loadedOnce=true; }
   $('monthSel').innerHTML='<option value="todos">Todos os meses</option>'+keys.map(function(k){ return '<option value="'+k+'"'+(k===T.month?' selected':'')+'>'+esc(monthLabel(k))+'</option>'; }).join('');
   $('monthSel').disabled=false;
   renderAll();
@@ -574,12 +574,12 @@ function inMonth(d){ return T.month==='todos'||mk(d)===T.month; }
 function renderTiles(){
   var all=T.month==='todos', today=todayISO();
   var pagos=T.rows.filter(function(t){ return t.pago&&(all||mk(t.pag)===T.month); });
-  var venc=T.rows.filter(function(t){ return t.vencido&&inMonth(t.venc); });
+  var venc=T.rows.filter(function(t){ return t.vencido&&(all||mk(t.venc)<=T.month); });
   var av=T.rows.filter(function(t){ return t.st==='avencer'&&inMonth(t.venc); });
   var sum=function(l,f){ return l.reduce(function(a,t){ return a+f(t); },0); };
   var emDia=pagos.filter(function(t){ return t.pag&&t.venc&&t.atraso<=0; }).length, comAtr=pagos.filter(function(t){ return t.atraso>0; }).length;
   var com=sum(pagos,comissao);
-  $('monthNote').innerHTML= all? 'Todos os títulos da carteira carregada.' : 'Pagos em <b>'+esc(monthLabel(T.month))+'</b> (data de pagamento) · vencidos e a vencer com vencimento no mês.';
+  $('monthNote').innerHTML= all? 'Todos os títulos da carteira carregada.' : 'Pagos em <b>'+esc(monthLabel(T.month))+'</b> (data de pagamento) · vencidos: todos em aberto com vencimento até o fim do mês · a vencer: vencimento no mês.';
   $('kPagos').textContent=fmtInt(pagos.length); $('kPagosSub').textContent=emDia+' em dia · '+comAtr+' com atraso';
   $('kRecebido').textContent=fmtBRL(sum(pagos,function(t){return t.base;}));
   $('kRecebidoSub').textContent= pagos.length? 'média '+fmtBRL(sum(pagos,function(t){return t.base;})/pagos.length)+' por título' : ' ';
@@ -597,12 +597,12 @@ function renderTiles(){
   pagos.sort(function(a,b){ return (b.pag||'').localeCompare(a.pag||''); });
   $('bPagos').innerHTML= pagos.length? tabela(pagos,'pago') : '<p class="empty">Nenhum título pago '+(all?'na carteira':'em '+esc(monthLabel(T.month)))+'.</p>';
   /* vencidos */
-  $('hVenc').innerHTML='<span class="warnicon" aria-hidden="true">⚠</span> Títulos vencidos'+(all?'':' · '+esc(monthLabel(T.month)));
+  $('hVenc').innerHTML='<span class="warnicon" aria-hidden="true">⚠</span> Títulos vencidos'+(all?'':' · até '+esc(monthLabel(T.month)));
   $('pVenc').classList.toggle('none', !venc.length);
   $('sVenc').textContent= venc.length? fmtBRL(sum(venc,function(t){return t.aberto;}))+' em aberto' : '';
   $('pdfVenc').hidden=!venc.length;
   venc.sort(function(a,b){ return b.atraso-a.atraso; });
-  $('bVenc').innerHTML= venc.length? tabela(venc,'vencido') : '<p class="empty ok">Nenhum título vencido'+(all?'':' com vencimento em '+esc(monthLabel(T.month)))+'.</p>';
+  $('bVenc').innerHTML= venc.length? tabela(venc,'vencido') : '<p class="empty ok">Nenhum título vencido'+(all?'':' com vencimento até '+esc(monthLabel(T.month)))+'.</p>';
   T.cur={pagos:pagos, venc:venc};
 }
 function pillDias(t){
@@ -682,7 +682,7 @@ function rankData(){
     if(t.vencido){ o.venc++; o.vencValor+=t.aberto; o.maxVenc=Math.max(o.maxVenc,t.atraso); }
   });
   var list=Object.keys(by).map(function(k){ var o=by[k]; o.taxa=o.pagos? o.emDia/o.pagos : null; o.media=o.pagos? o.somaAtr/o.pagos : 0; return o; })
-    .filter(function(o){ return o.pagos||o.venc; });
+    .filter(function(o){ return (o.pagos||o.venc)&&!/denegri|\bm\s*\.?\s*f\s*\.?\s*(de\s*)?almeida\b/.test(norm(o.cli)); });
   list.forEach(function(o){
     /* nota: pontualidade dos pagamentos, descontando títulos vencidos em aberto */
     var base= o.taxa==null? 0.5 : o.taxa;
