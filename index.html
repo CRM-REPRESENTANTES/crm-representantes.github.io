@@ -295,7 +295,7 @@
       <div class="fileactions">
         <button class="btn-light" id="btnUpdate" type="button" title="Escolha o arquivo carteira_….xls ou .xlsx baixado do sistema">Carregar carteira (.xls)</button>
         <button class="btn-light" id="btnPrev" type="button">Previsão de atendimento</button>
-        <button class="btn-light" id="btnNfPdf" type="button" title="Escolha os PDFs das notas fiscais (e romaneios) baixados do e-mail">Notas fiscais (PDF)</button>
+        <button class="btn-light" id="btnNfPdf" type="button" title="Busca as NFs e romaneios da pasta NFs Capricórnio no Google Drive">Notas fiscais (Drive)</button>
         <button class="btn-ghost" id="btnLock" type="button">Sair</button>
       </div>
       <div class="filemsg" id="fileMsg" aria-live="polite"></div>
@@ -1336,7 +1336,7 @@ $('chartBy').addEventListener('change',renderChart);
 $('monthBy').addEventListener('change',function(){ S.monthBy=this.value; if(S.data){ fillMonths(); renderTiles(); renderLists(); } });
 $('fileInput').addEventListener('change',function(){ var f=this.files&&this.files[0]; if(f) onFile(f); });
 $('btnPrev').addEventListener('click',function(){ $('prevInput').click(); });
-$('btnNfPdf').addEventListener('click',function(){ NFDocs.pick(function(r){ setFileMsg(NFDocs.resumo(r)); }); });
+$('btnNfPdf').addEventListener('click',function(){ NFDocs.conectar(setFileMsg); });
 $('prevInput').addEventListener('change',function(){ var f=this.files&&this.files[0]; if(f) onPrevFile(f); });
 
 /* ---------- capacidades ---------- */

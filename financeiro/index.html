@@ -293,7 +293,9 @@
   .comchart svg{display:block; overflow:visible;}
   .comchart .cbar{fill:var(--bar);} .comchart .cbar.sel{fill:var(--title);}
   .comchart.proj .cbar{fill:var(--good);} .comchart.proj .cbar.sel{fill:var(--title);}
+  .comchart .clbl{display:none;} .comchart g.on .clbl{display:inline;}
   .comchart .clbl.zero{fill:var(--muted); font-weight:400;}
+  .comchart .chit{cursor:pointer;} .comchart g.on .cbar{fill:var(--title);}
   .comchart .chit{fill:transparent; cursor:default;} .comchart .chit:hover + .cbar, .comchart g:hover .cbar{opacity:.85;}
   .comchart .clbl{font-size:11px; fill:var(--ink); font-weight:600; font-variant-numeric:tabular-nums;}
   .comchart .cax{font-size:11px; fill:var(--muted);}
@@ -328,7 +330,7 @@
       <div class="filechip"><b id="fileName">Nenhuma carteira de títulos carregada</b><span id="fileDate">&nbsp;</span></div>
       <div class="fileactions">
         <button class="btn-light" id="btnLoad" type="button" title="Escolha a planilha da carteira de títulos (.xls, .xlsx ou .csv)">Carregar títulos (.xls)</button>
-        <button class="btn-light" id="btnNfPdf" type="button" title="Escolha os PDFs das notas fiscais (e romaneios) baixados do e-mail">Notas fiscais (PDF)</button>
+        <button class="btn-light" id="btnNfPdf" type="button" title="Busca as NFs e romaneios da pasta NFs Capricórnio no Google Drive">Notas fiscais (Drive)</button>
         <button class="btn-ghost" id="btnClearT" type="button" hidden>Limpar títulos</button>
       </div>
       <div class="filemsg" id="fileMsg" aria-live="polite"></div>
@@ -679,8 +681,8 @@ function renderChart(){
   var np=pj.reduce(function(a,x){ return a+x.o.n; },0);
   $('pdfCom').hidden=semPct||!tr; $('pdfProj').hidden=semPct||!tp;
   if(semPct){ ['comChart','projChart'].forEach(function(id){ $(id).innerHTML='<p class="empty">A planilha não tem coluna de comissão. Informe o <b>% de comissão</b> acima.</p>'; }); return; }
-  $('comNote').textContent='Comissão dos títulos pagos, pelo mês do pagamento, desde '+monthLabel(COM_INICIO)+' · total '+fmtBRL(tr)+'.';
-  $('projNote').textContent='Títulos a vencer considerados pagos na data de vencimento · '+fmtInt(np)+(np===1?' título':' títulos')+' · total previsto '+fmtBRL(tp)+'. Vencidos não entram na projeção.';
+  $('comNote').textContent='Comissão dos títulos pagos, pelo mês do pagamento, desde '+monthLabel(COM_INICIO)+'. Clique numa barra para ver o valor.';
+  $('projNote').textContent='Títulos a vencer considerados pagos na data de vencimento · '+fmtInt(np)+(np===1?' título':' títulos')+'. Vencidos não entram na projeção. Clique numa barra para ver o valor.';
   drawBars($('comChart'), r, 'real');
   drawBars($('projChart'), pj, 'proj');
 }
@@ -717,7 +719,16 @@ function tipMove(ev){
   if(real.o.com&&pj.o.com) h+='<br>Recebida + prevista no mês: <b>'+fmtBRL(real.o.com+pj.o.com)+'</b>';
   tip.innerHTML=h; tip.hidden=false; tip.style.left=Math.min(ev.clientX+14, window.innerWidth-270)+'px'; tip.style.top=(ev.clientY+14)+'px';
 }
-['comChart','projChart'].forEach(function(id){ $(id).addEventListener('mousemove',tipMove); $(id).addEventListener('mouseleave',function(){ $('ctip').hidden=true; }); });
+['comChart','projChart'].forEach(function(id){
+  $(id).addEventListener('click',function(ev){
+    var g=ev.target.closest&&ev.target.closest('g[data-i]'); if(!g) return;
+    var on=!g.classList.contains('on');
+    [].forEach.call(this.querySelectorAll('g.on'),function(x){ x.classList.remove('on'); });
+    if(on){ g.classList.add('on'); tipMove(ev); } else $('ctip').hidden=true;
+  });
+});
+document.addEventListener('click',function(ev){ if(!(ev.target.closest&&ev.target.closest('#comChart,#projChart'))){ $('ctip').hidden=true; [].forEach.call(document.querySelectorAll('.comchart g.on'),function(x){ x.classList.remove('on'); }); } });
+window.addEventListener('scroll',function(){ $('ctip').hidden=true; },{passive:true});
 
 /* ---------- clientes por prazo de pagamento ---------- */
 function rankData(){
@@ -904,7 +915,7 @@ function onFile(file){
 }
 $('btnLoad').addEventListener('click',function(){ $('fileInput').click(); });
 $('fileInput').addEventListener('change',function(){ var f=this.files&&this.files[0]; if(f) onFile(f); });
-$('btnNfPdf').addEventListener('click',function(){ NFDocs.pick(function(r){ setMsg(NFDocs.resumo(r)); }); });
+$('btnNfPdf').addEventListener('click',function(){ NFDocs.conectar(setMsg); });
 $('btnClearT').addEventListener('click',function(){ try{ sessionStorage.removeItem(SS); }catch(e){} clearAll('Dados limpos. Use “Carregar títulos (.xls)” para ver os painéis.'); setMsg(''); });
 var rsz=null; window.addEventListener('resize',function(){ clearTimeout(rsz); rsz=setTimeout(function(){ if(T.rows) renderChart(); },200); });
 $('monthSel').addEventListener('change',function(){ T.month=this.value; if(T.rows){ renderTiles(); renderChart(); } });
