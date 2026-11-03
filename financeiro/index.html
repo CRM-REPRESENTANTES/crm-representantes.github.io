@@ -256,6 +256,11 @@
   .modnav .soon{font-size:9.5px; text-transform:uppercase; letter-spacing:.6px; background:var(--stitch); color:#fff; border-radius:10px; padding:1px 7px; font-weight:700;}
   .modnav .ext{font-size:11px; opacity:.8;}
   @media (max-width:600px){ .modnav{flex-wrap:wrap;} .modnav a{padding:7px 11px; font-size:12.5px;} }
+  .lblock .lhead .btn-pdf[data-act=pdf]{display:none!important;}
+  .resbar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; padding:8px 0 2px;}
+  .resbar span{font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-right:auto;}
+  .btn-pdf.share{background:var(--accent-strong); color:var(--accent-fg); border-color:var(--accent-strong);}
+  .btn-pdf.share:hover{filter:brightness(1.12); background:var(--accent-strong);}
   /* Financeiro */
   .tiles.five{grid-template-columns:repeat(5, minmax(0,1fr));}
   @media (max-width:1060px){ .tiles.five{grid-template-columns:repeat(2, minmax(0,1fr));} }
@@ -404,7 +409,7 @@
   <p class="footnote">
     <b>Como os números são calculados.</b> <b>Pago</b>: título com data de pagamento (ou situação pago/liquidado). <b>Vencido</b>: sem pagamento e vencimento anterior a hoje. <b>A vencer</b>: sem pagamento e vencimento a partir de hoje.
     Com um mês escolhido, os pagos contam pela <b>data de pagamento</b>, os a vencer pela <b>data de vencimento</b> no mês e os vencidos somam tudo o que está em aberto com vencimento até o fim do mês. <b>Comissão</b>: a coluna de comissão da planilha; sem ela, o % informado sobre o valor pago, no mês do pagamento.
-    <b>Prazo de pagamento</b>: considera todos os títulos carregados; “em dia” = pago até o vencimento; Denegri e MF Almeida (amostras) ficam fora.
+    <b>Prazo de pagamento</b>: considera todos os títulos carregados; “em dia” = pago até o vencimento; clientes do mesmo Grupo Econômico aparecem somados; Denegri e MF Almeida (amostras) ficam fora.
     Os dados ficam só nesta aba e somem ao fechá-la ou ao clicar em Sair na Carteira. Carregue a planilha nova toda semana para atualizar os painéis.
   </p>
 </div>
@@ -447,7 +452,8 @@ function toISO(v){
 function classify(h){
   var n=norm(h).replace(/[._\-\/]/g,' ').replace(/\s+/g,' ').trim();
   if(!n) return '';
-  if(/desconto|juros|multa|tipo|forma|grupo|cnpj|cpf|^cod/.test(n)) return '';
+  if(/desconto|juros|multa|tipo|forma|cnpj|cpf|^cod/.test(n)) return '';
+  if(/grupo/.test(n)) return 'grupo';
   if(/comiss/.test(n)) return /%|perc|taxa|aliq|indice/.test(n)? 'pctCom' : 'comissao';
   if(/\b(valor|vlr|vl)\b.*(pag|receb|baix|liquid)/.test(n)) return 'valorPago';
   if(/venc/.test(n)) return 'venc';
@@ -487,7 +493,7 @@ function parseTitulos(XLSX, buf){
     out.push({
       titulo:String(g(row,'titulo')==null?'':g(row,'titulo')).replace(/\.0+$/,'').trim() || (M.nf!=null? String(g(row,'nf')).replace(/\.0+$/,'').trim() : ''),
       parcela:String(g(row,'parcela')||'').trim(),
-      cliente:cli,
+      cliente:cli, grupo:String(g(row,'grupo')||'').trim(),
       nf:String(g(row,'nf')==null?'':g(row,'nf')).replace(/\.0+$/,'').trim(),
       pedido:String(g(row,'pedido')||'').replace(/\.0+$/,'').trim(),
       emissao:toISO(g(row,'emissao')), venc:toISO(g(row,'venc')), pag:toISO(g(row,'pag')),
@@ -610,7 +616,7 @@ function pillDias(t){
   if(t.st==='vencido') return '<span class="pill over">⚠ '+t.atraso+(t.atraso===1?' dia':' dias')+'</span>';
   return '<span class="pill open">a vencer</span>';
 }
-function tit(t){ return esc(t.titulo||'—')+(t.parcela? '<small style="display:block;color:var(--muted)">parc. '+esc(t.parcela)+'</small>':''); }
+function tit(t){ return esc(t.titulo||'—')+(t.parcela? ' <small style="display:block;color:var(--muted)">parc. '+esc(t.parcela)+'</small>':''); }
 function tabela(list, modo){
   var h='<div class="tablewrap"><table><thead><tr>';
   if(modo==='pago') h+='<th>Título</th><th>Cliente</th><th>NF</th><th>Vencimento</th><th>Pagamento</th><th class="num">Valor</th><th>Prazo</th>';
@@ -677,12 +683,14 @@ $('comChart').addEventListener('mouseleave',function(){ $('ctip').hidden=true; }
 function rankData(){
   var by={};
   T.rows.forEach(function(t){
-    var o=by[t.cliente]=by[t.cliente]||{cli:t.cliente, pagos:0, emDia:0, somaAtr:0, nAtr:0, maxAtr:0, venc:0, vencValor:0, maxVenc:0};
+    var gk=t.grupo||t.cliente;
+    var o=by[gk]=by[gk]||{cli:gk, razoes:{}, pagos:0, emDia:0, somaAtr:0, nAtr:0, maxAtr:0, venc:0, vencValor:0, maxVenc:0};
+    o.razoes[t.cliente]=1;
     if(t.pago&&t.pag&&t.venc){ o.pagos++; if(t.atraso<=0) o.emDia++; else { o.nAtr++; o.somaAtr+=t.atraso; o.maxAtr=Math.max(o.maxAtr,t.atraso); } }
     if(t.vencido){ o.venc++; o.vencValor+=t.aberto; o.maxVenc=Math.max(o.maxVenc,t.atraso); }
   });
   var list=Object.keys(by).map(function(k){ var o=by[k]; o.taxa=o.pagos? o.emDia/o.pagos : null; o.media=o.pagos? o.somaAtr/o.pagos : 0; return o; })
-    .filter(function(o){ return (o.pagos||o.venc)&&!/denegri|\bm\s*\.?\s*f\s*\.?\s*(de\s*)?almeida\b/.test(norm(o.cli)); });
+    .filter(function(o){ var nm=norm(o.cli+' '+Object.keys(o.razoes).join(' ')); return (o.pagos||o.venc)&&!/denegri|\bm\s*\.?\s*f\s*\.?\s*(de\s*)?almeida\b/.test(nm); });
   list.forEach(function(o){
     /* nota: pontualidade dos pagamentos, descontando títulos vencidos em aberto */
     var base= o.taxa==null? 0.5 : o.taxa;
@@ -692,15 +700,16 @@ function rankData(){
   list.sort(function(a,b){ return b.nota-a.nota || b.pagos-a.pagos || a.cli.localeCompare(b.cli,'pt-BR'); });
   return list;
 }
+function razoes(o){ var r=Object.keys(o.razoes); return (r.length>1||(r.length===1&&norm(r[0])!==norm(o.cli)))? '<small>'+esc(r.join(' · '))+'</small>' : ''; }
 var TAGS={pontual:['ok','Pontual'], oscila:['late','Às vezes atrasa'], atrasa:['over','Atrasa']};
 function renderRank(){
   var list=rankData(); T.rank=list;
   $('pdfRank').hidden=!list.length;
   if(!list.length){ $('rankBody').innerHTML='<p class="empty">Nenhum título pago ou vencido para avaliar.</p>'; return; }
-  var h='<div class="tablewrap"><table><thead><tr><th class="num">#</th><th>Cliente</th><th>Pagamentos</th><th class="num">Títulos pagos</th><th class="num">Pagos em dia</th><th class="num">Atraso médio</th><th class="num">Maior atraso</th><th class="num">Vencidos em aberto</th></tr></thead><tbody>';
+  var h='<div class="tablewrap"><table><thead><tr><th class="num">#</th><th>Cliente / grupo</th><th>Pagamentos</th><th class="num">Títulos pagos</th><th class="num">Pagos em dia</th><th class="num">Atraso médio</th><th class="num">Maior atraso</th><th class="num">Vencidos em aberto</th></tr></thead><tbody>';
   list.forEach(function(o,i){
     var tg=TAGS[o.tag];
-    h+='<tr><td class="num">'+(i+1)+'</td><td class="cli">'+esc(o.cli)+'</td><td><span class="pill '+tg[0]+'">'+tg[1]+'</span></td>'+
+    h+='<tr><td class="num">'+(i+1)+'</td><td class="cli">'+esc(o.cli)+razoes(o)+'</td><td><span class="pill '+tg[0]+'">'+tg[1]+'</span></td>'+
       '<td class="num">'+fmtInt(o.pagos)+'</td>'+
       '<td class="num">'+(o.taxa==null? '—' : '<span class="meter" aria-hidden="true"><i style="width:'+(o.taxa*100).toFixed(0)+'%"></i></span>'+fmtPct(o.taxa))+'</td>'+
       '<td class="num">'+(o.pagos? o.media.toLocaleString('pt-BR',{maximumFractionDigits:1})+' d' : '—')+'</td>'+
@@ -739,7 +748,7 @@ function renderList(){
   if(!list.length){ res.innerHTML='<p>Nenhum título encontrado'+(lab.length?' · '+esc(lab.join(' · ')):'')+'.</p>'; return; }
   var tv=list.reduce(function(a,t){return a+t.valor;},0), tp=list.reduce(function(a,t){return a+(t.pago?t.base:0);},0), ta=list.reduce(function(a,t){return a+t.aberto;},0);
   var nv=list.filter(function(t){return t.vencido;}).length;
-  res.innerHTML='<p><strong>'+fmtInt(list.length)+(list.length===1?' título':' títulos')+'</strong>'+(lab.length?' · '+esc(lab.join(' · ')):' · todos')+'. Valor '+fmtBRL(tv)+' · pago '+fmtBRL(tp)+' · em aberto '+fmtBRL(ta)+(nv? ' · <b style="color:var(--rust-ink)">⚠ '+nv+(nv===1?' vencido':' vencidos')+'</b>':'')+'.</p>'+tabela(list,'lista');
+  res.innerHTML='<div class="resbar"><span>Relatório desta pesquisa</span><button type="button" class="btn-pdf" data-act="pdf">Gerar PDF</button><button type="button" class="btn-pdf share" data-act="share">Compartilhar</button></div>'+'<p><strong>'+fmtInt(list.length)+(list.length===1?' título':' títulos')+'</strong>'+(lab.length?' · '+esc(lab.join(' · ')):' · todos')+'. Valor '+fmtBRL(tv)+' · pago '+fmtBRL(tp)+' · em aberto '+fmtBRL(ta)+(nv? ' · <b style="color:var(--rust-ink)">⚠ '+nv+(nv===1?' vencido':' vencidos')+'</b>':'')+'.</p>'+tabela(list,'lista');
 }
 $('tf').addEventListener('input',function(ev){ var k=ev.target.getAttribute('data-k'); if(!k) return; T.f[k]=ev.target.value; if(ev.target.tagName==='INPUT'&&ev.target.type==='text'){ clearTimeout(T.tm); T.tm=setTimeout(renderList,220); } else renderList(); });
 $('tf').addEventListener('change',function(ev){ var k=ev.target.getAttribute('data-k'); if(!k) return; T.f[k]=ev.target.value; renderList(); });
@@ -747,7 +756,7 @@ $('tf').addEventListener('click',function(ev){
   var a=ev.target.closest('[data-act]'); if(!a||!T.rows) return; var act=a.getAttribute('data-act');
   if(act==='all'){ T.showAll=true; renderList(); return; }
   if(act==='reset'){ T.f=fVazio(); T.showAll=false; renderList(); return; }
-  if(act==='pdf') pdfDe('Títulos', $('tf').querySelector('.lres'), T.lab, a);
+  if(act==='pdf'||act==='share') pdfDe('Títulos', $('tf').querySelector('.lres'), T.lab&&T.lab.length? T.lab : ['todos os títulos'], a, act==='share');
 });
 
 /* ---------- NF -> pedidos da carteira (se a carteira estiver carregada nesta aba) ---------- */
@@ -790,7 +799,7 @@ function txt(el){ return (el.innerText||el.textContent||'').replace(/[ \t]+/g,' 
 var DL=null;
 if(window.claude&&typeof window.claude.use==='function'){ window.claude.use('downloads').then(function(d){ DL=d; }, function(){}); }
 function baixarBlob(blob, nome){ var u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },4000); }
-function gerarPDF(titulo, filtros, partes, btn){
+function gerarPDF(titulo, filtros, partes, btn, share){
   var old=btn? btn.textContent : ''; if(btn){ btn.disabled=true; btn.textContent='Gerando…'; }
   return loadJsPDF().then(function(JsPDF){
     var doc=new JsPDF({orientation:'landscape', unit:'pt', format:'a4'}), W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=36, y;
@@ -816,15 +825,15 @@ function gerarPDF(titulo, filtros, partes, btn){
     var nome=slug(titulo)+'-'+todayISO()+'.pdf', blob=doc.output('blob');
     if(DL) return DL.save({filename:nome, data:blob}).catch(function(){});
     var file=null; try{ file=new File([blob], nome, {type:'application/pdf'}); }catch(e){}
-    if(file&&navigator.canShare&&/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare({files:[file]})) return navigator.share({files:[file], title:titulo}).catch(function(e){ if(!(e&&e.name==='AbortError')) baixarBlob(blob,nome); });
+    if(file&&navigator.canShare&&(share||/Android|iPhone|iPad/i.test(navigator.userAgent))&&navigator.canShare({files:[file]})) return navigator.share({files:[file], title:titulo}).catch(function(e){ if(!(e&&e.name==='AbortError')) baixarBlob(blob,nome); });
     baixarBlob(blob,nome);
   }).catch(function(e){ setMsg(e&&e.message==='libpdfgen'? 'Não foi possível carregar o gerador de PDF. Verifique a conexão.' : 'Não foi possível gerar o PDF.'); })
     .then(function(){ if(btn){ btn.disabled=false; btn.textContent=old; } });
 }
-function pdfDe(titulo, el, filtros, btn){
+function pdfDe(titulo, el, filtros, btn, share){
   if(!el||!txt(el)) return; var partes=[];
   el.querySelectorAll('p, table').forEach(function(n){ if(n.closest('table')&&n.tagName!=='TABLE') return; if(n.tagName==='TABLE') partes.push({tabela:NFDocs.cleanTable(n)}); else partes.push({texto:txt(n)}); });
-  gerarPDF(titulo, filtros, partes, btn);
+  gerarPDF(titulo, filtros, partes, btn, share);
 }
 function mesTxt(){ return T.month==='todos'? 'Todos os meses' : monthLabel(T.month); }
 $('pdfPagos').addEventListener('click',function(){ pdfDe('Títulos pagos', $('bPagos'), [mesTxt(), $('sPagos').textContent], this); });

@@ -246,6 +246,11 @@
   .footnote{font-size:12px; color:var(--muted); line-height:1.6; margin:0;}
   .footnote b{color:var(--ink); font-weight:600;}
 
+  .lblock .lhead .btn-pdf[data-act=pdf]{display:none!important;}
+  .resbar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; padding:8px 0 2px;}
+  .resbar span{font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-right:auto;}
+  .btn-pdf.share{background:var(--accent-strong); color:var(--accent-fg); border-color:var(--accent-strong);}
+  .btn-pdf.share:hover{filter:brightness(1.12); background:var(--accent-strong);}
   /* Menu de módulos do CRM */
   .modnav{flex-basis:100%; display:flex; gap:6px; overflow-x:auto; padding:12px 2px 2px; border-top:1px solid rgba(255,255,255,.16); scrollbar-width:none; -webkit-overflow-scrolling:touch;}
   .modnav::-webkit-scrollbar{display:none;}
@@ -1170,7 +1175,7 @@ function renderList(tipo){
   L.filtros=labels;
   if(!rows.length){ res.innerHTML='<p>Nenhum pedido encontrado'+esc(filtros)+'.'+limpar+'</p>'; return; }
   var act=rows.filter(function(r){return !isCanc(r);}), nCanc=rows.length-act.length, tAll=totals(rows), t=totals(act);
-  var h='<p><strong>'+fmtInt(tAll.pedidos_distintos)+(tAll.pedidos_distintos===1?' pedido':' pedidos')+'</strong> em '+fmtInt(tAll.linhas)+' linhas'+esc(filtros)+'.'+limpar+'<br>Quantidade '+t.quantidade+' · faturado '+t.qtde_faturada+' · saldo '+t.saldo+' · valor dos pedidos '+t.valor_pedido+' · valor faturado '+t.valor_faturado+' · em aberto '+t.valor_em_aberto+'.'+(nCanc? ' Quantidades e valores não incluem '+nCanc+(nCanc>1?' linhas canceladas.':' linha cancelada.'):'')+'</p>';
+  var h='<div class="resbar"><span>Relatório desta pesquisa</span><button type="button" class="btn-pdf" data-act="pdf">Gerar PDF</button><button type="button" class="btn-pdf share" data-act="share">Compartilhar</button></div>'+'<p><strong>'+fmtInt(tAll.pedidos_distintos)+(tAll.pedidos_distintos===1?' pedido':' pedidos')+'</strong> em '+fmtInt(tAll.linhas)+' linhas'+esc(filtros)+'.'+limpar+'<br>Quantidade '+t.quantidade+' · faturado '+t.qtde_faturada+' · saldo '+t.saldo+' · valor dos pedidos '+t.valor_pedido+' · valor faturado '+t.valor_faturado+' · em aberto '+t.valor_em_aberto+'.'+(nCanc? ' Quantidades e valores não incluem '+nCanc+(nCanc>1?' linhas canceladas.':' linha cancelada.'):'')+'</p>';
   rows=rows.slice().sort(function(a,b){ return a.embarque<b.embarque?-1:a.embarque>b.embarque?1:(+a.pedido||0)-(+b.pedido||0); });
   h+='<div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Emissão</th><th>Cliente</th><th>Tecido</th><th>Embarque</th><th>Situação</th><th>Sit Linha</th><th>Notas Fiscais</th><th class="num">Quantidade</th><th class="num">Faturado</th><th class="num">Saldo</th><th class="num">Valor do pedido</th><th class="num">Valor em aberto</th></tr></thead><tbody>';
   rows.slice(0,400).forEach(function(r){
@@ -1208,7 +1213,8 @@ function renderLists(){ if(!S.data) return; renderList('filtro'); Object.keys(LS
 FB.el.addEventListener('change',function(ev){ var k=ev.target.getAttribute('data-k'); if(!k||!S.data) return; FB.f[k]=ev.target.value; renderList('filtro'); });
 FB.el.addEventListener('click',function(ev){
   var a=ev.target.closest('[data-act]'); if(!a||!S.data) return;
-  if(a.getAttribute('data-act')==='pdf'){ pdfBloco('Pedidos filtrados', FB.el.querySelector('.lres'), FB.filtros, a); return; }
+  var ac=a.getAttribute('data-act');
+  if(ac==='pdf'||ac==='share'){ pdfBloco('Pedidos filtrados', FB.el.querySelector('.lres'), FB.filtros, a, ac==='share'); return; }
   FB.f=fbVazio(); renderList('filtro');
 });
 function clearLists(){ LS={}; $('lists').innerHTML=''; updateListBar(); }
@@ -1219,7 +1225,8 @@ $('lists').addEventListener('change',function(ev){
 $('lists').addEventListener('click',function(ev){
   var a=ev.target.closest('[data-act]'); if(!a) return;
   var b=a.closest('.lblock'), tipo=b.getAttribute('data-tipo');
-  if(a.getAttribute('data-act')==='pdf'){ pdfBloco(LISTS[tipo].titulo, b.querySelector('.lres'), LS[tipo].filtros, a); return; }
+  var ac=a.getAttribute('data-act');
+  if(ac==='pdf'||ac==='share'){ pdfBloco(LISTS[tipo].titulo, b.querySelector('.lres'), LS[tipo].filtros, a, ac==='share'); return; }
   if(a.getAttribute('data-act')==='close'){ b.remove(); delete LS[tipo]; updateListBar(); }
   else { LS[tipo].f={mes:'todos', tecido:'', cliente:'', de:'', ate:''}; renderList(tipo); }
 });
@@ -1244,7 +1251,7 @@ function loadJsPDF(){
 function slug(t){ return norm(t).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)||'relatorio'; }
 function txt(el){ return (el.innerText||el.textContent||'').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim(); }
 /* Monta o PDF: cabeçalho STUDIO DENIM, título, filtros, textos e tabelas na ordem em que aparecem. */
-function gerarPDF(titulo, filtros, partes, btn){
+function gerarPDF(titulo, filtros, partes, btn, share){
   var old=btn? btn.textContent : ''; if(btn){ btn.disabled=true; btn.textContent='Gerando…'; }
   return loadJsPDF().then(function(JsPDF){
     var doc=new JsPDF({orientation:'landscape', unit:'pt', format:'a4'}), W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=36, y;
@@ -1274,7 +1281,7 @@ function gerarPDF(titulo, filtros, partes, btn){
     var nome=slug(titulo)+'-'+todayISO()+'.pdf', blob=doc.output('blob');
     if(DL) return DL.save({filename:nome, data:blob}).catch(function(e){ var c=e&&e.code; if(c!=='declined') alertPdf(c==='rate_limited'? 'Já há um arquivo aguardando confirmação. Tente de novo em instantes.' : 'Não foi possível salvar o PDF nesta visualização.'); });
     var file=null; try{ file=new File([blob], nome, {type:'application/pdf'}); }catch(e){}
-    if(file&&navigator.canShare&&/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare({files:[file]})){
+    if(file&&navigator.canShare&&(share||/Android|iPhone|iPad/i.test(navigator.userAgent))&&navigator.canShare({files:[file]})){
       return navigator.share({files:[file], title:titulo}).catch(function(e){ if(!(e&&e.name==='AbortError')) baixarBlob(blob,nome); });
     }
     baixarBlob(blob,nome);
@@ -1288,7 +1295,7 @@ if(window.claude&&typeof window.claude.use==='function'){ window.claude.use('dow
 function baixarBlob(blob, nome){ var u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },4000); }
 function alertPdf(t){ setFileMsg(t); }
 /* Lê um bloco de resultado (listagem, pesquisa) e transforma em partes do PDF. */
-function pdfBloco(titulo, el, filtros, btn){
+function pdfBloco(titulo, el, filtros, btn, share){
   if(!el||!txt(el)) return;
   var partes=[];
   el.querySelectorAll('p, h4, ul, ol, table').forEach(function(n){
@@ -1297,7 +1304,7 @@ function pdfBloco(titulo, el, filtros, btn){
     else if(n.tagName==='UL'||n.tagName==='OL') partes.push({texto:Array.prototype.map.call(n.children,function(li){ return '• '+txt(li); }).join('\n')});
     else { var t=txt(n).replace(/Limpar filtros/g,'').trim(); if(t) partes.push({texto:t, bold:n.tagName==='H4'}); }
   });
-  gerarPDF(titulo, filtros, partes, btn);
+  gerarPDF(titulo, filtros, partes, btn, share);
 }
 $('pdfLate').addEventListener('click',function(){
   var k=S.k; if(!k) return;
