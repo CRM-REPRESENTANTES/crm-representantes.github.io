@@ -249,6 +249,7 @@
   .lblock .lhead .btn-pdf[data-act=pdf]{display:none!important;}
   .resbar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; padding:8px 0 2px;}
   .resbar span{font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-right:auto;}
+  .btn-pdf[hidden] + .btn-pdf.share{display:none;}
   .btn-pdf.share{background:var(--accent-strong); color:var(--accent-fg); border-color:var(--accent-strong);}
   .btn-pdf.share:hover{filter:brightness(1.12); background:var(--accent-strong);}
   /* Menu de módulos do CRM */
@@ -379,7 +380,7 @@
           <label for="chartBy">Medida
             <select id="chartBy"><option value="valor">Valor (R$)</option><option value="qtd">Quantidade</option></select>
           </label>
-          <button type="button" class="btn-pdf" id="pdfChart">Gerar PDF</button>
+          <button type="button" class="btn-pdf" id="pdfChart">Gerar PDF</button><button type="button" class="btn-pdf share" id="pdfChartSh">Compartilhar</button>
         </div>
       </div>
       <div class="bars" id="clientBars" role="table" aria-labelledby="hChart"><p class="empty">Aguardando a carteira.</p></div>
@@ -389,7 +390,7 @@
   <section class="card late" id="lateCard" aria-labelledby="hLate">
     <div class="latehead">
       <h2 id="hLate">Pedidos atrasados <span class="count" id="lateCount">—</span></h2>
-      <div class="lacts"><div class="latesum" id="lateSum">&nbsp;</div><button type="button" class="btn-pdf" id="pdfLate" hidden>Gerar PDF</button></div>
+      <div class="lacts"><div class="latesum" id="lateSum">&nbsp;</div><button type="button" class="btn-pdf" id="pdfLate" hidden>Gerar PDF</button><button type="button" class="btn-pdf share" id="pdfLateSh">Compartilhar</button></div>
     </div>
     <div class="prevbar" id="prevBar" hidden></div>
     <div class="latebody" id="lateBody"><p class="empty">Nenhuma carteira carregada. Use “Carregar carteira (.xls)” e escolha o arquivo da carteira selecionada.</p></div>
@@ -1240,6 +1241,7 @@ Object.keys(LISTS).forEach(function(tipo){
 });
 
 /* ---------- relatórios em PDF ---------- */
+function onPdf(id, fn){ document.getElementById(id).addEventListener('click',fn); document.getElementById(id+'Sh').addEventListener('click',fn); }
 function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=function(){ rej(new Error('libpdfgen')); }; document.head.appendChild(s); }); }
 function loadJsPDF(){
   if(window.jspdf&&window.jspdf.jsPDF&&window.jspdf.jsPDF.API.autoTable) return Promise.resolve(window.jspdf.jsPDF);
@@ -1306,11 +1308,11 @@ function pdfBloco(titulo, el, filtros, btn, share){
   });
   gerarPDF(titulo, filtros, partes, btn, share);
 }
-$('pdfLate').addEventListener('click',function(){
+onPdf('pdfLate',function(){ var share=this.classList.contains('share');
   var k=S.k; if(!k) return;
-  pdfBloco('Pedidos atrasados', $('lateBody'), [fmtInt(k.latePeds)+' pedidos · '+$('lateSum').textContent], this);
+  pdfBloco('Pedidos atrasados', $('lateBody'), [fmtInt(k.latePeds)+' pedidos · '+$('lateSum').textContent], this, share);
 });
-$('pdfChart').addEventListener('click',function(){
+onPdf('pdfChart',function(){ var share=this.classList.contains('share');
   var k=S.kf; if(!k) return;
   var list=Object.keys(k.cli).map(function(n){ return {n:n, o:k.cli[n]}; }).filter(function(x){ return x.o.valor>0||x.o.qtd>0; });
   var by=$('chartBy').value==='qtd'?'qtd':'valor'; list.sort(function(a,b){ return b.o[by]-a.o[by]; });
@@ -1320,7 +1322,7 @@ $('pdfChart').addEventListener('click',function(){
   body.push(['', 'TOTAL', '', fmtNum(tq), '100%', fmtBRL(tv), '100%']);
   var R={halign:'right'};
   gerarPDF('Compras por cliente', ['Período: '+S.kfLabel, 'ordenado por '+(by==='qtd'?'quantidade':'valor')],
-    [{texto:S.chartTxt||''}, {head:['#','Cliente','Pedidos','Quantidade','% qtd.','Valor (R$)','% valor'], body:body, colStyles:{0:R,2:R,3:R,4:R,5:R,6:R}}], this);
+    [{texto:S.chartTxt||''}, {head:['#','Cliente','Pedidos','Quantidade','% qtd.','Valor (R$)','% valor'], body:body, colStyles:{0:R,2:R,3:R,4:R,5:R,6:R}}], this, share);
 });
 
 /* ---------- eventos ---------- */

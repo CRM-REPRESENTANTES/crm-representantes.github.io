@@ -259,6 +259,7 @@
   .lblock .lhead .btn-pdf[data-act=pdf]{display:none!important;}
   .resbar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; padding:8px 0 2px;}
   .resbar span{font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-right:auto;}
+  .btn-pdf[hidden] + .btn-pdf.share{display:none;}
   .btn-pdf.share{background:var(--accent-strong); color:var(--accent-fg); border-color:var(--accent-strong);}
   .btn-pdf.share:hover{filter:brightness(1.12); background:var(--accent-strong);}
   /* Financeiro */
@@ -361,11 +362,11 @@
 
     <div class="duo">
       <div class="panel paid">
-        <div class="phead"><h3 id="hPagos">Títulos pagos</h3><div class="lacts"><span class="psum" id="sPagos"></span><button type="button" class="btn-pdf" id="pdfPagos" hidden>Gerar PDF</button></div></div>
+        <div class="phead"><h3 id="hPagos">Títulos pagos</h3><div class="lacts"><span class="psum" id="sPagos"></span><button type="button" class="btn-pdf" id="pdfPagos" hidden>Gerar PDF</button><button type="button" class="btn-pdf share" id="pdfPagosSh">Compartilhar</button></div></div>
         <div class="pbody" id="bPagos"><p class="empty">Aguardando a carteira de títulos.</p></div>
       </div>
       <div class="panel over none" id="pVenc">
-        <div class="phead"><h3 id="hVenc"><span class="warnicon" aria-hidden="true">⚠</span> Títulos vencidos</h3><div class="lacts"><span class="psum" id="sVenc"></span><button type="button" class="btn-pdf" id="pdfVenc" hidden>Gerar PDF</button></div></div>
+        <div class="phead"><h3 id="hVenc"><span class="warnicon" aria-hidden="true">⚠</span> Títulos vencidos</h3><div class="lacts"><span class="psum" id="sVenc"></span><button type="button" class="btn-pdf" id="pdfVenc" hidden>Gerar PDF</button><button type="button" class="btn-pdf share" id="pdfVencSh">Compartilhar</button></div></div>
         <div class="pbody" id="bVenc"><p class="empty">Aguardando a carteira de títulos.</p></div>
       </div>
     </div>
@@ -373,7 +374,7 @@
     <div class="comchart">
       <div class="charthead">
         <h3 id="hCom">Evolução da comissão</h3>
-        <div class="lacts"><button type="button" class="btn-pdf" id="pdfCom" hidden>Gerar PDF</button></div>
+        <div class="lacts"><button type="button" class="btn-pdf" id="pdfCom" hidden>Gerar PDF</button><button type="button" class="btn-pdf share" id="pdfComSh">Compartilhar</button></div>
       </div>
       <p class="chartnote" id="comNote">Comissão por mês de pagamento dos títulos.</p>
       <div id="comChart" role="img" aria-labelledby="hCom"><p class="empty">Aguardando a carteira de títulos.</p></div>
@@ -382,7 +383,7 @@
 
   <section class="card ranking" aria-labelledby="hRank">
     <h2 id="hRank">Clientes · prazo de pagamento</h2>
-    <div class="lacts" style="justify-content:flex-end; margin-top:-6px"><button type="button" class="btn-pdf" id="pdfRank" hidden>Gerar PDF</button></div>
+    <div class="lacts" style="justify-content:flex-end; margin-top:-6px"><button type="button" class="btn-pdf" id="pdfRank" hidden>Gerar PDF</button><button type="button" class="btn-pdf share" id="pdfRankSh">Compartilhar</button></div>
     <div id="rankBody"><p class="empty">Aguardando a carteira de títulos.</p></div>
   </section>
 
@@ -786,6 +787,7 @@ document.addEventListener('keydown',function(ev){ if(ev.key==='Escape') closePop
 document.addEventListener('mousedown',function(ev){ if(pop&&!pop.contains(ev.target)&&!(ev.target.closest&&ev.target.closest('[data-nfinfo]'))) closePop(); });
 
 /* ---------- PDF ---------- */
+function onPdf(id, fn){ document.getElementById(id).addEventListener('click',fn); document.getElementById(id+'Sh').addEventListener('click',fn); }
 function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=function(){ rej(new Error('libpdfgen')); }; document.head.appendChild(s); }); }
 function loadJsPDF(){
   if(window.jspdf&&window.jspdf.jsPDF&&window.jspdf.jsPDF.API.autoTable) return Promise.resolve(window.jspdf.jsPDF);
@@ -836,12 +838,12 @@ function pdfDe(titulo, el, filtros, btn, share){
   gerarPDF(titulo, filtros, partes, btn, share);
 }
 function mesTxt(){ return T.month==='todos'? 'Todos os meses' : monthLabel(T.month); }
-$('pdfPagos').addEventListener('click',function(){ pdfDe('Títulos pagos', $('bPagos'), [mesTxt(), $('sPagos').textContent], this); });
-$('pdfVenc').addEventListener('click',function(){ pdfDe('Títulos vencidos', $('bVenc'), [mesTxt(), $('sVenc').textContent], this); });
-$('pdfRank').addEventListener('click',function(){ pdfDe('Clientes - prazo de pagamento', $('rankBody'), ['todos os títulos carregados'], this); });
-$('pdfCom').addEventListener('click',function(){
+onPdf('pdfPagos',function(){ var share=this.classList.contains('share'); pdfDe('Títulos pagos', $('bPagos'), [mesTxt(), $('sPagos').textContent], this, share); });
+onPdf('pdfVenc',function(){ var share=this.classList.contains('share'); pdfDe('Títulos vencidos', $('bVenc'), [mesTxt(), $('sVenc').textContent], this, share); });
+onPdf('pdfRank',function(){ var share=this.classList.contains('share'); pdfDe('Clientes - prazo de pagamento', $('rankBody'), ['todos os títulos carregados'], this, share); });
+onPdf('pdfCom',function(){ var share=this.classList.contains('share');
   if(!T.serie) return; var R={halign:'right'};
-  gerarPDF('Evolução da comissão', [$('comNote').textContent], [{head:['Mês','Títulos pagos','Valor recebido','Comissão'], body:T.serie.map(function(x){ return [monthLabel(x.k), fmtInt(x.o.n), fmtBRL(x.o.base), fmtBRL(x.o.com)]; }), colStyles:{1:R,2:R,3:R}}], this);
+  gerarPDF('Evolução da comissão', [$('comNote').textContent], [{head:['Mês','Títulos pagos','Valor recebido','Comissão'], body:T.serie.map(function(x){ return [monthLabel(x.k), fmtInt(x.o.n), fmtBRL(x.o.base), fmtBRL(x.o.com)]; }), colStyles:{1:R,2:R,3:R}}], this, share);
 });
 
 /* ---------- carregar ---------- */
