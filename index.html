@@ -252,6 +252,8 @@
   .btn-pdf[hidden] + .btn-pdf.share{display:none;}
   .btn-pdf.share{background:var(--accent-strong); color:var(--accent-fg); border-color:var(--accent-strong);}
   .btn-pdf.share:hover{filter:brightness(1.12); background:var(--accent-strong);}
+  .pedlink{background:none; border:0; padding:0; font:inherit; font-weight:700; color:var(--link); text-decoration:underline; cursor:pointer;}
+  .pedlink:hover{color:var(--title);} .pedlink:disabled{opacity:.6; cursor:progress;}
   /* Menu de módulos do CRM */
   .modnav{flex-basis:100%; display:flex; gap:6px; overflow-x:auto; padding:12px 2px 2px; border-top:1px solid rgba(255,255,255,.16); scrollbar-width:none; -webkit-overflow-scrolling:touch;}
   .modnav::-webkit-scrollbar{display:none;}
@@ -408,12 +410,13 @@
 
 <script src="lib/nfdocs.js"></script>
 <script src="lib/pdf-capri.js"></script>
+<script src="lib/pedido-pdf.js"></script>
 <script>
 (function(){
 'use strict';
 
-var COLS=['Pedido','Emissão','Embarque','Cliente','Cliente Remessa','Pedido Cliente','Cond Pgto','Prazo Medio','Situação','Sit Linha','Motivo Cancel Linha','Notas Fiscais','Datas','Descrição','Quantidade','qtde_faturada','Saldo','Valor Unitário Liquido','Valor Total'];
-var KEYS=['pedido','emissao','embarque','cliente','remessa','pedCli','cond','prazo','sit','sitLinha','motivo','nfs','datas','desc','qtd','fat','saldo','unit','total'];
+var COLS=['Pedido','Emissão','Embarque','Cliente','Cliente Remessa','Pedido Cliente','Cond Pgto','Prazo Medio','Situação','Sit Linha','Motivo Cancel Linha','Notas Fiscais','Datas','Descrição','Quantidade','qtde_faturada','Saldo','Valor Unitário Liquido','Valor Total','CNPJ','Cód. Produto','Ordem de Compra','Grupo Econômico','CNPJ Cliente Remessa'];
+var KEYS=['pedido','emissao','embarque','cliente','remessa','pedCli','cond','prazo','sit','sitLinha','motivo','nfs','datas','desc','qtd','fat','saldo','unit','total','cnpj','sku','oc','grupo','cnpjRem'];
 var NUMK={prazo:1,qtd:1,fat:1,saldo:1,unit:1,total:1};
 var CHUNK=180000;
 var PRECO_MIN=13; /* preços unitários abaixo disso ficam fora do preço médio */
@@ -549,7 +552,7 @@ function renderLate(k){
     var d=daysLate(r.embarque,k.today), cls=d>14?'d3':d>7?'d2':'d1';
     var block=norm(r.sit).indexOf('bloq')>=0;
     h+='<tr><td><span class="pill '+cls+'">'+d+(d===1?' dia':' dias')+'</span></td>'+
-       '<td><b>'+esc(r.pedido)+'</b></td>'+
+       '<td>'+'<button type="button" class="pedlink" data-pedpdf="'+esc(r.pedido)+'" title="Gerar PDF do pedido">'+esc(r.pedido)+'</button>'+'</td>'+
        '<td class="cli">'+esc(r.cliente)+(r.remessa? '<small>Entrega: '+esc(r.remessa)+'</small>':'')+'</td>'+
        '<td>'+esc(r.desc)+'</td>'+
        '<td>'+fmtDate(r.embarque)+'</td>'+
@@ -1086,7 +1089,7 @@ function localSearch(q, ae, lead){
   }
   rows=rows.slice().sort(function(a,b){ return a.embarque<b.embarque?-1:a.embarque>b.embarque?1:0; });
   h+='<div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Tecido</th><th>Embarque</th><th>Situação</th><th>Sit Linha</th><th>Notas Fiscais</th><th class="num">Quantidade</th><th class="num">Faturado</th><th class="num">Saldo</th><th class="num">Valor em aberto</th></tr></thead><tbody>';
-  rows.slice(0,150).forEach(function(r){ h+='<tr><td>'+esc(r.pedido)+'</td><td>'+esc(r.cliente)+'</td><td>'+esc(r.desc)+'</td><td>'+fmtDate(r.embarque)+(isLate(r,today)? ' <span class="pill d2">'+daysLate(r.embarque,today)+' d</span>':'')+'</td><td>'+esc(r.sit)+'</td><td>'+esc(r.sitLinha)+'</td><td>'+NFDocs.cell(r.nfs)+'</td><td class="num">'+fmtNum(r.qtd)+'</td><td class="num">'+fmtNum(r.fat)+'</td><td class="num">'+fmtNum(r.saldo)+'</td><td class="num">'+fmtBRL(r.saldo*r.unit)+'</td></tr>'; });
+  rows.slice(0,150).forEach(function(r){ h+='<tr><td>'+'<button type="button" class="pedlink" data-pedpdf="'+esc(r.pedido)+'" title="Gerar PDF do pedido">'+esc(r.pedido)+'</button>'+'</td><td>'+esc(r.cliente)+'</td><td>'+esc(r.desc)+'</td><td>'+fmtDate(r.embarque)+(isLate(r,today)? ' <span class="pill d2">'+daysLate(r.embarque,today)+' d</span>':'')+'</td><td>'+esc(r.sit)+'</td><td>'+esc(r.sitLinha)+'</td><td>'+NFDocs.cell(r.nfs)+'</td><td class="num">'+fmtNum(r.qtd)+'</td><td class="num">'+fmtNum(r.fat)+'</td><td class="num">'+fmtNum(r.saldo)+'</td><td class="num">'+fmtBRL(r.saldo*r.unit)+'</td></tr>'; });
   h+='</tbody></table></div>'+(rows.length>150? '<p class="note">Mostrando 150 de '+rows.length+' linhas. Refine a busca.</p>':'');
   ae.innerHTML=h;
 }
@@ -1181,7 +1184,7 @@ function renderList(tipo){
   rows=rows.slice().sort(function(a,b){ return a.embarque<b.embarque?-1:a.embarque>b.embarque?1:(+a.pedido||0)-(+b.pedido||0); });
   h+='<div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Emissão</th><th>Cliente</th><th>Tecido</th><th>Embarque</th><th>Situação</th><th>Sit Linha</th><th>Notas Fiscais</th><th class="num">Quantidade</th><th class="num">Faturado</th><th class="num">Saldo</th><th class="num">Valor do pedido</th><th class="num">Valor em aberto</th></tr></thead><tbody>';
   rows.slice(0,400).forEach(function(r){
-    h+='<tr><td><b>'+esc(r.pedido)+'</b></td><td>'+fmtDate(r.emissao)+'</td><td class="cli">'+esc(r.cliente)+(r.remessa? '<small>Entrega: '+esc(r.remessa)+'</small>':'')+'</td><td>'+esc(r.desc)+'</td><td>'+fmtDate(r.embarque)+(isLate(r,today)? ' <span class="pill d2">'+daysLate(r.embarque,today)+' d</span>':'')+'</td><td>'+esc(r.sit)+'</td><td>'+esc(r.sitLinha)+'</td><td>'+NFDocs.cell(r.nfs)+(r.datas? '<br><small>'+esc(r.datas)+'</small>':'')+'</td><td class="num">'+fmtNum(r.qtd)+'</td><td class="num">'+fmtNum(r.fat)+'</td><td class="num">'+fmtNum(r.saldo)+'</td><td class="num">'+fmtBRL(isCanc(r)?0:r.qtd*r.unit)+'</td><td class="num">'+fmtBRL(isCanc(r)?0:r.saldo*r.unit)+'</td></tr>';
+    h+='<tr><td>'+'<button type="button" class="pedlink" data-pedpdf="'+esc(r.pedido)+'" title="Gerar PDF do pedido">'+esc(r.pedido)+'</button>'+'</td><td>'+fmtDate(r.emissao)+'</td><td class="cli">'+esc(r.cliente)+(r.remessa? '<small>Entrega: '+esc(r.remessa)+'</small>':'')+'</td><td>'+esc(r.desc)+'</td><td>'+fmtDate(r.embarque)+(isLate(r,today)? ' <span class="pill d2">'+daysLate(r.embarque,today)+' d</span>':'')+'</td><td>'+esc(r.sit)+'</td><td>'+esc(r.sitLinha)+'</td><td>'+NFDocs.cell(r.nfs)+(r.datas? '<br><small>'+esc(r.datas)+'</small>':'')+'</td><td class="num">'+fmtNum(r.qtd)+'</td><td class="num">'+fmtNum(r.fat)+'</td><td class="num">'+fmtNum(r.saldo)+'</td><td class="num">'+fmtBRL(isCanc(r)?0:r.qtd*r.unit)+'</td><td class="num">'+fmtBRL(isCanc(r)?0:r.saldo*r.unit)+'</td></tr>';
   });
   h+='</tbody></table></div>'+(rows.length>400? '<p class="note">Mostrando 400 de '+rows.length+' linhas. Use os filtros para refinar.</p>':'');
   res.innerHTML=h;
@@ -1314,6 +1317,23 @@ onPdf('pdfChart',function(){ var share=this.classList.contains('share');
   gerarPDF('Compras por cliente', ['Período: '+S.kfLabel, 'ordenado por '+(by==='qtd'?'quantidade':'valor')],
     [{texto:S.chartTxt||''}, {head:['#','Cliente','Pedidos','Quantidade','% qtd.','Valor (R$)','% valor'], body:body, colStyles:{0:R,2:R,3:R,4:R,5:R,6:R}}], this, share);
 });
+
+/* ---------- PDF do pedido (Confirmação de Pedido, modelo Capricórnio) ---------- */
+var REPRESENTANTE='47. DENEGRI ARAUJO REPRESENTACOES LTDA.';
+function pdfPedido(ped, btn){
+  if(!S.data) return;
+  var linhas=S.data.linhas.filter(function(r){ return String(r.pedido)===String(ped); });
+  if(!linhas.length) return;
+  if(btn) btn.disabled=true;
+  loadJsPDF().then(function(JsPDF){
+    var out=PedidoPDF.gerar(JsPDF, linhas, {representante:REPRESENTANTE});
+    if(DL) return DL.save({filename:out.nome, data:out.blob}).catch(function(){});
+    var file=null; try{ file=new File([out.blob], out.nome, {type:'application/pdf'}); }catch(e){}
+    if(file&&navigator.canShare&&/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare({files:[file]})) return navigator.share({files:[file], title:out.nome}).catch(function(e){ if(!(e&&e.name==='AbortError')) baixarBlob(out.blob,out.nome); });
+    baixarBlob(out.blob, out.nome);
+  }).catch(function(){ setFileMsg('Não foi possível gerar o PDF do pedido.'); }).then(function(){ if(btn) btn.disabled=false; });
+}
+document.addEventListener('click',function(ev){ var b=ev.target.closest&&ev.target.closest('[data-pedpdf]'); if(b){ ev.preventDefault(); pdfPedido(b.getAttribute('data-pedpdf'), b); } });
 
 /* ---------- eventos ---------- */
 $('askForm').addEventListener('submit',function(ev){ ev.preventDefault(); ask($('q').value); });
