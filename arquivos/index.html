@@ -284,6 +284,9 @@ table.cmp a{color:var(--indigo-2);font-weight:600}
       <button class="launch" id="btnMan">
         <span class="ic" aria-hidden="true">MQ</span>Manual de Qualidade
       </button>
+      <button class="launch" id="btnLav">
+        <span class="ic" aria-hidden="true">LV</span>Lavanderia
+      </button>
     </div>
   </section>
 
@@ -318,6 +321,19 @@ table.cmp a{color:var(--indigo-2);font-weight:600}
       <h2>Manual de Qualidade</h2>
     </div>
     <div class="fam"><div class="list" id="listaMan" style="border-top:0"></div></div>
+  </section>
+
+  <section class="panel" id="lavanderia" hidden>
+    <div class="viewhead">
+      <button class="back" data-voltar type="button"><span aria-hidden="true">←</span>Voltar ao início</button>
+      <h2>Lavanderia</h2>
+    </div>
+    <div class="fams" role="group" aria-label="Lavanderia">
+      <button class="fchip" type="button" id="lavApo" aria-pressed="true">Apostila</button>
+      <button class="fchip" type="button" id="lavRec" aria-pressed="false">Receitas</button>
+    </div>
+    <div class="fam" id="lavApoBox"><div class="list" id="listaLav" style="border-top:0"></div></div>
+    <div class="fam" id="lavRecBox" hidden><div class="list" id="listaRec" style="border-top:0"></div></div>
   </section>
 
   <section class="panel" id="imagens" hidden>
@@ -581,6 +597,23 @@ function linhaArquivo(f, alvo){
 }
 MANUAL.forEach(f => linhaArquivo(f, document.getElementById("listaMan")));
 document.getElementById("btnMan").addEventListener("click", () => irView("manual"));
+
+/* ---------- Lavanderia: apostila e receitas das lavagens ---------- */
+const LAVANDERIA = [{name:"A MÁGICA DA LAVANDERIA DE JEANS – APOSTILA", path:"lavanderia/apostila-lavanderia-de-jeans.pdf", ext:"pdf", tipo:"PDF", kb:2849}];
+/* Receitas das lavagens executadas: arquivos em lavanderia/receitas/ (PDF ou planilha). */
+const RECEITAS = [];
+LAVANDERIA.forEach(f => linhaArquivo(f, document.getElementById("listaLav")));
+if(RECEITAS.length) RECEITAS.forEach(f => linhaArquivo(f, document.getElementById("listaRec")));
+else document.getElementById("listaRec").innerHTML = '<div class="empty">Nenhuma receita incluída ainda. Envie as receitas das lavagens na conversa com o Claude para colocá-las aqui.</div>';
+function lavAba(qual){
+  document.getElementById("lavApo").setAttribute("aria-pressed", String(qual==="apo"));
+  document.getElementById("lavRec").setAttribute("aria-pressed", String(qual==="rec"));
+  document.getElementById("lavApoBox").hidden = qual!=="apo";
+  document.getElementById("lavRecBox").hidden = qual!=="rec";
+}
+document.getElementById("lavApo").addEventListener("click", () => lavAba("apo"));
+document.getElementById("lavRec").addEventListener("click", () => lavAba("rec"));
+document.getElementById("btnLav").addEventListener("click", () => { lavAba("apo"); irView("lavanderia"); });
 const listaTab = document.getElementById("listaTab");
 TABELAS.forEach(f => {
   const row = document.createElement("div"); row.className = "row";
@@ -602,7 +635,7 @@ TABELAS.forEach(f => {
   acts.append(d);
   listaTab.appendChild(row);
 });
-const VIEWS = ["painel","tabelas","imagens","concorrentes","manual"].map(id => document.getElementById(id));
+const VIEWS = ["painel","tabelas","imagens","concorrentes","manual","lavanderia"].map(id => document.getElementById(id));
 function irView(id){ topo.hidden = true; solic.hidden = true; VIEWS.forEach(v => v.hidden = v.id !== id); window.scrollTo(0,0); }
 function irTabelas(){ travarTabelas(); irView("tabelas"); setTimeout(()=>document.getElementById("tabPw").focus(), 50); }
 document.getElementById("btnImg").addEventListener("click", () => { irView("imagens"); renderImgs(); });

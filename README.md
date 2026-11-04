@@ -13,6 +13,7 @@ Site estático (GitHub Pages) para consultar a carteira de pedidos: busca direta
 - `calculadora/` — calculadora de consumo de tecido (Studio Denim): 17 modelagens, risco, gasto por peça e por mesa.
 - `tendencias/` — Denim Radar 2026–27: 26 lâminas com fotos (`tendencias/img/`), notas do apresentador e tela cheia.
 - `arquivos/` — Solicitações CRM Capri, fichas técnicas (`arquivos/fichas/`), tabelas de preço, imagens e concorrentes.
+- `arquivos/lavanderia/` — aba Lavanderia: apostila “A mágica da lavanderia de jeans” e `receitas/` para as receitas das lavagens executadas (incluir cada arquivo na lista `RECEITAS` de `arquivos/index.html`).
 - `arquivos/concorrentes/` — catálogo da Santana Textiles e o PDF de equivalências. A busca da aba Concorrentes usa os dados embutidos em `arquivos/index.html` (constante `CDATA`): só é equivalente o artigo Capricórnio com mesmo tingimento, peso (até 5%), ligamento e composição (até 3 pp por fibra).
 - `arquivos/tabelas/*.enc` — tabelas de preço **criptografadas** com a mesma chave da carteira. Só abrem dentro do CRM, depois da senha.
 - Calculadora, Tendências e Arquivos só abrem depois da senha de entrada.
