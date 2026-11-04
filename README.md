@@ -43,3 +43,13 @@ Depois, inclua a tabela na lista `TABELAS` de `arquivos/index.html` (campo `enc`
 
 - Só entram no arquivo as colunas usadas pelo site (Pedido, Emissão, Embarque, Cliente, Cliente Remessa, Pedido Cliente, Cond Pgto, Prazo Medio, Situação, Sit Linha, Motivo Cancel Linha, Notas Fiscais, Datas, Descrição, Quantidade, qtde_faturada, Saldo, Valor Unitário Liquido, Valor Total).
 - Os dados do CRM ficam limpos depois da senha: a carteira publicada serve só para conferir a senha (e abrir as tabelas). Os números aparecem quando o representante usa “Carregar carteira (.xls)”; a carteira escolhida fica aberta só naquela aba (vale também para Reclamação de qualidade) e some ao clicar em Sair ou fechar a aba.
+
+## Senha de documentos
+
+Fichas técnicas (`arquivos/fichas/**/*.pdf.enc`), tabelas de preço (`arquivos/tabelas/*.enc2`) e a apostila (`arquivos/lavanderia/*.pdf.enc`) ficam cifradas com a **senha de documentos**, diferente da senha de entrada. O cabeçalho é `arquivos/docs.enc.json` (PBKDF2-SHA256, 600 mil iterações). As tabelas têm duas camadas: senha de documentos por fora e chave da carteira por dentro.
+
+```bash
+DOCS_SENHA='a senha de documentos' python3 tools/cifrar_docs.py caminho/arquivo.pdf arquivos/fichas/original/arquivo.pdf.enc
+```
+
+Para trocar a senha: `DOCS_SENHA='nova' python3 tools/cifrar_docs.py --nova` e cifre de novo todos os documentos a partir dos originais. A senha nunca é gravada no repositório.
