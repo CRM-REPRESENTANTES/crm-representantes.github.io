@@ -190,6 +190,18 @@ textarea:focus{outline:2px solid var(--accent);outline-offset:-2px}
 .sub{color:var(--muted);font-size:13px;margin:0}
 .cbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
 .cards{display:flex;flex-direction:column;gap:14px}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.gcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.gcard .ph{display:block;background:#fff;aspect-ratio:3/4;cursor:zoom-in;border:0;padding:0;width:100%}
+.gcard .ph img{width:100%;height:100%;object-fit:contain;display:block}
+.gcard .gi{padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px;flex:1}
+.gcard .gt{font-weight:700;font-size:13.5px;line-height:1.3}
+.gcard .gf{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px}
+.gtag{background:var(--chip);border-radius:20px;padding:2px 9px;font-weight:600;font-size:11.5px}
+.gtag.pend{background:var(--warn-bg);color:var(--warn)}
+.gcard .ga{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
+.zoom{position:fixed;inset:0;background:rgba(6,16,34,.88);display:grid;place-items:center;z-index:50;padding:20px;cursor:zoom-out}
+.zoom img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;background:#fff}
 .ccard{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .chead{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;justify-content:space-between;background:var(--hover)}
 .chead h3{margin:0;font-family:var(--display);font-size:17px;font-weight:800}
@@ -313,7 +325,9 @@ table.cmp a{color:var(--indigo-2);font-weight:600}
       <button class="back" data-voltar type="button"><span aria-hidden="true">←</span>Voltar ao início</button>
       <h2>Imagens</h2>
     </div>
-    <div class="fam"><div class="empty">Nenhuma imagem incluída ainda. Envie as imagens na conversa com o Claude para colocá-las aqui.</div></div>
+    <div class="fams" id="imgFams" role="group" aria-label="Filtrar imagens por família"></div>
+    <div class="gal" id="gal"></div>
+    <p class="hint">Baixar salva a foto em alta. Compartilhar abre o menu do celular (WhatsApp, e-mail…); no computador, a foto é baixada. “Ver fichas” abre as fichas técnicas da família.</p>
   </section>
 
   <section class="panel" id="concorrentes" hidden>
@@ -591,7 +605,63 @@ TABELAS.forEach(f => {
 const VIEWS = ["painel","tabelas","imagens","concorrentes","manual"].map(id => document.getElementById(id));
 function irView(id){ topo.hidden = true; solic.hidden = true; VIEWS.forEach(v => v.hidden = v.id !== id); window.scrollTo(0,0); }
 function irTabelas(){ travarTabelas(); irView("tabelas"); setTimeout(()=>document.getElementById("tabPw").focus(), 50); }
-document.getElementById("btnImg").addEventListener("click", () => irView("imagens"));
+document.getElementById("btnImg").addEventListener("click", () => { irView("imagens"); renderImgs(); });
+
+/* ---------- Imagens: fotos de peças ligadas à família da ficha técnica ---------- */
+/* fam: ORIGINAL, CONFORT, POLY, FLAT ou LIGHT (pasta das fichas); artigo: nome do artigo na ficha, quando houver. */
+const IMGS = [
+  {arq:"jeans-risca-de-giz-cinza", titulo:"Wide leg risca de giz cinza", fam:"", artigo:""},
+  {arq:"jeans-azul-medio-puidos", titulo:"Wide leg azul médio com puídos", fam:"", artigo:""},
+  {arq:"trio-caqui-e-preto", titulo:"Trio caqui e preto lavado", fam:"", artigo:""},
+  {arq:"jeans-azul-medio-stretch-puidos", titulo:"Reta azul médio com puídos", fam:"", artigo:""},
+  {arq:"jeans-azul-escuro-amaciado", titulo:"Wide leg azul escuro amaciado", fam:"", artigo:""},
+  {arq:"jeans-rosa-sobretinto", titulo:"Wide leg rosa sobretingido", fam:"", artigo:""},
+  {arq:"jeans-azul-medio-barra-desfeita", titulo:"Wide leg azul médio barra desfeita", fam:"", artigo:""},
+  {arq:"jeans-azul-claro-poa-laser", titulo:"Wide leg azul claro poá a laser", fam:"", artigo:""}
+];
+let imgFam = "TODAS";
+function imgFamDe(i){ return i.fam || "A CONFIRMAR"; }
+function renderImgs(){
+  const fams = ["TODAS", ...ORDEM.filter(f=>f!=="GERAL"), "A CONFIRMAR"];
+  const box = document.getElementById("imgFams"); box.innerHTML = "";
+  fams.forEach(f => {
+    const n = f==="TODAS" ? IMGS.length : IMGS.filter(i=>imgFamDe(i)===f).length;
+    if(!n) return;
+    const b = document.createElement("button"); b.type="button"; b.className="fchip";
+    b.setAttribute("aria-pressed", String(f===imgFam));
+    b.innerHTML = `${f==="TODAS"?"Todas":f==="A CONFIRMAR"?"Família a confirmar":f}<span>${n}</span>`;
+    b.onclick = () => { imgFam=f; renderImgs(); };
+    box.appendChild(b);
+  });
+  const lista = IMGS.filter(i => imgFam==="TODAS" || imgFamDe(i)===imgFam);
+  document.getElementById("gal").innerHTML = lista.map(i => {
+    const k = IMGS.indexOf(i);
+    return `<figure class="gcard" style="margin:0">
+      <button class="ph" type="button" data-zoom="${k}" aria-label="Ampliar ${esc(i.titulo)}"><img src="imagens/${i.arq}-mini.jpg" alt="${esc(i.titulo)}" loading="lazy"></button>
+      <figcaption class="gi"><span class="gt">${esc(i.titulo)}</span>
+        <span class="gf">${i.fam? `<span class="gtag">${esc(i.fam)}</span>` : `<span class="gtag pend">Família a confirmar</span>`}${i.artigo? `<span>${esc(i.artigo)}</span>`:""}</span>
+        <span class="ga"><button class="b" type="button" data-img="${k}" data-acao="baixar">Baixar</button><button class="b pri" type="button" data-img="${k}" data-acao="compartilhar">Compartilhar</button>${i.fam? `<button class="b" type="button" data-img="${k}" data-acao="ficha">Ver fichas</button>`:""}</span>
+      </figcaption></figure>`;
+  }).join("");
+}
+async function imgBlob(i){ const r = await fetch("imagens/"+i.arq+".jpg"); if(!r.ok) throw new Error(); return r.blob(); }
+function salvarBlob(blob, nome){ const u=URL.createObjectURL(blob), a=document.createElement("a"); a.href=u; a.download=nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); }
+document.getElementById("gal").addEventListener("click", async ev => {
+  const z = ev.target.closest("[data-zoom]");
+  if(z){ const i = IMGS[+z.dataset.zoom]; const d=document.createElement("div"); d.className="zoom"; d.innerHTML=`<img src="imagens/${i.arq}.jpg" alt="${esc(i.titulo)}">`; d.onclick=()=>d.remove(); document.body.appendChild(d); return; }
+  const b = ev.target.closest("[data-acao]"); if(!b) return;
+  const i = IMGS[+b.dataset.img], acao = b.dataset.acao, nome = i.arq+".jpg";
+  if(acao==="ficha"){ famAtiva = i.fam; irView("painel"); chips(); render(); return; }
+  const txt=b.textContent; b.textContent="…";
+  try{
+    const blob = await imgBlob(i);
+    if(acao==="compartilhar" && navigator.canShare){
+      const file = new File([blob], nome, {type:"image/jpeg"});
+      if(navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file], title:i.titulo, text:i.titulo+(i.fam?" · "+i.fam:"")}); b.textContent=txt; return; }catch(e){ if(e&&e.name==="AbortError"){ b.textContent=txt; return; } } }
+    }
+    salvarBlob(blob, nome); b.textContent = "Baixado"; setTimeout(()=>{ b.textContent=txt; }, 1600);
+  }catch(e){ b.textContent = txt; alert("Não foi possível abrir a imagem."); }
+});
 document.getElementById("btnConc").addEventListener("click", () => irView("concorrentes"));
 function irFichas(){ topo.hidden = true; solic.hidden = true; tabelasEl.hidden = true; painel.hidden = false; window.scrollTo(0,0); document.getElementById("busca").focus({preventScroll:true}); }
 function irInicio(){ travarTabelas(); VIEWS.forEach(v => v.hidden = true); topo.hidden = false; solic.hidden = btnCrm.getAttribute("aria-expanded") !== "true"; window.scrollTo(0,0); }
