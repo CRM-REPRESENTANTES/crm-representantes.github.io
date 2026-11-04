@@ -610,31 +610,31 @@ document.getElementById("btnImg").addEventListener("click", () => { irView("imag
 /* ---------- Imagens: fotos de peças ligadas à família da ficha técnica ---------- */
 /* fam: ORIGINAL, CONFORT, POLY, FLAT ou LIGHT (pasta das fichas); artigo: nome do artigo na ficha, quando houver. */
 const IMGS = [
-  {arq:"jeans-risca-de-giz-cinza", titulo:"Wide leg risca de giz cinza", fam:"", artigo:""},
-  {arq:"jeans-azul-medio-puidos", titulo:"Wide leg azul médio com puídos", fam:"", artigo:""},
-  {arq:"trio-caqui-e-preto", titulo:"Trio caqui e preto lavado", fam:"", artigo:""},
-  {arq:"jeans-azul-medio-stretch-puidos", titulo:"Reta azul médio com puídos", fam:"", artigo:""},
-  {arq:"jeans-azul-escuro-amaciado", titulo:"Wide leg azul escuro amaciado", fam:"", artigo:""},
-  {arq:"jeans-rosa-sobretinto", titulo:"Wide leg rosa sobretingido", fam:"", artigo:""},
-  {arq:"jeans-azul-medio-barra-desfeita", titulo:"Wide leg azul médio barra desfeita", fam:"", artigo:""},
-  {arq:"jeans-azul-claro-poa-laser", titulo:"Wide leg azul claro poá a laser", fam:"", artigo:""},
-  {arq:"jeans-azul-claro-estonado", titulo:"Wide leg azul claro estonado", fam:"", artigo:""},
-  {arq:"jeans-caqui-claro-barra-desfeita", titulo:"Wide leg caqui claro barra desfeita", fam:"", artigo:""},
-  {arq:"jeans-azul-medio-poa-laser", titulo:"Wide leg azul médio poá a laser", fam:"", artigo:""},
-  {arq:"jeans-azul-medio-vintage-puidos", titulo:"Wide leg azul médio vintage com puídos", fam:"", artigo:""},
-  {arq:"jeans-azul-medio-risca-de-giz", titulo:"Wide leg azul médio risca de giz", fam:"", artigo:""},
-  {arq:"jeans-caqui-puidos", titulo:"Wide leg caqui com puídos", fam:"", artigo:""},
-  {arq:"jeans-azul-escuro-risca-de-giz", titulo:"Wide leg azul escuro risca de giz", fam:"", artigo:""},
-  {arq:"jeans-marrom-acinzentado-puidos", titulo:"Wide leg marrom acinzentado com puídos", fam:"", artigo:""},
-  {arq:"jeans-cinza-esverdeado", titulo:"Wide leg cinza esverdeado sobretingido", fam:"", artigo:""},
-  {arq:"jeans-azul-arroxeado-puidos", titulo:"Wide leg azul arroxeado com puídos", fam:"", artigo:""},
-  {arq:"jeans-azul-medio-barra-desfiada-puidos", titulo:"Wide leg azul médio barra desfiada com puídos", fam:"", artigo:""},
-  {arq:"jeans-azul-medio-sarja-aparente", titulo:"Wide leg azul médio sarja aparente", fam:"", artigo:""},
-  {arq:"jeans-azul-claro-stretch-puidos", titulo:"Reta azul claro stretch com puídos", fam:"", artigo:""},
-  {arq:"jeans-azul-claro-risca-de-giz", titulo:"Wide leg azul claro risca de giz", fam:"", artigo:""},
-  {arq:"jeans-azul-escuro-limpo", titulo:"Wide leg azul escuro limpo", fam:"", artigo:""},
-  {arq:"jeans-azul-escuro-stretch-bigodes", titulo:"Reta azul escuro stretch com bigodes", fam:"", artigo:""},
-  {arq:"jeans-azul-escuro-poa-laser", titulo:"Wide leg azul escuro poá a laser", fam:"", artigo:""}
+  {"arq": "whatsapp-image-2026-11-03-at-20-29-16-1", "titulo": "Foto sem nome (WhatsApp)", "fam": "", "artigo": "", "busca": ""},
+  {"arq": "algarve-light-baby-black-brown-claro", "titulo": "Algarve Light Baby Black Brown Claro", "fam": "ORIGINAL", "artigo": "Algarve Baby Black Brown", "busca": "algarve baby black brown"},
+  {"arq": "algarve-light-baby-black-brown-escuro", "titulo": "Algarve Light Baby Black Brown Escuro", "fam": "ORIGINAL", "artigo": "Algarve Baby Black Brown", "busca": "algarve baby black brown"},
+  {"arq": "algarve-light-baby-black-brown-medio", "titulo": "Algarve Light Baby Black Brown Médio", "fam": "ORIGINAL", "artigo": "Algarve Baby Black Brown", "busca": "algarve baby black brown"},
+  {"arq": "algarve-light-baby-blue-brown-claro", "titulo": "Algarve Light Baby Blue Brown Claro", "fam": "ORIGINAL", "artigo": "Algarve Baby Blue Brown", "busca": "algarve baby blue brown"},
+  {"arq": "algarve-light-baby-blue-brown-medio", "titulo": "Algarve Light Baby Blue Brown Médio", "fam": "ORIGINAL", "artigo": "Algarve Baby Blue Brown", "busca": "algarve baby blue brown"},
+  {"arq": "algarve-light-baby-blue-melon-escuro", "titulo": "Algarve Light Baby Blue Melon Escuro", "fam": "ORIGINAL", "artigo": "Algarve Baby Blue Melon", "busca": "algarve baby blue melon"},
+  {"arq": "algarve-light-baby-blue-melon", "titulo": "Algarve Light Baby Blue Melon", "fam": "ORIGINAL", "artigo": "Algarve Baby Blue Melon", "busca": "algarve baby blue melon"},
+  {"arq": "bardem-claro", "titulo": "Bardem Claro", "fam": "", "artigo": "Bardem", "busca": ""},
+  {"arq": "bardem-escuro", "titulo": "Bardem Escuro", "fam": "", "artigo": "Bardem", "busca": ""},
+  {"arq": "bardem", "titulo": "Bardem", "fam": "", "artigo": "Bardem", "busca": ""},
+  {"arq": "brava-claro", "titulo": "Brava Claro", "fam": "ORIGINAL", "artigo": "Brava", "busca": "brava"},
+  {"arq": "brava-escuro", "titulo": "Brava Escuro", "fam": "ORIGINAL", "artigo": "Brava", "busca": "brava"},
+  {"arq": "brava-medio", "titulo": "Brava Médio", "fam": "ORIGINAL", "artigo": "Brava", "busca": "brava"},
+  {"arq": "prea-baby-black-escuro", "titulo": "Preá Baby Black Escuro", "fam": "ORIGINAL", "artigo": "Preá Baby Black", "busca": "prea baby black"},
+  {"arq": "prea-claro", "titulo": "Preá Claro", "fam": "ORIGINAL", "artigo": "Preá", "busca": "prea"},
+  {"arq": "prea-escuro", "titulo": "Preá Escuro", "fam": "ORIGINAL", "artigo": "Preá", "busca": "prea"},
+  {"arq": "prea-medio", "titulo": "Preá Médio", "fam": "ORIGINAL", "artigo": "Preá", "busca": "prea"},
+  {"arq": "sagi-claro", "titulo": "Sagi Claro", "fam": "ORIGINAL", "artigo": "Sagi", "busca": "sagi"},
+  {"arq": "sagi-escuro", "titulo": "Sagi Escuro", "fam": "ORIGINAL", "artigo": "Sagi", "busca": "sagi"},
+  {"arq": "sagi-medio", "titulo": "Sagi Médio", "fam": "ORIGINAL", "artigo": "Sagi", "busca": "sagi"},
+  {"arq": "una-blue-black-medio", "titulo": "Una Blue Black Médio", "fam": "ORIGINAL", "artigo": "Una Blue Black", "busca": "una blue black"},
+  {"arq": "vidal-amaciado-e-resinado", "titulo": "Vidal Amaciado e Resinado", "fam": "", "artigo": "Vidal", "busca": ""},
+  {"arq": "vidal-escuro", "titulo": "Vidal Escuro", "fam": "", "artigo": "Vidal", "busca": ""},
+  {"arq": "trio-caqui-e-preto", "titulo": "Trio caqui e preto lavado", "fam": "", "artigo": "", "busca": ""}
 ];
 let imgFam = "TODAS";
 function imgFamDe(i){ return i.fam || "A CONFIRMAR"; }
@@ -656,7 +656,7 @@ function renderImgs(){
     return `<figure class="gcard" style="margin:0">
       <button class="ph" type="button" data-zoom="${k}" aria-label="Ampliar ${esc(i.titulo)}"><img src="imagens/${i.arq}-mini.jpg" alt="${esc(i.titulo)}" loading="lazy"></button>
       <figcaption class="gi"><span class="gt">${esc(i.titulo)}</span>
-        <span class="gf">${i.fam? `<span class="gtag">${esc(i.fam)}</span>` : `<span class="gtag pend">Família a confirmar</span>`}${i.artigo? `<span>${esc(i.artigo)}</span>`:""}</span>
+        <span class="gf">${i.fam? `<span class="gtag">${esc(i.fam)}</span>` : (i.artigo? `<span class="gtag pend">Sem ficha técnica</span>` : `<span class="gtag pend">Família a confirmar</span>`)}${i.artigo? `<span>${esc(i.artigo)}</span>`:""}</span>
         <span class="ga"><button class="b" type="button" data-img="${k}" data-acao="baixar">Baixar</button><button class="b pri" type="button" data-img="${k}" data-acao="compartilhar">Compartilhar</button>${i.fam? `<button class="b" type="button" data-img="${k}" data-acao="ficha">Ver fichas</button>`:""}</span>
       </figcaption></figure>`;
   }).join("");
@@ -668,7 +668,7 @@ document.getElementById("gal").addEventListener("click", async ev => {
   if(z){ const i = IMGS[+z.dataset.zoom]; const d=document.createElement("div"); d.className="zoom"; d.innerHTML=`<img src="imagens/${i.arq}.jpg" alt="${esc(i.titulo)}">`; d.onclick=()=>d.remove(); document.body.appendChild(d); return; }
   const b = ev.target.closest("[data-acao]"); if(!b) return;
   const i = IMGS[+b.dataset.img], acao = b.dataset.acao, nome = i.arq+".jpg";
-  if(acao==="ficha"){ famAtiva = i.fam; irView("painel"); chips(); render(); return; }
+  if(acao==="ficha"){ famAtiva = i.fam; document.getElementById("busca").value = i.busca||""; irView("painel"); chips(); render(); return; }
   const txt=b.textContent; b.textContent="…";
   try{
     const blob = await imgBlob(i);
