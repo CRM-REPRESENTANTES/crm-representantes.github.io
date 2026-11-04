@@ -322,11 +322,12 @@
   @media (max-width:430px){ .lfilters.seven{grid-template-columns:1fr;} }
   .listfoot{display:flex; gap:10px; flex-wrap:wrap; padding:0 14px 12px;}
   /* Verificador de romaneios */
-  .rfilters{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px 14px; align-items:end;}
+  .rfilters{display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:10px 14px; align-items:end;}
   .rfilters label{display:flex; flex-direction:column; gap:4px; font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; min-width:0;}
   .rfilters select,.rfilters input{font-family:inherit; font-size:14px; font-weight:600; color:var(--title); background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:9px 10px; min-width:0; width:100%;}
   .rfilters select:focus,.rfilters input:focus{outline:2px solid var(--accent); border-color:var(--accent);}
-  @media (max-width:900px){ .rfilters{grid-template-columns:repeat(2, minmax(0,1fr));} }
+  @media (max-width:1060px){ .rfilters{grid-template-columns:repeat(3, minmax(0,1fr));} }
+  @media (max-width:700px){ .rfilters{grid-template-columns:repeat(2, minmax(0,1fr));} }
   @media (max-width:430px){ .rfilters{grid-template-columns:1fr;} }
   .grupobox{margin-top:12px; background:var(--tint); border-radius:10px; padding:10px 14px; font-size:13px;}
   .grupobox b{color:var(--title);}
@@ -405,8 +406,10 @@
       <label for="fDe">Data de<input type="date" id="fDe"></label>
       <label for="fAte">Data até<input type="date" id="fAte"></label>
       <label for="fCli">Cliente ou grupo econômico<select id="fCli"><option value="">Todos os clientes</option></select></label>
+      <label for="fTec">Tecido<select id="fTec"><option value="">Todos os tecidos</option></select></label>
       <label for="fBusca">NF, pedido ou cliente<input type="text" id="fBusca" placeholder="ex.: 431916"></label>
     </div>
+    <div class="progress" id="idProg" aria-live="polite"></div>
     <div class="grupobox" id="grupoBox" hidden></div>
     <div class="countbar">
       <span class="big" id="nRom">0</span><span id="nRomTxt" class="muted">romaneios encontrados</span>
@@ -541,15 +544,18 @@ function montarSelectCli(){
   $('fCli').innerHTML=h; if(v&&[].some.call($('fCli').options,function(o){return o.value===v;})) $('fCli').value=v;
 }
 function membrosGrupo(g){ var n=semPonto(g), u={}; R.lista.forEach(function(x){ if(semPonto(grupoDe(x.cli))===n) u[x.cli]=1; }); return Object.keys(u).sort(); }
-function filtrados(){
-  var de=$('fDe').value, ate=$('fAte').value, fc=$('fCli').value, b=norm($('fBusca').value), membros=null;
+function tecidoBase(a){ return String(a||'').toUpperCase().replace(/\s+\d{2,3}\s*CM\b.*$/,'').replace(/\s+EXPEDICAO.*$/,'').replace(/\s+\d{5,8}$/,'').replace(/\s+/g,' ').trim(); }
+function tecidosDe(nf){ var c=R.cache[nf]; if(!c) return null; var u={}; c.itens.forEach(function(x){ u[tecidoBase(x.artigo)]=1; }); return Object.keys(u).sort(); }
+function filtrados(semTecido){
+  var de=$('fDe').value, ate=$('fAte').value, fc=$('fCli').value, b=norm($('fBusca').value), membros=null, tec=semTecido? '' : $('fTec').value;
   if(fc.indexOf('g:')===0){ membros={}; membrosGrupo(fc.slice(2)).forEach(function(c){ membros[c]=1; }); }
   return R.lista.filter(function(x){
     if(de&&(!x.data||x.data<de)) return false;
     if(ate&&(!x.data||x.data>ate)) return false;
     if(membros&&!membros[x.cli]) return false;
     if(fc.indexOf('c:')===0&&x.cli!==fc.slice(2)) return false;
-    if(b){ var t=norm(x.nf+' '+x.cli+' '+(x.pedido||'')+' '+grupoDe(x.cli)+' '+((R.cache[x.nf]||{}).pedido||'')); if(b.split(' ').some(function(p){ return t.indexOf(p.replace(/^0+/,''))<0; })) return false; }
+    if(tec){ var ts=tecidosDe(x.nf); if(!ts||ts.indexOf(tec)<0) return false; }
+    if(b){ var t=norm(x.nf+' '+x.cli+' '+(x.pedido||'')+' '+grupoDe(x.cli)+' '+((R.cache[x.nf]||{}).pedido||'')+' '+(tecidosDe(x.nf)||[]).join(' ')); if(b.split(' ').some(function(p){ return t.indexOf(p.replace(/^0+/,''))<0; })) return false; }
     return true;
   });
 }
@@ -582,13 +588,13 @@ function renderLista(){
   var nsel=Object.keys(R.sel).length;
   $('btnAnalisar').disabled=!nsel; $('btnAnalisar').textContent=nsel? 'Analisar '+nsel+(nsel===1?' romaneio':' romaneios') : 'Analisar selecionados';
   if(!R.lista.length){ el.innerHTML='<p class="empty" style="padding:14px">'+(NFDocs.driveUrl()? 'Nenhum romaneio no índice do Drive. Clique em “Atualizar romaneios (Drive)”.' : 'Para ver os romaneios do Google Drive, clique em “Atualizar romaneios (Drive)” e cole o link do App da Web (o mesmo do botão Notas fiscais).')+'</p>'; return; }
-  if(!fs.length){ el.innerHTML='<p class="empty" style="padding:14px">Nenhum romaneio com esses filtros.</p>'; return; }
-  var h='<table><thead><tr><th class="ck"><input type="checkbox" id="ckAll" title="Selecionar todos os filtrados"></th><th>Data</th><th>NF</th><th>Pedido</th><th>Cliente</th><th>Grupo econômico</th><th>Arquivo</th></tr></thead><tbody>';
+  if(!fs.length){ el.innerHTML='<p class="empty" style="padding:14px">Nenhum romaneio com esses filtros'+($('fTec').value&&R.idPend? ' (ainda identificando o tecido de '+R.idPend+' romaneios)':'')+'.</p>'; return; }
+  var h='<table><thead><tr><th class="ck"><input type="checkbox" id="ckAll" title="Selecionar todos os filtrados"></th><th>Data</th><th>NF</th><th>Pedido</th><th>Cliente</th><th>Tecido</th><th>Grupo econômico</th><th>Arquivo</th></tr></thead><tbody>';
   fs.forEach(function(x){
     var on=!!R.sel[x.nf], c=R.cache[x.nf], ped=(c&&c.pedido)||x.pedido;
     h+='<tr class="'+(on?'sel':'')+'" data-nf="'+esc(x.nf)+'"><td class="ck"><input type="checkbox" data-ck="'+esc(x.nf)+'"'+(on?' checked':'')+' aria-label="Selecionar romaneio da NF '+esc(x.nf)+'"></td>'+
       '<td>'+fmtDate(x.data)+(x.estimada&&x.data?' <span class="muted" title="Data em que o arquivo entrou no Drive">*</span>':'')+'</td><td><b>'+esc(x.nf)+'</b>'+(x.remessa?' <span class="tag" title="NF de remessa (venda por conta e ordem)">remessa</span>':'')+'</td><td>'+(ped? esc(String(ped).replace(/^0+/,'')) : '<span class="muted">—</span>')+'</td>'+
-      '<td class="cli">'+esc(x.cli)+'</td><td>'+(grupoReal(x.cli)? esc(grupoReal(x.cli)) : '<span class="muted">—</span>')+'</td>'+
+      '<td class="cli">'+esc(x.cli)+'</td><td>'+(tecidosDe(x.nf)? esc(tecidosDe(x.nf).join(' · ')) : '<span class="muted">identificando…</span>')+'</td><td>'+(grupoReal(x.cli)? esc(grupoReal(x.cli)) : '<span class="muted">—</span>')+'</td>'+
       '<td><span class="tag'+(x.txt?' txt':'')+'">'+(x.txt?'TXT':'PDF')+'</span>'+(x.ids.length>1?' <span class="tag">'+x.ids.length+' arquivos</span>':'')+(c? ' <span class="tag" style="background:var(--good-bg);color:var(--good)">lido</span>':'')+'</td></tr>';
   });
   el.innerHTML=h+'</tbody></table>';
@@ -600,8 +606,19 @@ $('rList').addEventListener('click',function(ev){
   var nf=tr.getAttribute('data-nf'); if(R.sel[nf]) delete R.sel[nf]; else R.sel[nf]=1; renderLista();
 });
 function renderTudo(){ renderGrupoBox(); renderLista(); }
-['fDe','fAte','fBusca'].forEach(function(id){ $(id).addEventListener('input',renderLista); });
-$('fCli').addEventListener('change',renderTudo);
+function montarSelectTec(){
+  var v=$('fTec').value, u={};
+  filtrados(true).forEach(function(x){ (tecidosDe(x.nf)||[]).forEach(function(t){ u[t]=(u[t]||0)+1; }); });
+  if(v&&!u[v]) u[v]=0;
+  $('fTec').innerHTML='<option value="">Todos os tecidos</option>'+Object.keys(u).sort().map(function(t){ return '<option value="'+esc(t)+'">'+esc(t)+' ('+u[t]+')</option>'; }).join('');
+  $('fTec').value=v;
+}
+var idT=null;
+function filtrosMudaram(){ montarSelectTec(); renderLista(); clearTimeout(idT); idT=setTimeout(identificar,700); }
+['fDe','fAte'].forEach(function(id){ $(id).addEventListener('input',filtrosMudaram); });
+$('fBusca').addEventListener('input',renderLista);
+$('fTec').addEventListener('change',renderLista);
+$('fCli').addEventListener('change',function(){ renderGrupoBox(); filtrosMudaram(); });
 $('btnTodos').addEventListener('click',function(){ filtrados().forEach(function(x){ R.sel[x.nf]=1; }); renderLista(); });
 $('btnNenhum').addEventListener('click',function(){ R.sel={}; renderLista(); });
 
@@ -638,8 +655,8 @@ function base64Bytes(b){ return b64d(b); }
 
 /* ---------- regras do Manual de Qualidade ---------- */
 function maxNuances(m){ return m<=1000? 2 : m<=3500? 3 : m<=5000? 4 : 5; }
-function analisar(nf, rom, info){
-  var it=rom.itens, color=it.length&&it.every(function(x){ return COLOR_RX.test(x.artigo); });
+function analisar(nf, rom, info, tec){
+  var it=tec? rom.itens.filter(function(x){ return tecidoBase(x.artigo)===tec; }) : rom.itens, color=it.length&&it.every(function(x){ return COLOR_RX.test(x.artigo); });
   if(R.tipo&&R.tipo[nf]) color=R.tipo[nf]==='color';
   var min=color?60:80, lim=color?500:1000;
   var metros=it.reduce(function(s,x){return s+x.metros;},0), pecas=it.length;
@@ -667,7 +684,21 @@ function analisar(nf, rom, info){
     if(rom.totPecas&&rom.totPecas!==pecas) avisos.push('Li '+pecas+' de '+rom.totPecas+' peças do total do romaneio.');
   }
   var lg2=it.map(function(x){return x.larg;}).filter(Boolean);
-  return {nf:nf, pedido:rom.pedido||(info&&info.pedido)||'', cliente:(info&&info.cli)||rom.cliente, razao:rom.cliente, data:(info&&info.data)||'', embarque:rom.embarque,
+  /* checklist do Manual de Qualidade (para o relatório) */
+  var crit=[], mx2=maxNuances(metros), dlc=lg2.length? Math.round((Math.max.apply(null,lg2)-Math.min.apply(null,lg2))*1000)/10 : 0, ptm=it.reduce(function(s,x){return Math.max(s,x.pontos);},0);
+  var faixa=metros<=1000?'até 1.000 m':metros<=3500?'de 1.001 a 3.500 m':metros<=5000?'de 3.501 a 5.000 m':'acima de 5.000 m';
+  var medOk=!((metros<=lim&&medias.length)||(metros>lim&&mMed>0.10*metros+1e-6));
+  if(pecas){
+    crit.push({c:'Rolos abaixo de '+min+' m (peça média, 30 a '+(min-0.1).toLocaleString('pt-BR')+' m)', e: pecaMedia? 'Pedido de peça média' : metros<=lim? 'Não permitido em pedidos de até '+fI(lim)+' m' : 'Até 10% da metragem do pedido',
+      r: medias.length? medias.length+(medias.length===1?' rolo':' rolos')+' · '+fM(mMed)+' m ('+fP(metros?mMed/metros:0)+' da metragem)' : 'Nenhum', s: pecaMedia?'info':(medOk?'ok':'fora')});
+    crit.push({c:'Rolos abaixo de 30 m (peça pequena)', e:'Não permitido na 1ª qualidade', r: pequenas.length? pequenas.length+(pequenas.length===1?' rolo':' rolos') : 'Nenhum', s: pequenas.length?'fora':'ok'});
+    crit.push({c:'Quantidade de nuances na NF', e: pecaMedia? 'Sem limite (peça média)' : 'Máximo '+mx2+' (pedido '+faixa+')', r: nNua+(nNua===1?' nuance':' nuances'), s: pecaMedia?'info':(nNua>mx2?'fora':'ok')});
+    if(color){ var menor=Object.keys(nuas).reduce(function(m,k){ return Math.min(m,nuas[k].metros); }, Infinity); crit.push({c:'Metragem por nuance (Denim Color)', e:'Mínimo de 500 m por nuance', r:'Menor nuance: '+fM(menor)+' m', s: Object.keys(pocasNua).length?'fora':'ok'}); }
+    crit.push({c:'Variação de largura entre os rolos', e:'Até 4 cm', r: lg2.length? dlc.toLocaleString('pt-BR')+' cm ('+Math.min.apply(null,lg2).toFixed(2).replace('.',',')+' a '+Math.max.apply(null,lg2).toFixed(2).replace('.',',')+' m)' : '—', s: dlc>4?'fora':'ok'});
+    crit.push({c:'Pontuação de defeitos por rolo', e:'Até 15 pontos/100 m²', r:'Maior: '+ptm.toLocaleString('pt-BR',{maximumFractionDigits:2})+' pontos/100 m²', s: ptm>15?'fora':'ok'});
+    crit.push({c:'Ordens de tingimento (OT)', e:'Informativo: enfesto por Nuance › OT › ST › SC', r: nOt+(nOt===1?' OT':' OTs'), s:'info'});
+  }
+  return {nf:nf, tec:tec||'', crit:crit, medOk:medOk, mMed:mMed, nMed:medias.length, pedido:rom.pedido||(info&&info.pedido)||'', cliente:(info&&info.cli)||rom.cliente, razao:rom.cliente, data:(info&&info.data)||'', embarque:rom.embarque,
     color:color, min:min, metros:metros, pecas:pecas, abaixo80:abaixo80.length, mAbaixo80:abaixo80.reduce(function(s,x){return s+x.metros;},0), curtas:curtas, pequenas:pequenas.length,
     nNua:nNua, maxNua:maxNuances(metros), nOt:nOt, nuas:nuas, artigos:Object.keys(arts), largMin:lg2.length?Math.min.apply(null,lg2):0, largMax:lg2.length?Math.max.apply(null,lg2):0,
     ptMax:it.reduce(function(s,x){return Math.max(s,x.pontos);},0), pecaMedia:pecaMedia, probs:probs, avisos:avisos, fl:fl, pocasNua:pocasNua, itens:it, ok:pecas>0&&!probs.length, grupo:info? grupoReal(info.cli):''};
@@ -681,27 +712,59 @@ function buscarArquivos(ids){
     .then(function(j){ if(!j||j.erro) throw new Error(j&&j.erro==='acesso negado'?'acesso':'formato'); if(!j.arquivos) throw new Error('versao'); return j.arquivos; });
 }
 function textoDe(a){ if(a.txt!=null) return Promise.resolve(a.txt); if(a.b64) return pdfTexto(base64Bytes(a.b64)); return Promise.resolve(''); }
-function analisarSelecionados(){
-  var nfs=Object.keys(R.sel); if(!nfs.length) return;
+/* romaneios já lidos ficam guardados cifrados neste navegador (IndexedDB), para não baixar de novo */
+var IDB=null;
+function idb(){ if(IDB) return IDB; IDB=new Promise(function(res){ if(!window.indexedDB) return res(null); var rq; try{ rq=indexedDB.open('sd_romaneios',1); }catch(e){ return res(null); }
+  rq.onupgradeneeded=function(){ rq.result.createObjectStore('rom',{keyPath:'nf'}); }; rq.onsuccess=function(){ res(rq.result); }; rq.onerror=function(){ res(null); }; }); return IDB; }
+function guardarRom(nf, o){
+  return Promise.all([idb(), chave()]).then(function(a){ var d=a[0], k=a[1]; if(!d) return; var iv=crypto.getRandomValues(new Uint8Array(12));
+    return crypto.subtle.encrypt({name:'AES-GCM', iv:iv}, k, new TextEncoder().encode(JSON.stringify(o))).then(function(ct){ d.transaction('rom','readwrite').objectStore('rom').put({nf:nf, iv:iv, ct:ct}); }); }).catch(function(){});
+}
+function carregarRoms(){
+  return Promise.all([idb(), chave()]).then(function(a){ var d=a[0], k=a[1]; if(!d) return;
+    return new Promise(function(res){ var out=[], tx=d.transaction('rom','readonly'), c=tx.objectStore('rom').openCursor();
+      c.onsuccess=function(){ var cur=c.result; if(!cur) return; out.push(cur.value); cur.continue(); }; tx.oncomplete=function(){ res(out); }; tx.onerror=function(){ res(out); }; })
+    .then(function(vs){ return Promise.all(vs.map(function(v){ return crypto.subtle.decrypt({name:'AES-GCM', iv:v.iv}, k, v.ct).then(function(b){ if(!R.cache[v.nf]) R.cache[v.nf]=JSON.parse(new TextDecoder().decode(b)); }, function(){}); })); });
+  }).catch(function(){});
+}
+/* baixa do Drive e lê os romaneios das NFs pedidas (que ainda não foram lidas) */
+function lerNoDrive(nfs, avisar){
   var mapa={}; R.lista.forEach(function(x){ mapa[x.nf]=x; });
   var faltam=nfs.filter(function(n){ return !R.cache[n]&&mapa[n]; });
   var ids=[], dono={}; faltam.forEach(function(n){ mapa[n].ids.forEach(function(id){ ids.push(id); dono[id]=n; }); });
   var lotes=[]; for(var i=0;i<ids.length;i+=6) lotes.push(ids.slice(i,i+6));
-  var textos={}, feitos=0, erro=null;
-  $('btnAnalisar').disabled=true;
-  prog(ids.length? 'Lendo '+faltam.length+(faltam.length===1?' romaneio':' romaneios')+' no Google Drive…' : '');
-  var p=Promise.resolve();
+  var textos={}, feitos=0, erro=null, p=Promise.resolve();
+  if(avisar&&ids.length) avisar(0, ids.length);
   lotes.forEach(function(l){ p=p.then(function(){ return buscarArquivos(l).then(function(arqs){
     return Promise.all(arqs.map(function(a){ return textoDe(a).then(function(tx){ var n=dono[a.id]; textos[n]=(textos[n]||'')+'\n'+tx; }, function(){}); }));
-  }).then(function(){ feitos+=l.length; prog('Lidos '+Math.min(feitos,ids.length)+' de '+ids.length+' arquivos…'); }); }); });
-  p.catch(function(e){ erro=e; }).then(function(){
-    Object.keys(textos).forEach(function(n){ R.cache[n]=lerRomaneio(textos[n]); });
-    R.res=nfs.filter(function(n){ return R.cache[n]; }).map(function(n){ return analisar(n, R.cache[n], mapa[n]); }).concat(R.res.filter(function(r){ return r.local; }));
+  }).then(function(){ feitos+=l.length;
+    Object.keys(textos).forEach(function(n){ if(R.cache[n]) return; var o=lerRomaneio(textos[n]); if(o.itens.length){ R.cache[n]=o; guardarRom(n,o); } });
+    if(avisar) avisar(Math.min(feitos,ids.length), ids.length); }); }); });
+  return p.catch(function(e){ erro=e; }).then(function(){ return erro; });
+}
+/* identifica o tecido dos romaneios filtrados (lê em segundo plano) */
+var idRodando=false, idDeNovo=false;
+function identificar(){
+  if(!NFDocs.driveUrl()) return;
+  if(idRodando){ idDeNovo=true; return; }
+  var pend=filtrados(true).filter(function(x){ return !R.cache[x.nf]; }).slice(0,150).map(function(x){ return x.nf; });
+  R.idPend=pend.length; if(!pend.length){ $('idProg').textContent=''; return; }
+  idRodando=true;
+  lerNoDrive(pend, function(f,t){ $('idProg').textContent='Identificando o tecido dos romaneios no Drive: '+f+' de '+t+' arquivos…'; montarSelectTec(); renderLista(); })
+    .then(function(erro){ idRodando=false; R.idPend=0; $('idProg').textContent= erro? 'Não foi possível identificar o tecido de todos os romaneios agora.' : ''; montarSelectTec(); renderLista(); if(idDeNovo){ idDeNovo=false; identificar(); } });
+}
+function analisarSelecionados(){
+  var nfs=Object.keys(R.sel); if(!nfs.length) return;
+  var mapa={}; R.lista.forEach(function(x){ mapa[x.nf]=x; });
+  var tec=$('fTec').value;
+  $('btnAnalisar').disabled=true;
+  lerNoDrive(nfs, function(f,t){ prog('Lendo os romaneios no Google Drive: '+f+' de '+t+' arquivos…'); }).then(function(erro){
+    R.res=nfs.filter(function(n){ return R.cache[n]; }).map(function(n){ return analisar(n, R.cache[n], mapa[n], tec); }).filter(function(r){ return r.pecas; }).concat(R.res.filter(function(r){ return r.local; }));
     R.res.sort(function(a,b){ return (b.data||'').localeCompare(a.data||'') || (+b.nf)-(+a.nf); });
     var nao=nfs.filter(function(n){ return !R.cache[n]; });
     prog(erro? (erro.message==='versao'? 'O App da Web do Drive ainda está na versão antiga: publique a nova versão do script (Implantar → Gerenciar implantações → Editar → Nova versão).' : erro.message==='acesso'? 'O Drive recusou o código de acesso. Cole de novo o link do App da Web no botão Notas fiscais (Drive).' : 'Não foi possível ler todos os romaneios no Drive. Verifique a conexão e tente de novo.')
       : (nao.length? nao.length+(nao.length===1?' romaneio não pôde ser lido.':' romaneios não puderam ser lidos.') : ''));
-    renderRes(); renderLista();
+    renderRes(); renderLista(); montarSelectTec();
   });
 }
 $('btnAnalisar').addEventListener('click',analisarSelecionados);
@@ -753,7 +816,7 @@ function detalhe(r){
 $('resBody').addEventListener('change',function(ev){
   var s=ev.target.closest('select[data-tipo]'); if(!s) return; R.tipo=R.tipo||{}; var nf=s.getAttribute('data-tipo'); R.tipo[nf]=s.value;
   var mapa={}; R.lista.forEach(function(x){ mapa[x.nf]=x; });
-  R.res=R.res.map(function(r){ if(r.nf!==nf) return r; var n=analisar(nf, R.cache[nf], mapa[nf]||{cli:r.cliente, data:r.data}); n.local=r.local; return n; }); renderRes();
+  R.res=R.res.map(function(r){ if(r.nf!==nf) return r; var n=analisar(nf, R.cache[nf], mapa[nf]||{cli:r.cliente, data:r.data}, r.tec); n.local=r.local; return n; }); renderRes();
 });
 $('resBody').addEventListener('click',function(ev){
   if(ev.target.closest('select')) return; var tr=ev.target.closest('tr[data-res]'); if(!tr) return;
@@ -778,72 +841,143 @@ function gerarPDF(btn, share){
   if(!R.res.length) return; var old=btn.textContent; btn.disabled=true; btn.textContent='Gerando…';
   loadJsPDF().then(function(JsPDF){
     var doc=new JsPDF({orientation:'landscape', unit:'pt', format:'a4'}), W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=CapriPDF.MARGEM, y;
-    var VERM=[192,57,43], VERM_F=[251,228,225], VERDE=[11,122,69], VERDE_F=[228,245,235], AZUL=[0,51,159];
-    y=CapriPDF.cabecalho(doc, 'Verificação de romaneios', 'Manual de Qualidade Capricórnio  ·  gerado em '+fmtDateTime(new Date().toISOString()));
-    var para=function(t, bold, cor){ doc.setFont('helvetica', bold?'bold':'normal'); doc.setFontSize(9.5); var c=cor||(bold?AZUL:[28,28,28]); doc.setTextColor(c[0],c[1],c[2]);
-      doc.splitTextToSize(t, W-2*M-8).forEach(function(l){ if(y>H-70){ doc.addPage(); y=M+28; } doc.text(l, M+4, y); y+=13; }); y+=4; doc.setTextColor(28,28,28); };
-    var f=filtrosTxt(); if(f.length) para('Filtros: '+f.join(' · '), true);
-    var fora=R.res.filter(function(r){ return !r.ok; }).sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); });
-    var tm=0,tp=0,ta=0; R.res.forEach(function(r){ tm+=r.metros; tp+=r.pecas; ta+=r.abaixo80; });
-    /* quadros de resumo */
-    var bw=(W-2*M-24)/4, bh=46, caixas=[
-      {l:'ROMANEIOS ANALISADOS', v:String(R.res.length), s:fI(tp)+' peças · '+fM(tm)+' m', f:[230,238,248], c:AZUL},
-      {l:'DENTRO DO CRITÉRIO', v:String(R.res.length-fora.length), s:'conformes ao manual', f:VERDE_F, c:VERDE},
-      {l:'FORA DO CRITÉRIO', v:String(fora.length), s:fora.length? 'ver destaque em vermelho' : 'nenhum', f:fora.length?VERM_F:[240,240,240], c:fora.length?VERM:[110,110,110]},
-      {l:'PEÇAS ABAIXO DE 80 M', v:tp?fP(ta/tp):'—', s:fI(ta)+' de '+fI(tp)+' peças', f:[230,238,248], c:AZUL}];
-    caixas.forEach(function(b,i){ var x=M+i*(bw+8); doc.setFillColor(b.f[0],b.f[1],b.f[2]); doc.roundedRect(x, y, bw, bh, 5, 5, 'F');
-      if(b.c===VERM){ doc.setDrawColor(VERM[0],VERM[1],VERM[2]); doc.setLineWidth(1.5); doc.roundedRect(x, y, bw, bh, 5, 5, 'S'); }
-      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(b.c[0],b.c[1],b.c[2]); doc.text(b.l, x+10, y+13);
-      doc.setFontSize(17); doc.text(b.v, x+10, y+32); doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(90,90,90); doc.text(b.s, x+10, y+42); });
-    y+=bh+16; doc.setTextColor(28,28,28);
-    /* destaque dos que estão fora */
-    if(fora.length){
-      doc.setFillColor(VERM[0],VERM[1],VERM[2]); doc.rect(M, y, W-2*M, 20, 'F');
-      doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(255,255,255);
-      doc.text('ATENÇÃO: '+fora.length+(fora.length===1?' ROMANEIO FORA':' ROMANEIOS FORA')+' DO CRITÉRIO DO MANUAL DE QUALIDADE', M+10, y+14); y+=22;
-      doc.autoTable(Object.assign(CapriPDF.tabela({startY:y}), {head:[['NF','Pedido','Data','Cliente','O que está fora do critério']],
-        body:fora.map(function(r){ return [r.nf, String(r.pedido||'').replace(/^0+/,''), fmtDate(r.data), r.cliente+(r.grupo?'\nGrupo '+r.grupo:''), r.probs.map(function(p){ return '• '+p; }).join('\n')]; }),
-        headStyles:{fillColor:VERM, textColor:255, fontStyle:'bold'}, bodyStyles:{fillColor:VERM_F}, alternateRowStyles:{fillColor:VERM_F},
-        columnStyles:{0:{fontStyle:'bold'},4:{textColor:[143,36,25], fontStyle:'bold', cellWidth:330}}}));
-      y=doc.lastAutoTable.finalY+18;
-    } else { para('Todos os romaneios analisados estão dentro do critério do Manual de Qualidade.', true, VERDE); }
-    /* tabela geral com as linhas fora em vermelho */
-    if(y>H-120){ doc.addPage(); y=M+28; }
-    para('Todos os romaneios analisados', true);
-    var Rr={halign:'right'};
-    doc.autoTable(Object.assign(CapriPDF.tabela({startY:y}), {head:[['Data','NF','Pedido','Cliente','Artigo','Metros','Peças','% < 80 m','Nuances','OTs','Situação']],
-      body:R.res.map(function(r){ return [fmtDate(r.data), r.nf, String(r.pedido||'').replace(/^0+/,''), r.cliente+(r.grupo?'\nGrupo '+r.grupo:''), r.artigos.join(' · ')+(r.color?' (Color)':''), fM(r.metros), r.pecas, (r.pecas?fP(r.abaixo80/r.pecas):'—')+'\n'+r.abaixo80+' pç · '+fM(r.mAbaixo80)+' m', r.nNua+' (máx. '+(r.pecaMedia?'livre':r.maxNua)+')', r.nOt, r.ok?'CONFORME':'FORA DO CRITÉRIO']; }),
-      columnStyles:{5:Rr,6:Rr,7:Rr,8:Rr,9:Rr},
-      didParseCell:function(d){ if(d.section!=='body') return; var r=R.res[d.row.index]; if(!r) return;
-        if(!r.ok){ d.cell.styles.fillColor=VERM_F; }
-        if(d.column.index===10){ d.cell.styles.fontStyle='bold'; d.cell.styles.textColor=r.ok?VERDE:VERM; }
-        if(!r.ok&&((d.column.index===7&&r.fl.metragem)||(d.column.index===8&&r.fl.nuances))){ d.cell.styles.fontStyle='bold'; d.cell.styles.textColor=VERM; }
-        if(!r.ok&&d.column.index===1){ d.cell.styles.fontStyle='bold'; d.cell.styles.textColor=VERM; } }}));
-    y=doc.lastAutoTable.finalY+18;
-    /* detalhe por romaneio */
-    R.res.forEach(function(r){
-      if(y>H-130){ doc.addPage(); y=M+28; }
-      para((r.ok?'CONFORME':'FORA DO CRITÉRIO')+'  ·  NF '+r.nf+' · pedido '+String(r.pedido||'—').replace(/^0+/,'')+' · '+r.cliente+' — nuances e OTs', true, r.ok?VERDE:VERM);
-      doc.autoTable(Object.assign(CapriPDF.tabela({startY:y}), {head:[['Nuance','Peças','Metros','OTs']], body:Object.keys(r.nuas).sort().map(function(k){ var n=r.nuas[k]; return [k, n.pecas, fM(n.metros), Object.keys(n.ots).join(', ')]; }), columnStyles:{1:Rr,2:Rr}, tableWidth:'wrap',
-        headStyles:r.ok?{fillColor:AZUL, textColor:255, fontStyle:'bold'}:{fillColor:VERM, textColor:255, fontStyle:'bold'},
-        didParseCell:function(d){ if(d.section!=='body') return; var k=Object.keys(r.nuas).sort()[d.row.index]; if(r.pocasNua[k]||(r.fl.nuances&&!r.color)){ d.cell.styles.fillColor=VERM_F; } if(r.pocasNua[k]){ d.cell.styles.textColor=VERM; d.cell.styles.fontStyle='bold'; } }}));
-      y=doc.lastAutoTable.finalY+8;
-      if(r.fl.metragem&&r.curtas.length){
-        y+=8; if(y>H-90){ doc.addPage(); y=M+28; }
-        para('Peças abaixo de '+r.min+' m ('+r.curtas.length+')', true, VERM);
-        doc.autoTable(Object.assign(CapriPDF.tabela({startY:y}), {head:[['Etiqueta','Metros','Nuance','OT']], body:r.curtas.map(function(x){ return [x.etq, fM(x.metros), x.nua, x.ot]; }), columnStyles:{1:Rr}, tableWidth:'wrap',
-          headStyles:{fillColor:VERM, textColor:255, fontStyle:'bold'}, didParseCell:function(d){ if(d.section!=='body') return; d.cell.styles.fillColor=VERM_F; if(r.curtas[d.row.index].metros<30){ d.cell.styles.textColor=VERM; d.cell.styles.fontStyle='bold'; } }}));
-        y=doc.lastAutoTable.finalY+8;
-      }
-      y+=8;
+    var AZUL=[0,51,159], LARANJA=[255,106,19], VERDE=[40,114,79], VERDE_F=[226,242,233], VERM=[192,57,43], VERM_F=[251,232,229], CINZA_F=[244,246,250], TXT=[33,37,41], SUAVE=[110,117,128], LINHA=[222,226,233];
+    function cor(c){ return c; }
+    function fill(c){ doc.setFillColor(c[0],c[1],c[2]); } function ink(c){ doc.setTextColor(c[0],c[1],c[2]); } function stroke(c){ doc.setDrawColor(c[0],c[1],c[2]); }
+    function font(st, sz){ doc.setFont('helvetica', st||'normal'); doc.setFontSize(sz||9); }
+    function topo(){ return M+18; }
+    function garantir(h){ if(y+h>H-58){ doc.addPage(); y=topo(); } }
+    function limpa(t){ return String(t==null?'':t).replace(/›/g,'>').replace(/≤/g,'até ').replace(/–/g,'-'); }
+    function selo(x, yy, w, h, st, txt){
+      var c= st==='ok'? VERDE : st==='fora'? VERM : [140,147,158];
+      fill(c); doc.roundedRect(x, yy, w, h, h/2, h/2, 'F'); font('bold', h>14?8:7); ink([255,255,255]);
+      doc.text(txt, x+w/2, yy+h/2+(h>14?2.9:2.5), {align:'center'});
+    }
+    function titulo(t, sub){
+      garantir(40); font('bold', 12.5); ink(AZUL); doc.text(limpa(t), M, y); fill(LARANJA); doc.rect(M, y+5, 34, 2.4, 'F');
+      y+=18; if(sub){ font('normal', 8.5); ink(SUAVE); doc.splitTextToSize(limpa(sub), W-2*M).forEach(function(l){ doc.text(l, M, y); y+=11; }); y+=2; }
+      y+=4;
+    }
+    var fora=R.res.filter(function(r){ return !r.ok; }), tm=0, tp=0, ta=0; R.res.forEach(function(r){ tm+=r.metros; tp+=r.pecas; ta+=r.abaixo80; });
+    var fc=$('fCli').value, clis={}; R.res.forEach(function(r){ clis[r.cliente]=1; });
+    var cliLbl, cliSub='';
+    if(fc.indexOf('g:')===0){ cliLbl='Grupo econômico '+fc.slice(2); cliSub=membrosGrupo(fc.slice(2)).join(' · '); }
+    else if(Object.keys(clis).length===1){ cliLbl=Object.keys(clis)[0]; var gg=grupoReal(cliLbl); if(gg) cliSub='Grupo econômico '+gg; }
+    else { cliLbl='Diversos clientes'; cliSub=Object.keys(clis).length+' clientes'; }
+    var datas=R.res.map(function(r){ return r.data; }).filter(Boolean).sort();
+    var periodo=($('fDe').value||datas[0])? fmtDate($('fDe').value||datas[0])+' a '+fmtDate($('fAte').value||datas[datas.length-1]) : '—';
+    var tecs={}; R.res.forEach(function(r){ r.artigos.forEach(function(a){ tecs[tecidoBase(a)]=1; }); });
+    var tecLbl=$('fTec').value || (Object.keys(tecs).length<=3? Object.keys(tecs).join(' · ') : Object.keys(tecs).length+' tecidos');
+
+    /* ---------- capa / resumo ---------- */
+    y=CapriPDF.cabecalho(doc, 'Relatório de conformidade de romaneios', 'Avaliação dos romaneios de faturamento conforme o Manual de Uso - Tecidos Capricórnio')+4;
+    /* quadro de identificação */
+    var ph=50; fill(CINZA_F); doc.roundedRect(M, y, W-2*M, ph, 6, 6, 'F');
+    var cols=[{l:'CLIENTE', v:cliLbl, s:cliSub, w:.40},{l:'PERÍODO', v:periodo, w:.20},{l:'TECIDO', v:tecLbl||'—', w:.22},{l:'EMITIDO EM', v:fmtDateTime(new Date().toISOString()), w:.18}], cx=M+14;
+    cols.forEach(function(c){ var cw=(W-2*M-28)*c.w; font('bold',7); ink(SUAVE); doc.text(c.l, cx, y+15);
+      font('bold',10.5); ink(TXT); doc.text(doc.splitTextToSize(limpa(c.v), cw-10)[0], cx, y+30);
+      if(c.s){ font('normal',7.5); ink(SUAVE); doc.text(doc.splitTextToSize(limpa(c.s), cw-10)[0], cx, y+42); }
+      cx+=cw; });
+    y+=ph+14;
+    /* indicadores */
+    var conf=R.res.length? (R.res.length-fora.length)/R.res.length : 0;
+    var kp=[{l:'Romaneios analisados', v:fI(R.res.length), s:Object.keys(clis).length+(Object.keys(clis).length===1?' cliente':' clientes'), c:AZUL},
+      {l:'Metragem total', v:fM(tm)+' m', s:fI(tp)+' rolos', c:AZUL},
+      {l:'Conformidade', v:fP(conf), s:(R.res.length-fora.length)+' de '+R.res.length+' romaneios dentro do critério', c:fora.length?VERM:VERDE},
+      {l:'Rolos abaixo de 80 m', v:tp?fP(ta/tp):'—', s:fI(ta)+' de '+fI(tp)+' rolos', c:AZUL}];
+    var kw=(W-2*M-30)/4, kh=60;
+    kp.forEach(function(k,i){ var x=M+i*(kw+10); stroke(LINHA); doc.setLineWidth(.8); fill([255,255,255]); doc.roundedRect(x, y, kw, kh, 6, 6, 'FD');
+      fill(k.c); doc.rect(x, y+10, 3, kh-20, 'F');
+      font('bold',7.5); ink(SUAVE); doc.text(k.l.toUpperCase(), x+14, y+17);
+      font('bold',20); ink(k.c); doc.text(k.v, x+14, y+40);
+      font('normal',7.5); ink(SUAVE); doc.text(doc.splitTextToSize(k.s, kw-24)[0], x+14, y+52); });
+    y+=kh+14;
+    /* resultado geral */
+    var okGeral=!fora.length, bh2=okGeral? 30 : 30+fora.length*12;
+    garantir(bh2); fill(okGeral?VERDE_F:VERM_F); doc.roundedRect(M, y, W-2*M, bh2, 6, 6, 'F'); fill(okGeral?VERDE:VERM); doc.rect(M, y, 4, bh2, 'F');
+    font('bold',10); ink(okGeral?VERDE:VERM);
+    doc.text(okGeral? 'Todos os romaneios analisados atendem aos critérios do Manual de Qualidade.' : fora.length+(fora.length===1?' romaneio apresenta':' romaneios apresentam')+' pontos fora do critério do Manual de Qualidade:', M+16, y+19);
+    if(!okGeral){ font('normal',8.5); ink(TXT); fora.forEach(function(r,i){ doc.text(doc.splitTextToSize(limpa('NF '+r.nf+(r.pedido?' (pedido '+String(r.pedido).replace(/^0+/,'')+')':'')+': '+r.probs.join(' ')), W-2*M-40)[0], M+22, y+33+i*12); }); }
+    y+=bh2+18;
+    /* tabela resumo */
+    titulo('Resumo por romaneio');
+    var Rr={halign:'right'}, Cc={halign:'center'};
+    var base=function(o){ var t=CapriPDF.tabela(o); t.theme='plain'; t.styles=Object.assign(t.styles,{fontSize:8.3, cellPadding:{top:6,bottom:6,left:6,right:6}, textColor:TXT, lineWidth:0});
+      t.headStyles={fillColor:AZUL, textColor:[255,255,255], fontStyle:'bold', fontSize:7.8}; t.alternateRowStyles={fillColor:[248,249,252]};
+      t.didDrawCell=function(d){ if(d.section==='body'&&d.column.index===0){ stroke(LINHA); doc.setLineWidth(.5); doc.line(d.table.settings.margin.left, d.cell.y+d.cell.height, W-d.table.settings.margin.right, d.cell.y+d.cell.height); } if(o.draw) o.draw(d); };
+      return t; };
+    doc.autoTable(Object.assign(base({startY:y, draw:function(d){ if(d.section==='body'&&d.column.index===10){ var r=R.res[d.row.index]; selo(d.cell.x+4, d.cell.y+d.cell.height/2-7.5, d.cell.width-8, 15, r.ok?'ok':'fora', r.ok?'CONFORME':'FORA'); } }}), {
+      head:[['Emissão','NF','Pedido','Cliente','Tecido','Metros','Rolos','Rolos < 80 m','Nuances','OTs','Resultado']],
+      body:R.res.map(function(r){ return [fmtDate(r.data), r.nf, String(r.pedido||'—').replace(/^0+/,''), r.cliente, r.artigos.map(tecidoBase).filter(function(v,i,a){ return a.indexOf(v)===i; }).join(' · ')+(r.color?' (Color)':''), fM(r.metros), r.pecas, r.abaixo80+'  ('+(r.pecas?fP(r.abaixo80/r.pecas):'—')+')', r.nNua+' / máx. '+(r.pecaMedia?'livre':r.maxNua), r.nOt, '']; }),
+      columnStyles:{0:{cellWidth:62},1:{cellWidth:46, fontStyle:'bold'},2:{cellWidth:46},5:Object.assign({cellWidth:58},Rr),6:Object.assign({cellWidth:36},Rr),7:Object.assign({cellWidth:66},Rr),8:Object.assign({cellWidth:64},Cc),9:Object.assign({cellWidth:30},Cc),10:{cellWidth:74}},
+      didParseCell:function(d){ if(d.section!=='body') return; var r=R.res[d.row.index];
+        if((d.column.index===7&&r.fl.metragem)||(d.column.index===8&&r.fl.nuances)){ d.cell.styles.textColor=VERM; d.cell.styles.fontStyle='bold'; }
+        if(d.column.index===1&&!r.ok) d.cell.styles.textColor=VERM; }}));
+    y=doc.lastAutoTable.finalY+22;
+
+    /* ---------- detalhe de cada romaneio ---------- */
+    doc.addPage(); y=topo();
+    titulo('Avaliação detalhada por romaneio', 'Cada romaneio é comparado com as exigências do Manual de Qualidade. Os rolos devem ser enfestados respeitando a sequência Nuance > OT > ST > SC indicada no romaneio.');
+    R.res.forEach(function(r, idx){
+      garantir(190);
+      var hh=46, st=r.ok?'ok':'fora';
+      fill(CINZA_F); doc.roundedRect(M, y, W-2*M, hh, 6, 6, 'F'); fill(r.ok?VERDE:VERM); doc.rect(M, y, 4, hh, 'F');
+      font('bold',12.5); ink(AZUL); doc.text('NF '+r.nf+(r.pedido? '   ·   Pedido '+String(r.pedido).replace(/^0+/,'') : ''), M+16, y+19);
+      font('normal',8.5); ink(TXT);
+      doc.text(doc.splitTextToSize(limpa(r.cliente+'   ·   Emissão '+fmtDate(r.data)+'   ·   '+r.artigos.join(' · ')+(r.color?' (Denim Color)':'')+'   ·   '+fM(r.metros)+' m em '+r.pecas+' rolos'), W-2*M-150)[0], M+16, y+34);
+      selo(W-M-124, y+hh/2-9, 110, 18, st, r.ok?'CONFORME':'FORA DO CRITÉRIO');
+      y+=hh+8;
+      doc.autoTable(Object.assign(base({startY:y, draw:function(d){ if(d.section==='body'&&d.column.index===3){ var c=r.crit[d.row.index]; selo(d.cell.x+6, d.cell.y+d.cell.height/2-6.5, d.cell.width-12, 13, c.s, c.s==='ok'?'OK':c.s==='fora'?'FORA':'INFO'); } }}), {
+        head:[['Critério do manual','Exigência','Encontrado no romaneio','Situação']],
+        body:r.crit.map(function(c){ return [limpa(c.c), limpa(c.e), limpa(c.r), '']; }),
+        columnStyles:{0:{cellWidth:230, fontStyle:'bold'},1:{cellWidth:220},2:{},3:{cellWidth:64}},
+        didParseCell:function(d){ if(d.section==='body'&&d.column.index===2&&r.crit[d.row.index].s==='fora'){ d.cell.styles.textColor=VERM; d.cell.styles.fontStyle='bold'; } }}));
+      y=doc.lastAutoTable.finalY+22;
+      var curtas=r.itens.filter(function(x){ return x.metros<80; });
+      var ks=Object.keys(r.nuas).sort(), alt=(Math.max(ks.length, curtas.length, 1)+1)*21+24, lado=alt<H-120;
+      garantir(lado? alt : 80); var y0=y, meio=W/2;
+      font('bold',8.5); ink(AZUL); doc.text('Nuances e ordens de tingimento', M, y0);
+      doc.autoTable(Object.assign(base({startY:y0+6, margin:{left:M, right:lado? W-meio+8 : M}}), {head:[['Nuance','Rolos','Metros','OTs']],
+        body:ks.map(function(k){ var n=r.nuas[k]; return [k, n.pecas, fM(n.metros), Object.keys(n.ots).join(', ')]; }), columnStyles:{0:{fontStyle:'bold',cellWidth:50},1:Object.assign({cellWidth:40},Rr),2:Object.assign({cellWidth:70},Rr)},
+        didParseCell:function(d){ if(d.section==='body'&&r.pocasNua[ks[d.row.index]]){ d.cell.styles.textColor=VERM; d.cell.styles.fontStyle='bold'; } }}));
+      var y1=doc.lastAutoTable.finalY, xs=lado? meio+8 : M, ys=lado? y0 : y1+18;
+      if(!lado){ y=y1+18; garantir(60); ys=y; }
+      font('bold',8.5); ink(AZUL); doc.text('Rolos abaixo de 80 m ('+curtas.length+')', xs, ys);
+      if(curtas.length){
+        doc.autoTable(Object.assign(base({startY:ys+6, margin:{left:xs, right:M}}), {head:[['Etiqueta','Metros','Nuance','OT']],
+          body:curtas.map(function(x){ return [x.etq, fM(x.metros), x.nua, x.ot]; }), columnStyles:{1:Rr},
+          didParseCell:function(d){ if(d.section==='body'){ var x=curtas[d.row.index]; if(x.metros<30||(!r.medOk&&!r.pecaMedia&&x.metros<r.min)){ d.cell.styles.textColor=VERM; if(x.metros<30) d.cell.styles.fontStyle='bold'; } } }}));
+        y=lado? Math.max(y1, doc.lastAutoTable.finalY) : doc.lastAutoTable.finalY;
+      } else { font('normal',8.5); ink(SUAVE); doc.text('Nenhum rolo abaixo de 80 m.', xs, ys+18); y=Math.max(y1, ys+24); }
+      if(r.avisos.length){ y+=12; font('italic',8); ink(SUAVE); r.avisos.forEach(function(a){ doc.text(limpa('Observação: '+a), M, y); y+=11; }); }
+      y+=24;
     });
-    CapriPDF.finalizar(doc, 'CRM Studio Denim · Verificador de romaneios');
-    var nome='verificacao-romaneios-'+todayISO()+'.pdf', blob=doc.output('blob');
+
+    /* ---------- critérios de referência ---------- */
+    garantir(200);
+    titulo('Critérios de referência', 'Manual de Uso - Tecidos Capricórnio (Documento proprietário CAPRI 02)');
+    var crs=[['Metragem dos rolos - Denim 1ª qualidade','Mínimo de 80 m por rolo, sem emendas. Em pedidos acima de 1.000 m, até 10% da metragem pode ser enviada em rolos de 30 m a 79,9 m.'],
+      ['Metragem dos rolos - Denim Color 1ª qualidade','Mínimo de 60 m por rolo, sem emendas. Em pedidos acima de 500 m, até 10% da metragem em rolos de 30 m a 59,9 m. Mínimo de 500 m por nuance.'],
+      ['Peça pequena','Rolos de 6 m a 29,9 m não compõem pedidos de 1ª qualidade.'],
+      ['Número de nuances por NF','Até 1.000 m: 2  ·  de 1.001 a 3.500 m: 3  ·  de 3.501 a 5.000 m: 4  ·  acima de 5.000 m: 5. Pedidos de peça média não têm limite de nuances.'],
+      ['Largura','Variação de até 2% sobre a ficha técnica; no mesmo pedido, diferença máxima de 4 cm entre os rolos do romaneio.'],
+      ['Pontuação de defeitos','Sistema de 4 pontos: até 15 pontos/100 m² para 1ª qualidade.'],
+      ['Pedidos sequenciados','Não se aplica o limite de peças médias, para preservar a sequência de tingimento do lote.']];
+    doc.autoTable(Object.assign(base({startY:y}), {head:[['Critério','Exigência do manual']], body:crs, columnStyles:{0:{cellWidth:230, fontStyle:'bold'}}}));
+    y=doc.lastAutoTable.finalY+14;
+    font('normal',7.5); ink(SUAVE);
+    doc.text(doc.splitTextToSize('Avaliação feita a partir dos romaneios de faturamento emitidos pela Capricórnio Têxtil (metragem, nuance, OT, largura e pontuação informadas rolo a rolo).', W-2*M), M, y);
+
+    /* cabeçalho corrido nas páginas seguintes */
+    var n=doc.internal.getNumberOfPages();
+    for(var i=2;i<=n;i++){ doc.setPage(i); font('bold',7.5); ink(AZUL); doc.text('Relatório de conformidade de romaneios', M, 34); font('normal',7.5); ink(SUAVE); doc.text(limpa(cliLbl+'  ·  '+periodo), W-M, 34, {align:'right'}); }
+    CapriPDF.finalizar(doc, 'Capricórnio Têxtil · Relatório de conformidade de romaneios');
+    var nome='conformidade-romaneios-'+todayISO()+'.pdf', blob=doc.output('blob');
     if(DL) return DL.save({filename:nome, data:blob}).catch(function(){});
     var file=null; try{ file=new File([blob], nome, {type:'application/pdf'}); }catch(e){}
-    if(file&&navigator.canShare&&(share||/Android|iPhone|iPad/i.test(navigator.userAgent))&&navigator.canShare({files:[file]})) return navigator.share({files:[file], title:'Verificação de romaneios'}).catch(function(e){ if(!(e&&e.name==='AbortError')) baixarBlob(blob,nome); });
+    if(file&&navigator.canShare&&(share||/Android|iPhone|iPad/i.test(navigator.userAgent))&&navigator.canShare({files:[file]})) return navigator.share({files:[file], title:'Relatório de conformidade de romaneios'}).catch(function(e){ if(!(e&&e.name==='AbortError')) baixarBlob(blob,nome); });
     baixarBlob(blob,nome);
-  }).catch(function(){ setMsg('Não foi possível gerar o PDF.'); }).then(function(){ btn.disabled=false; btn.textContent=old; });
+  }).catch(function(e){ console.error(e); setMsg('Não foi possível gerar o PDF.'); }).then(function(){ btn.disabled=false; btn.textContent=old; });
 }
 $('pdfRes').addEventListener('click',function(){ gerarPDF(this,false); });
 $('pdfResSh').addEventListener('click',function(){ gerarPDF(this,true); });
@@ -853,11 +987,11 @@ function atualizarFonte(){
   var ix=NFDocs.indice();
   $('srcDate').textContent= ix&&ix.gerado? 'índice de '+fmtDateTime(ix.gerado) : (NFDocs.driveUrl()? '' : 'Drive ainda não ligado neste navegador');
 }
-function recarregar(){ montarNfInfo(); montarLista(); aprenderGrupos(); montarSelectCli(); atualizarFonte(); renderTudo(); }
+function recarregar(){ montarNfInfo(); montarLista(); aprenderGrupos(); montarSelectCli(); montarSelectTec(); atualizarFonte(); renderTudo(); clearTimeout(idT); idT=setTimeout(identificar,500); }
 document.addEventListener('nfdocs-change',function(){ recarregar(); });
 $('btnDrive').addEventListener('click',function(){ NFDocs.conectar(function(m){ setMsg(m); recarregar(); }); });
 $('fDe').value=isoMenos(30); $('fAte').value=todayISO();
-lerGrupos().then(function(){ return NFDocs.pronto(); }).then(function(){ recarregar(); if(NFDocs.driveUrl()) NFDocs.sync(false).then(function(j){ var ks=Object.keys(j.nfs||{}), semData=ks.length&&!ks.some(function(k){ return j.nfs[k].rd; }); recarregar(); if(semData) return NFDocs.sync(true).then(recarregar); }).catch(function(){}); });
+lerGrupos().then(carregarRoms).then(function(){ return NFDocs.pronto(); }).then(function(){ recarregar(); if(NFDocs.driveUrl()) NFDocs.sync(false).then(function(j){ var ks=Object.keys(j.nfs||{}), semData=ks.length&&!ks.some(function(k){ return j.nfs[k].rd; }); recarregar(); if(semData) return NFDocs.sync(true).then(recarregar); }).catch(function(){}); });
 
 window.__rom={lerRomaneio:lerRomaneio, analisar:analisar, R:R};
 })();
