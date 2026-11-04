@@ -407,6 +407,7 @@
 <input type="file" id="prevInput" accept=".pdf,.xlsx,.xls,.xlsm,.csv" hidden>
 
 <script src="lib/nfdocs.js"></script>
+<script src="lib/pdf-capri.js"></script>
 <script>
 (function(){
 'use strict';
@@ -1256,30 +1257,19 @@ function txt(el){ return (el.innerText||el.textContent||'').replace(/[ \t]+/g,' 
 function gerarPDF(titulo, filtros, partes, btn, share){
   var old=btn? btn.textContent : ''; if(btn){ btn.disabled=true; btn.textContent='Gerando…'; }
   return loadJsPDF().then(function(JsPDF){
-    var doc=new JsPDF({orientation:'landscape', unit:'pt', format:'a4'}), W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=36, y;
-    var m=S.data? S.data.meta : {};
-    doc.setFillColor(10,44,94); doc.rect(0,0,W,58,'F');
-    doc.setTextColor(207,220,240); doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text('S T U D I O', M, 24);
-    doc.setTextColor(255,255,255); doc.setFontSize(18); doc.text('DENIM', M, 44);
-    doc.setFontSize(13); doc.text(titulo.length>90? titulo.slice(0,88)+'…' : titulo, M+110, 32);
-    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(207,220,240);
-    doc.text('Gerado em '+fmtDateTime(new Date().toISOString())+(m.arquivo? '  ·  Carteira: '+m.arquivo+' ('+fmtDateTime(m.modificadoEm)+')':''), M+110, 47);
-    y=78; doc.setTextColor(28,34,51);
-    var para=function(t, bold, size){
-      if(!t) return; doc.setFont('helvetica', bold?'bold':'normal'); doc.setFontSize(size||9.5);
-      doc.splitTextToSize(t, W-2*M).forEach(function(l){ if(y>H-40){ doc.addPage(); y=M; } doc.text(l, M, y); y+=(size||9.5)*1.35; });
-      y+=4;
-    };
+    var doc=new JsPDF({orientation:'landscape', unit:'pt', format:'a4'}), W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=CapriPDF.MARGEM, y;
+    y=CapriPDF.cabecalho(doc, titulo, 'Gerado em '+fmtDateTime(new Date().toISOString())+(S.data&&S.data.meta.arquivo? '  ·  Carteira: '+S.data.meta.arquivo+' ('+fmtDateTime(S.data.meta.modificadoEm)+')':''));
+    var para=function(t, bold, size){ if(!t) return; doc.setFont('helvetica', bold?'bold':'normal'); doc.setFontSize(size||9.5); doc.setTextColor(bold?0:28, bold?51:28, bold?159:28);
+      doc.splitTextToSize(String(t).replace(/⚠/g,'!'), W-2*M-8).forEach(function(l){ if(y>H-70){ doc.addPage(); y=M+28; } doc.text(l, M+4, y); y+=(size||9.5)*1.35; }); y+=4; doc.setTextColor(28,28,28); };
     if(filtros&&filtros.length) para('Filtros: '+filtros.join(' · '), true);
     partes.forEach(function(pt){
       if(pt.texto) return para(pt.texto, pt.bold, pt.size);
-      var opt={startY:y, margin:{left:M,right:M}, theme:'grid', styles:{fontSize:7.5, cellPadding:3, overflow:'linebreak', lineColor:[213,223,238], lineWidth:.5}, headStyles:{fillColor:[230,238,248], textColor:[10,44,94], fontStyle:'bold'}, alternateRowStyles:{fillColor:[251,252,255]}};
-      if(pt.tabela) opt.html=pt.tabela; else { opt.head=[pt.head]; opt.body=pt.body; if(pt.colStyles) opt.columnStyles=pt.colStyles; }
-      if(pt.tabela){ var ths=pt.tabela.querySelectorAll('thead th'), cs={}; ths.forEach(function(th,i){ if(th.classList.contains('num')) cs[i]={halign:'right'}; }); opt.columnStyles=cs; }
+      var opt=CapriPDF.tabela({startY:y, didParseCell:function(d){ if(d.cell&&d.cell.text) d.cell.text=d.cell.text.map(function(s){ return String(s).replace(/⚠\s*/g,'! '); }); }});
+      if(pt.tabela){ opt.html=pt.tabela; var cs={}; pt.tabela.querySelectorAll('thead th').forEach(function(th,i){ if(th.classList.contains('num')) cs[i]={halign:'right'}; }); opt.columnStyles=cs; }
+      else { opt.head=[pt.head]; opt.body=pt.body; if(pt.colStyles) opt.columnStyles=pt.colStyles; }
       doc.autoTable(opt); y=doc.lastAutoTable.finalY+14;
     });
-    var n=doc.internal.getNumberOfPages();
-    for(var i=1;i<=n;i++){ doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(100,107,120); doc.text('CRM Studio Denim · página '+i+' de '+n, W-M, H-16, {align:'right'}); }
+    CapriPDF.finalizar(doc, 'CRM Studio Denim · Carteira');
     var nome=slug(titulo)+'-'+todayISO()+'.pdf', blob=doc.output('blob');
     if(DL) return DL.save({filename:nome, data:blob}).catch(function(e){ var c=e&&e.code; if(c!=='declined') alertPdf(c==='rate_limited'? 'Já há um arquivo aguardando confirmação. Tente de novo em instantes.' : 'Não foi possível salvar o PDF nesta visualização.'); });
     var file=null; try{ file=new File([blob], nome, {type:'application/pdf'}); }catch(e){}
