@@ -610,7 +610,7 @@ document.getElementById("btnImg").addEventListener("click", () => { irView("imag
 /* ---------- Imagens: fotos de peças ligadas à família da ficha técnica ---------- */
 /* fam: ORIGINAL, CONFORT, POLY, FLAT ou LIGHT (pasta das fichas); artigo: nome do artigo na ficha, quando houver. */
 const IMGS = [
-    {"arq": "algarve-light-baby-black-brown-claro", "titulo": "Algarve Light Baby Black Brown Claro", "fam": "ORIGINAL", "artigo": "Algarve Baby Black Brown", "busca": "algarve baby black brown"},
+  {"arq": "algarve-light-baby-black-brown-claro", "titulo": "Algarve Light Baby Black Brown Claro", "fam": "ORIGINAL", "artigo": "Algarve Baby Black Brown", "busca": "algarve baby black brown"},
   {"arq": "algarve-light-baby-black-brown-escuro", "titulo": "Algarve Light Baby Black Brown Escuro", "fam": "ORIGINAL", "artigo": "Algarve Baby Black Brown", "busca": "algarve baby black brown"},
   {"arq": "algarve-light-baby-black-brown-medio", "titulo": "Algarve Light Baby Black Brown Médio", "fam": "ORIGINAL", "artigo": "Algarve Baby Black Brown", "busca": "algarve baby black brown"},
   {"arq": "algarve-light-baby-blue-brown-claro", "titulo": "Algarve Light Baby Blue Brown Claro", "fam": "ORIGINAL", "artigo": "Algarve Baby Blue Brown", "busca": "algarve baby blue brown"},
@@ -618,9 +618,9 @@ const IMGS = [
   {"arq": "algarve-light-baby-blue-brown-escuro", "titulo": "Algarve Light Baby Blue Brown Escuro", "fam": "ORIGINAL", "artigo": "Algarve Baby Blue Brown", "busca": "algarve baby blue brown"},
   {"arq": "algarve-light-baby-blue-melon-escuro", "titulo": "Algarve Light Baby Blue Melon Escuro", "fam": "ORIGINAL", "artigo": "Algarve Baby Blue Melon", "busca": "algarve baby blue melon"},
   {"arq": "algarve-light-baby-blue-melon", "titulo": "Algarve Light Baby Blue Melon", "fam": "ORIGINAL", "artigo": "Algarve Baby Blue Melon", "busca": "algarve baby blue melon"},
-  {"arq": "bardem-claro", "titulo": "Bardem Claro", "fam": "", "artigo": "Bardem", "busca": ""},
-  {"arq": "bardem-escuro", "titulo": "Bardem Escuro", "fam": "", "artigo": "Bardem", "busca": ""},
-  {"arq": "bardem", "titulo": "Bardem", "fam": "", "artigo": "Bardem", "busca": ""},
+  {"arq": "bardem-claro", "titulo": "Bardem Claro", "fam": "CONFORT", "artigo": "Bardem", "busca": ""},
+  {"arq": "bardem-escuro", "titulo": "Bardem Escuro", "fam": "CONFORT", "artigo": "Bardem", "busca": ""},
+  {"arq": "bardem", "titulo": "Bardem", "fam": "CONFORT", "artigo": "Bardem", "busca": ""},
   {"arq": "brava-claro", "titulo": "Brava Claro", "fam": "ORIGINAL", "artigo": "Brava", "busca": "brava"},
   {"arq": "brava-escuro", "titulo": "Brava Escuro", "fam": "ORIGINAL", "artigo": "Brava", "busca": "brava"},
   {"arq": "brava-medio", "titulo": "Brava Médio", "fam": "ORIGINAL", "artigo": "Brava", "busca": "brava"},
@@ -632,9 +632,8 @@ const IMGS = [
   {"arq": "sagi-escuro", "titulo": "Sagi Escuro", "fam": "ORIGINAL", "artigo": "Sagi", "busca": "sagi"},
   {"arq": "sagi-medio", "titulo": "Sagi Médio", "fam": "ORIGINAL", "artigo": "Sagi", "busca": "sagi"},
   {"arq": "una-blue-black-medio", "titulo": "Una Blue Black Médio", "fam": "ORIGINAL", "artigo": "Una Blue Black", "busca": "una blue black"},
-  {"arq": "vidal-amaciado-e-resinado", "titulo": "Vidal Amaciado e Resinado", "fam": "", "artigo": "Vidal", "busca": ""},
-  {"arq": "vidal-escuro", "titulo": "Vidal Escuro", "fam": "", "artigo": "Vidal", "busca": ""},
-  {"arq": "trio-caqui-e-preto", "titulo": "Trio caqui e preto lavado", "fam": "", "artigo": "", "busca": ""}
+  {"arq": "vidal-amaciado-e-resinado", "titulo": "Vidal Amaciado e Resinado", "fam": "CONFORT", "artigo": "Vidal", "busca": ""},
+  {"arq": "vidal-escuro", "titulo": "Vidal Escuro", "fam": "CONFORT", "artigo": "Vidal", "busca": ""}
 ];
 let imgFam = "TODAS";
 function imgFamDe(i){ return i.fam || "A CONFIRMAR"; }
