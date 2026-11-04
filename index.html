@@ -733,7 +733,7 @@ function renderMeta(){
   var md=METAS.meta.denim, ms=METAS.meta.sarja, rd=METAS.real.denim, rs=METAS.real.sarja;
   var G=[
     {k:'denim', nome:'Denim', meta:md, real:rd},
-    {k:'sarja', nome:'Sarja', sub:'Lee, Uba e Trindade', meta:ms, real:rs},
+    {k:'sarja', nome:'Sarja', meta:ms, real:rs},
     {k:'total', nome:'Total consolidado', sub:'Denim + Sarja', meta:md.map(function(v,i){ return (v||0)+(ms[i]||0)||null; }),
       real:rd.map(function(v,i){ return (v==null||rs[i]==null)? null : v+rs[i]; })}
   ];
