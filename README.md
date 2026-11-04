@@ -6,7 +6,7 @@ Site estático (GitHub Pages) para consultar a carteira de pedidos: busca direta
 
 ## Arquivos
 
-- `index.html` — a página inteira (HTML, CSS e JavaScript em um arquivo).
+- `index.html` — a página inteira (HTML, CSS e JavaScript em um arquivo). O primeiro bloco é o painel **Meta x Realizado**: botão “Carregar metas (.xlsx)” lê a planilha de meta x realizado (linhas Meta/Realizado de Denim e Sarja) e a guarda cifrada no navegador com a chave da senha de entrada (localStorage `sd_metas_enc`). O realizado vem da carteira carregada (qtde_faturada × Valor Unitário Liquido, no mês da data da NF na coluna Datas); Lee, Uba e Trindade contam como Sarja, o resto como Denim. Meses sem faturamento na carteira usam o realizado da planilha (barra hachurada).
 - `carteira.enc.json` — a carteira **criptografada** (AES-256-GCM; chave derivada da senha de entrada por PBKDF2-SHA256). Sem a senha, o conteúdo não pode ser lido.
 - `tools/atualizar_carteira.py` — converte a planilha `carteira_….xlsx` e regrava `carteira.enc.json`.
 - `reclamacao/` — formulário de reclamação de qualidade (usa a mesma carteira).

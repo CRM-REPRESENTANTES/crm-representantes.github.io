@@ -263,6 +263,43 @@
   .modnav .soon{font-size:9.5px; text-transform:uppercase; letter-spacing:.6px; background:var(--stitch); color:#fff; border-radius:10px; padding:1px 7px; font-weight:700;}
   .modnav .ext{font-size:11px; opacity:.8;}
   @media (max-width:600px){ .modnav{flex-wrap:wrap;} .modnav a{padding:7px 11px; font-size:12.5px;} }
+  /* Meta x Realizado */
+  .mhead{display:flex; justify-content:space-between; align-items:flex-start; gap:10px 16px; flex-wrap:wrap; border-bottom:2px solid var(--accent); margin-bottom:14px;}
+  .mhead h2{border-bottom:0; margin:0; padding-bottom:8px;}
+  .mtools{display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding-bottom:8px;}
+  .seg{display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--surface-2);}
+  .seg button{font:inherit; font-size:12.5px; font-weight:600; color:var(--muted); background:transparent; border:0; padding:7px 12px; cursor:pointer;}
+  .seg button+button{border-left:1px solid var(--border);}
+  .seg button[aria-pressed="true"]{background:var(--accent-strong); color:var(--accent-fg);}
+  .mtiles{margin-bottom:14px;}
+  .tile.bad{background:var(--rust-light);} .tile.bad .val{color:var(--rust);}
+  .mlegend{display:flex; flex-wrap:wrap; gap:6px 18px; font-size:12px; color:var(--muted); margin-bottom:6px;}
+  .mlegend span{display:inline-flex; align-items:center; gap:6px;}
+  .mlegend i{display:inline-block; width:14px; height:12px; border-radius:3px 3px 0 0; background:var(--bar);}
+  .mlegend i.hatch{background:repeating-linear-gradient(45deg, var(--bar) 0 2px, transparent 2px 5px); box-shadow:inset 0 0 0 1px var(--bar);}
+  .mlegend i.lg-line{height:0; width:18px; border-radius:0; background:none; border-top:2px dashed var(--ink);}
+  .mchart{position:relative; width:100%;}
+  .mchart svg{display:block; width:100%; height:auto; overflow:visible;}
+  .mchart .ax{font-size:11px; fill:var(--muted); font-family:var(--font);}
+  .mchart .grid{stroke:var(--border); stroke-width:1;}
+  .mchart .base{stroke:var(--muted); stroke-width:1;}
+  .mchart .bar{fill:var(--bar);}
+  .mchart .bar.hatch{fill:url(#mHatch); stroke:var(--bar); stroke-width:1;}
+  .mchart .metal{fill:none; stroke:var(--ink); stroke-width:2; stroke-dasharray:6 4;}
+  .mchart .metad{fill:var(--surface); stroke:var(--ink); stroke-width:2;}
+  .mchart .pct{font-size:11px; font-weight:700; font-family:var(--font);}
+  .mchart .pct.ok{fill:var(--good);} .mchart .pct.no{fill:var(--rust);}
+  .mchart .hit{fill:transparent; cursor:default;}
+  .mchart .hit:hover, .mchart .hit.on{fill:var(--tint); fill-opacity:.55;}
+  .mtip{position:absolute; z-index:5; pointer-events:none; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:12px; box-shadow:0 4px 14px rgba(0,0,0,.12); min-width:200px;}
+  .mtip b{color:var(--title);} .mtip .r{display:flex; justify-content:space-between; gap:14px; font-variant-numeric:tabular-nums;}
+  .mtip .ok{color:var(--good); font-weight:700;} .mtip .no{color:var(--rust); font-weight:700;}
+  #metaCard{position:relative;}
+  .mnote{font-size:12px; color:var(--muted); margin:8px 0 0;}
+  .mtable{margin-top:10px; font-size:13px;}
+  .mtable summary{cursor:pointer; font-weight:600; color:var(--link);}
+  .mtable td.ok{color:var(--good); font-weight:700;} .mtable td.no{color:var(--rust); font-weight:700;}
+  .mtable tr.tot td{font-weight:700; border-top:2px solid var(--border);}
 </style>
 </head>
 <body>
@@ -311,6 +348,36 @@
       <a href="arquivos/">Arquivos</a>
     </nav>
   </header>
+
+  <section class="card" id="metaCard" aria-labelledby="hMeta">
+    <div class="mhead">
+      <h2 id="hMeta">Meta x Realizado <span id="metaAno">2026</span></h2>
+      <div class="mtools">
+        <div class="seg" role="group" aria-label="Linha de produto" id="metaLinha">
+          <button type="button" data-v="total" aria-pressed="true">Total</button><button type="button" data-v="denim" aria-pressed="false">Denim</button><button type="button" data-v="sarja" aria-pressed="false">Sarja</button>
+        </div>
+        <div class="seg" role="group" aria-label="Visão" id="metaVisao">
+          <button type="button" data-v="mensal" aria-pressed="true">Mensal</button><button type="button" data-v="acum" aria-pressed="false">Acumulado</button>
+        </div>
+        <button type="button" class="btn-pdf" id="btnMetas" title="Escolha a planilha de meta x realizado (.xlsx). Fica guardada cifrada neste navegador.">Carregar metas (.xlsx)</button>
+      </div>
+    </div>
+    <div class="tiles mtiles">
+      <div class="tile"><div class="lbl">Meta do ano</div><div class="val money" id="mMetaAno">—</div><div class="sub" id="mMetaAnoSub">&nbsp;</div></div>
+      <div class="tile"><div class="lbl">Realizado no ano</div><div class="val money" id="mReal">—</div><div class="sub" id="mRealSub">&nbsp;</div></div>
+      <div class="tile" id="mAtTile"><div class="lbl">Atingimento até o mês</div><div class="val" id="mAt">—</div><div class="sub" id="mAtSub">&nbsp;</div></div>
+      <div class="tile"><div class="lbl">Falta para a meta do ano</div><div class="val money" id="mFalta">—</div><div class="sub" id="mFaltaSub">&nbsp;</div></div>
+    </div>
+    <div class="mlegend" id="metaLegend" aria-hidden="true">
+      <span><i class="lg-bar"></i>Realizado (carteira)</span>
+      <span><i class="lg-bar hatch"></i>Realizado (planilha, mês fora da carteira)</span>
+      <span><i class="lg-line"></i>Meta</span>
+    </div>
+    <div class="mchart" id="metaChart"><p class="empty">Carregue a planilha de metas e a carteira para ver a evolução.</p></div>
+    <div class="mtip" id="metaTip" hidden></div>
+    <p class="mnote" id="metaNote">Sarja = artigos Lee, Uba e Trindade (todos); os demais artigos contam como Denim. Realizado = metros faturados × preço unitário, no mês da data da nota fiscal (coluna Datas da carteira).</p>
+    <details class="mtable"><summary>Ver tabela mês a mês</summary><div class="tablewrap" id="metaTable"></div></details>
+  </section>
 
   <section class="card" aria-labelledby="hAsk">
     <h2 id="hAsk">Pesquisa na carteira</h2>
@@ -497,6 +564,7 @@ function renderAll(){
   renderTiles();
   renderLate(k);
   renderLists();
+  renderMeta();
 }
 function renderTiles(){
   var all=S.month==='todos';
@@ -570,7 +638,194 @@ function showNoData(msg){
   [].forEach.call(document.querySelectorAll('.tile .val'),function(e){ e.textContent='—'; });
   [].forEach.call(document.querySelectorAll('.tile .sub'),function(e){ e.innerHTML='&nbsp;'; });
   var ms=$('monthSel'); if(ms){ ms.innerHTML='<option value="todos">Todos os meses</option>'; ms.disabled=true; }
+  if(typeof renderMeta==='function') renderMeta();
 }
+
+/* ---------- Meta x Realizado ---------- */
+/* Metas (e o realizado histórico da planilha) ficam cifrados neste navegador com a chave da senha de entrada.
+   Realizado da carteira: qtde_faturada × Valor Unitário Liquido, no mês da data da NF (coluna Datas).
+   Sarja = artigos Lee, Uba e Trindade; o resto é Denim. */
+var METAS_LS='sd_metas_enc', METAS=null, MV={linha:'total', visao:'mensal'};
+var MES3=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+var SARJA_RE=/\b(lee|uba|trindade)\b/;
+function isSarja(desc){ return SARJA_RE.test(norm(desc)); }
+function z12(){ return [0,0,0,0,0,0,0,0,0,0,0,0]; }
+function datasISO(v){
+  if(typeof v==='number') return v>20000&&v<80000? [toISO(v)] : [];
+  var s=String(v==null?'':v), out=[], re=/(\d{4}-\d{2}-\d{2}|\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4})/g, m;
+  while((m=re.exec(s))) out.push(toISO(m[1]));
+  return out;
+}
+function realCarteira(ano){
+  var r={denim:z12(), sarja:z12(), semData:0, linhas:0};
+  if(!S.data) return null;
+  S.data.linhas.forEach(function(l){
+    var v=l.fat*l.unit; if(!(v>0)) return;
+    var ms={}; datasISO(l.datas).forEach(function(d){ if(/^\d{4}-\d{2}/.test(d)) ms[d.slice(0,7)]=1; });
+    var ks=Object.keys(ms);
+    if(!ks.length){ r.semData+=v; return; }
+    var cat=isSarja(l.desc)?'sarja':'denim', parte=v/ks.length; r.linhas++;
+    ks.forEach(function(k){ if(+k.slice(0,4)===ano) r[cat][+k.slice(5,7)-1]+=parte; });
+  });
+  return r;
+}
+/* leitura da planilha de metas */
+function parseMetas(XLSX, buf){
+  var wb=XLSX.read(new Uint8Array(buf),{type:'array'}), res={ano:2026, meta:{denim:null,sarja:null}, real:{denim:null,sarja:null}};
+  function nums(row){ var a=[]; for(var i=1;i<=12;i++){ var v=row[i]; a.push(typeof v==='number'? v : num(v)); } return a; }
+  wb.SheetNames.forEach(function(n){
+    var rows=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''}), sec=null, pos=0;
+    rows.forEach(function(row){
+      var a=norm(row[0]).trim();
+      if(typeof row[0]==='number'&&row[0]>2000&&row[0]<2100) res.ano=row[0];
+      if(/denim/.test(a)&&!/sarja/.test(a)){ sec='denim'; pos=0; return; }
+      if(/sarja/.test(a)){ sec='sarja'; pos=0; return; }
+      if(/consolid|total/.test(a)){ sec=null; return; }
+      if(!sec) return;
+      var isHead=norm(row[1]).indexOf('jan')===0; if(isHead) return;
+      var hasNum=false; for(var i=1;i<=12;i++){ if(typeof row[i]==='number') hasNum=true; }
+      if(!hasNum&&!/meta|realiz/.test(a)) return;
+      var kind= /meta/.test(a)? 'meta' : /realiz/.test(a)? 'real' : (pos===0?'meta':pos===1?'real':null);
+      pos++;
+      if(!kind) return;
+      if(/%|ating/.test(a)) return;
+      var v=nums(row), filled=v.filter(function(x){return x>0;}).length;
+      if(kind==='meta'){ if(!res.meta[sec]) res.meta[sec]=v; }
+      else if(!res.real[sec]||filled>res.real[sec].filter(function(x){return x>0;}).length) res.real[sec]=v;
+    });
+  });
+  if(!res.meta.denim||!res.meta.sarja) throw new Error('metas');
+  return res;
+}
+function metaCK(){ return crypto.subtle.importKey('raw', keyRaw, 'AES-GCM', false, ['encrypt','decrypt']); }
+function saveMetas(obj){
+  if(!keyRaw) return Promise.resolve();
+  var iv=crypto.getRandomValues(new Uint8Array(12));
+  return metaCK().then(function(k){ return crypto.subtle.encrypt({name:'AES-GCM', iv:iv}, k, new TextEncoder().encode(JSON.stringify(obj))); })
+    .then(function(ct){ localStorage.setItem(METAS_LS, JSON.stringify({iv:b64e(iv), ct:b64e(new Uint8Array(ct))})); });
+}
+function loadMetas(){
+  var e=null; try{ e=JSON.parse(localStorage.getItem(METAS_LS)||'null'); }catch(x){ e=null; }
+  if(!e||!keyRaw){ METAS=null; renderMeta(); return; }
+  metaCK().then(function(k){ return crypto.subtle.decrypt({name:'AES-GCM', iv:b64d(e.iv)}, k, b64d(e.ct)); })
+    .then(function(b){ METAS=JSON.parse(new TextDecoder().decode(b)); renderMeta(); }, function(){ METAS=null; renderMeta(); });
+}
+function onMetasFile(file){
+  var btn=$('btnMetas'); btn.disabled=true; setFileMsg('Lendo metas de '+file.name+'…');
+  Promise.all([loadXLSX(), file.arrayBuffer()]).then(function(a){
+    var m=parseMetas(a[0],a[1]); m.arquivo=file.name; m.em=new Date().toISOString();
+    METAS=m; renderMeta();
+    return saveMetas(m).then(function(){ setFileMsg('Metas '+m.ano+' carregadas e guardadas (cifradas) neste navegador.'); }, function(){ setFileMsg('Metas carregadas só nesta visita.'); });
+  }).then(null,function(e){ setFileMsg(e&&e.message==='metas'? 'Não encontrei as linhas de Meta de Denim e Sarja nessa planilha.' : 'Não foi possível ler a planilha de metas.'); })
+    .then(function(){ btn.disabled=false; });
+}
+function pctTxt(x){ return (x*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%'; }
+function brlK(v){ var a=Math.abs(v); return a>=1e6? 'R$ '+(v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mi' : a>=1e3? 'R$ '+Math.round(v/1e3).toLocaleString('pt-BR')+' mil' : 'R$ '+Math.round(v); }
+function serieMeta(){
+  var ano=METAS? METAS.ano : 2026, cart=realCarteira(ano), out=[], hoje=new Date(), mesAtual=(hoje.getFullYear()===ano? hoje.getMonth() : hoje.getFullYear()>ano? 11 : -1);
+  for(var i=0;i<12;i++){
+    var cd=cart? cart.denim[i] : 0, cs=cart? cart.sarja[i] : 0, src='carteira';
+    if(!(cd+cs>0)&&METAS&&METAS.real&&((METAS.real.denim&&METAS.real.denim[i])||(METAS.real.sarja&&METAS.real.sarja[i]))){
+      cd=(METAS.real.denim&&METAS.real.denim[i])||0; cs=(METAS.real.sarja&&METAS.real.sarja[i])||0; src='planilha';
+    }
+    if(!(cd+cs>0)) src= i<=mesAtual? 'zero' : 'futuro';
+    var md=METAS? METAS.meta.denim[i]||0 : 0, ms=METAS? METAS.meta.sarja[i]||0 : 0;
+    out.push({i:i, src:src, real:{denim:cd, sarja:cs, total:cd+cs}, meta:{denim:md, sarja:ms, total:md+ms}});
+  }
+  return {ano:ano, meses:out, cart:cart, mesAtual:mesAtual};
+}
+function renderMeta(){
+  var box=$('metaChart'); if(!box) return;
+  $('metaLinha').querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.v===MV.linha?'true':'false'); });
+  $('metaVisao').querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.v===MV.visao?'true':'false'); });
+  var Z=serieMeta(), L=MV.linha, ac=MV.visao==='acum';
+  $('metaAno').textContent=Z.ano;
+  ['mMetaAno','mReal','mAt','mFalta'].forEach(function(id){ $(id).textContent='—'; $(id+'Sub').innerHTML='&nbsp;'; });
+  $('mAtTile').className='tile';
+  if(!METAS&&!S.data){ box.innerHTML='<p class="empty">Carregue a planilha de metas (botão acima) e a carteira para ver a evolução.</p>'; $('metaTable').innerHTML=''; return; }
+  if(!METAS){ box.innerHTML='<p class="empty">Falta a planilha de metas: use “Carregar metas (.xlsx)”. Ela fica guardada cifrada neste navegador.</p>'; }
+  var M=Z.meses, metaAno=0, realAno=0, metaAte=0, realAte=0, ultimo=-1;
+  M.forEach(function(m){ metaAno+=m.meta[L]; realAno+=m.real[L]; if(m.real.total>0) ultimo=m.i; });
+  var ate=Math.max(ultimo, Z.mesAtual);
+  M.forEach(function(m){ if(m.i<=ate){ metaAte+=m.meta[L]; realAte+=m.real[L]; } });
+  var nome= L==='total'? 'Denim + Sarja' : L==='denim'? 'Denim' : 'Sarja';
+  if(METAS){ $('mMetaAno').textContent=fmtBRL(metaAno); $('mMetaAnoSub').textContent=nome+' · '+METAS.arquivo; }
+  $('mReal').textContent=fmtBRL(realAno);
+  $('mRealSub').textContent= metaAno? pctTxt(realAno/metaAno)+' da meta do ano' : nome;
+  if(METAS&&metaAte>0){
+    var at=realAte/metaAte;
+    $('mAt').textContent=(at>=1?'▲ ':'▼ ')+pctTxt(at);
+    $('mAtSub').textContent='jan a '+MES3[ate].toLowerCase()+' · meta '+brlK(metaAte)+' · real '+brlK(realAte);
+    $('mAtTile').className='tile '+(at>=1?'good':'bad');
+    var falta=Math.max(0,metaAno-realAno), rest=11-ate;
+    $('mFalta').textContent=fmtBRL(falta);
+    $('mFaltaSub').textContent= falta<=0? 'meta do ano batida' : rest>0? brlK(falta/rest)+' por mês nos '+rest+' meses restantes' : 'último mês do ano';
+  }
+  if(!METAS) return;
+  /* séries do gráfico */
+  var real=[], meta=[], sa=0, sm=0;
+  M.forEach(function(m){ sa+=m.real[L]; sm+=m.meta[L]; real.push(ac? (m.i<=ate? sa : null) : m.real[L]); meta.push(ac? sm : m.meta[L]); });
+  var W=1100, H=340, pl=64, pr=14, pt=26, pb=48, cw=(W-pl-pr)/12, max=0;
+  real.concat(meta).forEach(function(v){ if(v>max) max=v; });
+  var step=Math.pow(10,Math.floor(Math.log10(max||1))), nice=[1,2,2.5,5,10].map(function(f){return f*step;}).filter(function(s){return max/s<=6;})[0]||step*10;
+  var top=Math.ceil(max/nice)*nice||1, y=function(v){ return pt+(H-pt-pb)*(1-v/top); };
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Meta x realizado '+Z.ano+' — '+nome+(ac?' (acumulado)':' (mensal)')+'"><defs><pattern id="mHatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2.4" height="6" style="fill:var(--bar)"/></pattern></defs>';
+  for(var g=0; g<=top+1e-6; g+=nice){ s+='<line class="grid" x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y(g)+'" y2="'+y(g)+'"/><text class="ax" x="'+(pl-8)+'" y="'+(y(g)+4)+'" text-anchor="end">'+esc(brlK(g).replace('R$ ',''))+'</text>'; }
+  M.forEach(function(m,i){
+    var cx=pl+cw*i+cw/2, bw=Math.min(46,cw*0.56), v=real[i];
+    s+='<rect class="hit" data-i="'+i+'" x="'+(pl+cw*i)+'" y="'+pt+'" width="'+cw+'" height="'+(H-pt-pb)+'"/>';
+    if(v>0){ var yy=y(v), h=(H-pb)-yy, r=Math.min(4,h);
+      s+='<path class="bar'+(m.src==='planilha'?' hatch':'')+'" pointer-events="none" d="M'+(cx-bw/2)+','+(H-pb)+'V'+(yy+r)+'Q'+(cx-bw/2)+','+yy+' '+(cx-bw/2+r)+','+yy+'H'+(cx+bw/2-r)+'Q'+(cx+bw/2)+','+yy+' '+(cx+bw/2)+','+(yy+r)+'V'+(H-pb)+'Z"/>'; }
+    s+='<text class="ax" x="'+cx+'" y="'+(H-pb+16)+'" text-anchor="middle">'+MES3[i]+'</text>';
+    if(v!=null&&meta[i]>0&&(v>0||m.i<=ate)){ var p=v/meta[i]; s+='<text class="pct '+(p>=1?'ok':'no')+'" x="'+cx+'" y="'+(H-pb+33)+'" text-anchor="middle">'+(p>=1?'▲':'▼')+' '+Math.round(p*100)+'%</text>'; }
+  });
+  s+='<line class="base" x1="'+pl+'" x2="'+(W-pr)+'" y1="'+(H-pb)+'" y2="'+(H-pb)+'"/>';
+  var pts=meta.map(function(v,i){ return (pl+cw*i+cw/2)+','+y(v); });
+  s+='<polyline class="metal" pointer-events="none" points="'+pts.join(' ')+'"/>';
+  meta.forEach(function(v,i){ s+='<circle class="metad" pointer-events="none" cx="'+(pl+cw*i+cw/2)+'" cy="'+y(v)+'" r="4"/>'; });
+  var li=11; s+='<text class="ax" x="'+(pl+cw*li+cw/2)+'" y="'+(y(meta[li])-10)+'" text-anchor="middle" style="fill:var(--ink);font-weight:600">Meta</text>';
+  box.innerHTML=s+'</svg>';
+  /* tooltip */
+  var tip=$('metaTip'), card=$('metaCard');
+  [].forEach.call(box.querySelectorAll('.hit'),function(el){
+    el.addEventListener('mousemove',function(ev){
+      var i=+el.dataset.i, m=M[i], rv=real[i]||0, mv=meta[i], p=mv? rv/mv : 0;
+      var h='<b>'+MESES[i].charAt(0).toUpperCase()+MESES[i].slice(1)+' '+Z.ano+(ac?' · acumulado':'')+'</b>'+
+        '<div class="r"><span>Meta</span><span>'+fmtBRL(mv)+'</span></div><div class="r"><span>Realizado</span><span>'+fmtBRL(rv)+'</span></div>'+
+        (mv? '<div class="r"><span>Atingimento</span><span class="'+(p>=1?'ok':'no')+'">'+(p>=1?'▲ ':'▼ ')+pctTxt(p)+'</span></div>' : '')+
+        (!ac&&L==='total'? '<div class="r"><span>Denim · Sarja</span><span>'+brlK(m.real.denim)+' · '+brlK(m.real.sarja)+'</span></div>' : '')+
+        '<div class="r"><span>Fonte</span><span>'+(m.src==='planilha'?'planilha':m.src==='carteira'?'carteira':'—')+'</span></div>';
+      tip.innerHTML=h; tip.hidden=false;
+      var cr=card.getBoundingClientRect(), x=ev.clientX-cr.left+14, yy=ev.clientY-cr.top+14;
+      if(x+tip.offsetWidth>cr.width-8) x=ev.clientX-cr.left-tip.offsetWidth-14;
+      tip.style.left=x+'px'; tip.style.top=yy+'px';
+    });
+    el.addEventListener('mouseleave',function(){ tip.hidden=true; });
+  });
+  /* tabela */
+  var t='<table><thead><tr><th>Mês</th><th class="num">Meta Denim</th><th class="num">Real Denim</th><th class="num">%</th><th class="num">Meta Sarja</th><th class="num">Real Sarja</th><th class="num">%</th><th class="num">Meta Total</th><th class="num">Real Total</th><th class="num">%</th><th>Fonte</th></tr></thead><tbody>';
+  var T={md:0,rd:0,ms:0,rs:0};
+  function pc(r,m,show){ if(!show||!m) return '<td class="num">—</td>'; var p=r/m; return '<td class="num '+(p>=1?'ok':'no')+'">'+pctTxt(p)+'</td>'; }
+  M.forEach(function(m){ var sh=m.i<=ate||m.real.total>0; T.md+=m.meta.denim; T.ms+=m.meta.sarja; T.rd+=m.real.denim; T.rs+=m.real.sarja;
+    t+='<tr><td>'+MES3[m.i]+'</td><td class="num">'+fmtBRL(m.meta.denim)+'</td><td class="num">'+(sh?fmtBRL(m.real.denim):'—')+'</td>'+pc(m.real.denim,m.meta.denim,sh)+
+       '<td class="num">'+fmtBRL(m.meta.sarja)+'</td><td class="num">'+(sh?fmtBRL(m.real.sarja):'—')+'</td>'+pc(m.real.sarja,m.meta.sarja,sh)+
+       '<td class="num">'+fmtBRL(m.meta.total)+'</td><td class="num">'+(sh?fmtBRL(m.real.total):'—')+'</td>'+pc(m.real.total,m.meta.total,sh)+
+       '<td>'+(m.src==='carteira'?'Carteira':m.src==='planilha'?'Planilha':'—')+'</td></tr>'; });
+  t+='<tr class="tot"><td>Ano</td><td class="num">'+fmtBRL(T.md)+'</td><td class="num">'+fmtBRL(T.rd)+'</td>'+pc(T.rd,T.md,true)+'<td class="num">'+fmtBRL(T.ms)+'</td><td class="num">'+fmtBRL(T.rs)+'</td>'+pc(T.rs,T.ms,true)+'<td class="num">'+fmtBRL(T.md+T.ms)+'</td><td class="num">'+fmtBRL(T.rd+T.rs)+'</td>'+pc(T.rd+T.rs,T.md+T.ms,true)+'<td></td></tr>';
+  $('metaTable').innerHTML=t+'</tbody></table>';
+  var c=Z.cart, nota='Sarja = artigos Lee, Uba e Trindade (todos); os demais artigos contam como Denim. Realizado = metros faturados × preço unitário, no mês da data da nota fiscal (coluna Datas da carteira).';
+  if(!c) nota+=' Sem carteira carregada: os meses usam o realizado da planilha.';
+  else if(c.semData>0) nota+=' '+fmtBRL(c.semData)+' faturados sem data de NF ficaram fora.';
+  if(M.some(function(m){return m.src==='planilha';})) nota+=' Barras hachuradas: meses sem faturamento na carteira, com o realizado da planilha.';
+  $('metaNote').textContent=nota;
+}
+(function(){
+  var fi=document.createElement('input'); fi.type='file'; fi.accept='.xlsx,.xls,.xlsm'; fi.hidden=true; document.body.appendChild(fi);
+  $('btnMetas').addEventListener('click',function(){ fi.value=''; fi.click(); });
+  fi.addEventListener('change',function(){ if(fi.files&&fi.files[0]) onMetasFile(fi.files[0]); });
+  $('metaLinha').addEventListener('click',function(ev){ var b=ev.target.closest('button'); if(b){ MV.linha=b.dataset.v; renderMeta(); } });
+  $('metaVisao').addEventListener('click',function(ev){ var b=ev.target.closest('button'); if(b){ MV.visao=b.dataset.v; renderMeta(); } });
+})();
 
 /* ---------- banco (db) ---------- */
 function subscribe(){
@@ -1378,7 +1633,7 @@ function loadSel(){
   if(v&&v.meta&&v.linhas&&v.linhas.length){ S.localFile=true; setData(v.meta, v.linhas); return true; }
   S.data=null; S.k=null; showNoData(emptyMsg()); return false;
 }
-function openApp(){ $('lock').hidden=true; $('app').hidden=false; updateAskMode(); loadSel(); NFDocs.abrir(); }
+function openApp(){ $('lock').hidden=true; $('app').hidden=false; updateAskMode(); loadSel(); loadMetas(); NFDocs.abrir(); }
 function lockMsg(t){ $('lockMsg').textContent=t||''; }
 $('lockForm').addEventListener('submit',function(ev){
   ev.preventDefault();
@@ -1400,7 +1655,7 @@ $('lockForm').addEventListener('submit',function(ev){
 });
 $('btnLock').addEventListener('click',function(){
   try{ sessionStorage.removeItem(KEY_SS); }catch(e){}
-  keyRaw=null; S.data=null; S.k=null; dropSel(); NFDocs.fechar(); try{ sessionStorage.removeItem('sd_titulos_sel'); }catch(e){} clearThread(); clearLists(); showNoData(emptyMsg());
+  keyRaw=null; METAS=null; S.data=null; S.k=null; dropSel(); NFDocs.fechar(); try{ sessionStorage.removeItem('sd_titulos_sel'); }catch(e){} clearThread(); clearLists(); showNoData(emptyMsg());
   $('app').hidden=true; $('lock').hidden=false; $('pw').focus();
 });
 (function(){
