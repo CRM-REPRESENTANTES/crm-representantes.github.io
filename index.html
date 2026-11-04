@@ -702,7 +702,7 @@ function metaChart(key, nome, meta, real){
   pmax=Math.min(pmax,PCAP); var n2=niceTop(pmax*100,3), ptop=n2.top/100, y2=function(p){ return B2-(B2-T2-16)*Math.min(p,ptop)/ptop; };
   var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(nome)+': meta, realizado e porcentagem de atingimento por mês">';
   s+='<text class="axt" x="'+pl+'" y="14">METROS POR MÊS</text>';
-  for(var g=0; g<=n1.top+1e-6; g+=n1.step) s+='<line class="grid" x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y1(g)+'" y2="'+y1(g)+'"/><text class="ax" x="'+(pl-8)+'" y="'+(y1(g)+4)+'" text-anchor="end">'+brlK(g)+'</text>';
+  for(var g=0; g<=n1.top+1e-6; g+=n1.step) s+='<line class="grid" x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y1(g)+'" y2="'+y1(g)+'"/><text class="ax" x="'+(pl-8)+'" y="'+(y1(g)+4)+'" text-anchor="end">'+(g? brlK(g)+' m' : '0')+'</text>';
   MES3.forEach(function(m,i){ s+='<text class="ax" x="'+x(i)+'" y="'+(B1+17)+'" text-anchor="middle">'+m+'</text>'; });
   s+='<text class="axt" x="'+pl+'" y="'+(T2-14)+'">% DE ATINGIMENTO'+(pct.some(function(p){return p!=null&&p>ptop;})? ' · valores acima de '+n2.top+'% ficam no topo com ↑' : '')+'</text>';
   for(var q=0; q<=n2.top+1e-6; q+=n2.step) s+='<line class="grid" x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y2(q/100)+'" y2="'+y2(q/100)+'"/><text class="ax" x="'+(pl-8)+'" y="'+(y2(q/100)+4)+'" text-anchor="end">'+q+'%</text>';
