@@ -262,6 +262,14 @@
   .btn-pdf[hidden] + .btn-pdf.share{display:none;}
   .btn-pdf.share{background:var(--accent-strong); color:var(--accent-fg); border-color:var(--accent-strong);}
   .btn-pdf.share:hover{filter:brightness(1.12); background:var(--accent-strong);}
+  /* Valores escondidos: olho com traço até clicar */
+  .sensivel{cursor:pointer;}
+  .mask{display:inline-flex; align-items:center; gap:6px; color:var(--muted); font-weight:700; letter-spacing:2px;}
+  .mask .eyeoff{width:1.05em; height:1.05em; flex:0 0 auto;}
+  .tile.sensivel .val .mask .eyeoff{width:26px; height:26px;}
+  .tile.sensivel:hover{box-shadow:inset 0 0 0 2px var(--accent);}
+  .psum.sensivel:hover{color:var(--title);}
+  .comchart .ceye{color:var(--muted);} .comchart g.on .ceye{display:none;}
   /* Financeiro */
   .tiles.five{grid-template-columns:repeat(5, minmax(0,1fr));}
   @media (max-width:1060px){ .tiles.five{grid-template-columns:repeat(2, minmax(0,1fr));} }
@@ -358,15 +366,15 @@
     </div>
     <div class="tiles five">
       <div class="tile good"><div class="lbl">Títulos pagos</div><div class="val" id="kPagos">—</div><div class="sub" id="kPagosSub">&nbsp;</div></div>
-      <div class="tile good"><div class="lbl">Valor recebido</div><div class="val money" id="kRecebido">—</div><div class="sub" id="kRecebidoSub">&nbsp;</div></div>
+      <div class="tile good sensivel" role="button" tabindex="0" title="Clique para ver ou esconder"><div class="lbl">Valor recebido</div><div class="val money" id="kRecebido">—</div><div class="sub" id="kRecebidoSub">&nbsp;</div></div>
       <div class="tile alert zero" id="tVenc"><div class="lbl"><span class="warnicon" aria-hidden="true">⚠</span> Títulos vencidos</div><div class="val money" id="kVencidos">—</div><div class="sub" id="kVencidosSub">&nbsp;</div></div>
       <div class="tile open"><div class="lbl">A vencer</div><div class="val money" id="kAvencer">—</div><div class="sub" id="kAvencerSub">&nbsp;</div></div>
-      <div class="tile"><div class="lbl">Comissão</div><div class="val money" id="kCom">—</div><div class="sub" id="kComSub">&nbsp;</div></div>
+      <div class="tile sensivel" role="button" tabindex="0" title="Clique para ver ou esconder"><div class="lbl">Comissão</div><div class="val money" id="kCom">—</div><div class="sub" id="kComSub">&nbsp;</div></div>
     </div>
 
     <div class="duo">
       <div class="panel paid">
-        <div class="phead"><h3 id="hPagos">Títulos pagos</h3><div class="lacts"><span class="psum" id="sPagos"></span><button type="button" class="btn-pdf" id="pdfPagos" hidden>Gerar PDF</button><button type="button" class="btn-pdf share" id="pdfPagosSh">Compartilhar</button></div></div>
+        <div class="phead"><h3 id="hPagos">Títulos pagos</h3><div class="lacts"><span class="psum sensivel" id="sPagos" role="button" tabindex="0" title="Clique para ver"></span><button type="button" class="btn-pdf" id="pdfPagos" hidden>Gerar PDF</button><button type="button" class="btn-pdf share" id="pdfPagosSh">Compartilhar</button></div></div>
         <div class="pbody" id="bPagos"><p class="empty">Aguardando a carteira de títulos.</p></div>
       </div>
       <div class="panel over none" id="pVenc">
@@ -578,7 +586,8 @@ function clearAll(msg){
   $('btnClearT').hidden=true; $('btnAll').disabled=true; $('pctWrap').hidden=true;
   $('monthSel').innerHTML='<option value="todos">Todos os meses</option>'; $('monthSel').disabled=true;
   $('monthNote').textContent=msg||'Carregue a carteira de títulos para ver os painéis.';
-  ['kPagos','kRecebido','kVencidos','kAvencer','kCom'].forEach(function(id){ $(id).textContent='—'; $(id+'Sub').innerHTML='&nbsp;'; });
+  ['kPagos','kRecebido','kVencidos','kAvencer','kCom'].forEach(function(id){ $(id).textContent='—'; $(id+'Sub').innerHTML='&nbsp;'; $(id).removeAttribute('data-v'); $(id+'Sub').removeAttribute('data-v'); });
+  [].forEach.call(document.querySelectorAll('.sensivel.aberto'),function(b){ b.classList.remove('aberto'); });
   $('tVenc').classList.add('zero');
   ['bPagos','bVenc'].forEach(function(id){ $(id).innerHTML='<p class="empty">Aguardando a carteira de títulos.</p>'; });
   $('sPagos').textContent=''; $('sVenc').textContent=''; $('pVenc').classList.add('none');
@@ -587,6 +596,23 @@ function clearAll(msg){
   ['pdfPagos','pdfVenc','pdfCom','pdfProj','pdfRank'].forEach(function(id){ $(id).hidden=true; });
   renderList();
 }
+
+/* ---------- valores sensíveis ---------- */
+var EYE='<svg class="eyeoff" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+var MASK='<span class="mask" aria-label="Valor escondido">'+EYE+'<span aria-hidden="true">••••</span></span>';
+function sens(id, txt){
+  var el=$(id); txt=txt==null?'':String(txt); el.setAttribute('data-v', txt);
+  var box=el.closest('.sensivel')||el, aberto=box.classList.contains('aberto');
+  if(!txt.trim()||txt==='—'||/^informe/.test(txt)){ el.textContent=txt; return; }
+  el.innerHTML= aberto? esc(txt) : MASK;
+}
+function alternar(box){
+  box.classList.toggle('aberto');
+  var els=box.hasAttribute('data-v')? [box] : [].slice.call(box.querySelectorAll('[data-v]'));
+  els.forEach(function(e){ sens(e.id, e.getAttribute('data-v')); });
+}
+document.addEventListener('click',function(ev){ var b=ev.target.closest&&ev.target.closest('.sensivel'); if(b&&T.rows) alternar(b); });
+document.addEventListener('keydown',function(ev){ if((ev.key==='Enter'||ev.key===' ')&&ev.target.classList&&ev.target.classList.contains('sensivel')&&T.rows){ ev.preventDefault(); alternar(ev.target); } });
 
 /* ---------- painéis ---------- */
 function renderAll(){ renderTiles(); renderChart(); renderRank(); renderList(); }
@@ -601,18 +627,18 @@ function renderTiles(){
   var com=sum(pagos,comissao);
   $('monthNote').innerHTML= all? 'Todos os títulos da carteira carregada.' : 'Pagos em <b>'+esc(monthLabel(T.month))+'</b> (data de pagamento) · vencidos: todos em aberto com vencimento até o fim do mês · a vencer: vencimento no mês.';
   $('kPagos').textContent=fmtInt(pagos.length); $('kPagosSub').textContent=emDia+' em dia · '+comAtr+' com atraso';
-  $('kRecebido').textContent=fmtBRL(sum(pagos,function(t){return t.base;}));
-  $('kRecebidoSub').textContent= pagos.length? 'média '+fmtBRL(sum(pagos,function(t){return t.base;})/pagos.length)+' por título' : ' ';
+  sens('kRecebido', fmtBRL(sum(pagos,function(t){return t.base;})));
+  sens('kRecebidoSub', pagos.length? 'média '+fmtBRL(sum(pagos,function(t){return t.base;})/pagos.length)+' por título' : ' ');
   $('kVencidos').textContent=fmtBRL(sum(venc,function(t){return t.aberto;})); $('kVencidosSub').textContent=fmtInt(venc.length)+(venc.length===1?' título vencido':' títulos vencidos')+' em '+fmtDate(today);
   $('tVenc').classList.toggle('zero', !venc.length);
   $('kAvencer').textContent=fmtBRL(sum(av,function(t){return t.aberto;})); $('kAvencerSub').textContent=fmtInt(av.length)+(av.length===1?' título':' títulos');
   var semPct=!T.hasCom&&!pctPadrao();
-  $('kCom').textContent= semPct? '—' : fmtBRL(com);
+  sens('kCom', semPct? '—' : fmtBRL(com));
   var comPrev= T.hasCom? sum(av.concat(venc),function(t){ return t.comissao>0? t.comissao : 0; }) : 0;
-  $('kComSub').textContent= semPct? 'informe o % de comissão' : (T.hasCom? (comPrev? fmtBRL(comPrev)+' a receber nos títulos em aberto' : 'dos títulos pagos') : pctPadrao().toLocaleString('pt-BR')+'% sobre o recebido');
+  sens('kComSub', semPct? 'informe o % de comissão' : (T.hasCom? (comPrev? fmtBRL(comPrev)+' a receber nos títulos em aberto' : 'dos títulos pagos') : pctPadrao().toLocaleString('pt-BR')+'% sobre o recebido'));
   /* pagos */
   $('hPagos').textContent='Títulos pagos'+(all?'':' · '+monthLabel(T.month));
-  $('sPagos').textContent= pagos.length? fmtBRL(sum(pagos,function(t){return t.base;})) : '';
+  sens('sPagos', pagos.length? fmtBRL(sum(pagos,function(t){return t.base;})) : '');
   $('pdfPagos').hidden=!pagos.length;
   pagos.sort(function(a,b){ return (b.pag||'').localeCompare(a.pag||''); });
   $('bPagos').innerHTML= pagos.length? tabela(pagos,'pago') : '<p class="empty">Nenhum título pago '+(all?'na carteira':'em '+esc(monthLabel(T.month)))+'.</p>';
@@ -700,6 +726,7 @@ function drawBars(box, s, tipo){
     svg+='<g data-t="'+tipo+'" data-i="'+i+'">'+(path?'<path class="cbar'+(sel?' sel':'')+'" d="'+path+'"/>':'')+
       '<rect class="chit" x="'+(L+slot*i)+'" y="'+Tp+'" width="'+slot+'" height="'+(ih+B)+'"/>'+
       '<text class="clbl'+(x.o.com>0?'':' zero')+'" x="'+cx+'" y="'+(y0-h-7)+'" text-anchor="middle"'+(sel?' style="font-weight:800"':'')+'>'+esc(lbl)+'</text>'+
+      (x.o.com>0? '<g class="ceye" transform="translate('+(cx-8)+','+(y0-h-21)+') scale(0.6667)">'+EYE.replace('<svg class="eyeoff" viewBox="0 0 24 24" aria-hidden="true">','').replace('</svg>','')+'</g>' : '')+
       '<text class="cax" x="'+cx+'" y="'+(H-B+16)+'" text-anchor="middle"'+(sel||x.k===cur?' style="font-weight:700;fill:var(--title)"':'')+'>'+MES3[+x.k.slice(5,7)-1]+'/'+x.k.slice(2,4)+'</text></g>';
   });
   svg+='<line class="cbase" x1="'+L+'" x2="'+(W-R)+'" y1="'+y0+'" y2="'+y0+'"/></svg>';
@@ -888,7 +915,7 @@ function pdfDe(titulo, el, filtros, btn, share){
   gerarPDF(titulo, filtros, partes, btn, share);
 }
 function mesTxt(){ return T.month==='todos'? 'Todos os meses' : monthLabel(T.month); }
-onPdf('pdfPagos',function(){ var share=this.classList.contains('share'); pdfDe('Títulos pagos', $('bPagos'), [mesTxt(), $('sPagos').textContent], this, share); });
+onPdf('pdfPagos',function(){ var share=this.classList.contains('share'); pdfDe('Títulos pagos', $('bPagos'), [mesTxt(), $('sPagos').getAttribute('data-v')||''], this, share); });
 onPdf('pdfVenc',function(){ var share=this.classList.contains('share'); pdfDe('Títulos vencidos', $('bVenc'), [mesTxt(), $('sVenc').textContent], this, share); });
 onPdf('pdfRank',function(){ var share=this.classList.contains('share'); pdfDe('Clientes - prazo de pagamento', $('rankBody'), ['todos os títulos carregados'], this, share); });
 function pdfSerie(titulo, nota, serie, col, btn, share){
