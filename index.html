@@ -688,6 +688,7 @@ function onMetasFile(file){
   }).then(null,function(e){ setFileMsg(e&&e.message==='metas'? 'Não encontrei as linhas Meta e Realizado de Denim e Sarja nessa planilha.' : 'Não foi possível ler a planilha.'); })
     .then(function(){ btn.disabled=false; });
 }
+function fmtM(v){ return Number(v||0).toLocaleString('pt-BR',{maximumFractionDigits:0})+' m'; }
 function pctTxt(x){ return (x*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%'; }
 function brlK(v){ var a=Math.abs(v); return a>=1e6? (v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:2})+' mi' : a>=1e3? Math.round(v/1e3).toLocaleString('pt-BR')+' mil' : String(Math.round(v)); }
 function niceTop(max, n){ var step=Math.pow(10,Math.floor(Math.log10(max||1))), s=[1,2,2.5,5,10].map(function(f){return f*step;}).filter(function(x){return max/x<=n;})[0]||step*10; return {top:Math.ceil(max/s)*s||s, step:s}; }
@@ -700,7 +701,7 @@ function metaChart(key, nome, meta, real){
   var pmax=1; pct.forEach(function(p){ if(p!=null&&p>pmax) pmax=p; });
   pmax=Math.min(pmax,PCAP); var n2=niceTop(pmax*100,3), ptop=n2.top/100, y2=function(p){ return B2-(B2-T2-16)*Math.min(p,ptop)/ptop; };
   var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(nome)+': meta, realizado e porcentagem de atingimento por mês">';
-  s+='<text class="axt" x="'+pl+'" y="14">R$ POR MÊS</text>';
+  s+='<text class="axt" x="'+pl+'" y="14">METROS POR MÊS</text>';
   for(var g=0; g<=n1.top+1e-6; g+=n1.step) s+='<line class="grid" x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y1(g)+'" y2="'+y1(g)+'"/><text class="ax" x="'+(pl-8)+'" y="'+(y1(g)+4)+'" text-anchor="end">'+brlK(g)+'</text>';
   MES3.forEach(function(m,i){ s+='<text class="ax" x="'+x(i)+'" y="'+(B1+17)+'" text-anchor="middle">'+m+'</text>'; });
   s+='<text class="axt" x="'+pl+'" y="'+(T2-14)+'">% DE ATINGIMENTO'+(pct.some(function(p){return p!=null&&p>ptop;})? ' · valores acima de '+n2.top+'% ficam no topo com ↑' : '')+'</text>';
@@ -745,8 +746,8 @@ function renderMeta(){
     for(var i=0;i<=ult;i++) metaAte+=g.meta[i]||0;
     var at= metaAte? realAno/metaAte : 0;
     h+='<div class="mbox"><h3>'+esc(g.nome)+(g.sub? ' <span style="font-weight:500;color:var(--muted);font-size:12.5px">· '+esc(g.sub)+'</span>':'')+'</h3>'+
-       '<div class="msum"><span>Meta do ano <b>'+fmtBRL(metaAno)+'</b></span><span>Realizado <b>'+fmtBRL(realAno)+'</b></span>'+
-       (ult>=0? '<span>Meta até '+MES3[ult].toLowerCase()+' <b>'+fmtBRL(metaAte)+'</b></span><span>Atingimento até '+MES3[ult].toLowerCase()+' <b class="'+(at>=1?'ok':'no')+'">'+(at>=1?'▲ ':'▼ ')+pctTxt(at)+'</b></span>' : '')+
+       '<div class="msum"><span>Meta do ano <b>'+fmtM(metaAno)+'</b></span><span>Realizado <b>'+fmtM(realAno)+'</b></span>'+
+       (ult>=0? '<span>Meta até '+MES3[ult].toLowerCase()+' <b>'+fmtM(metaAte)+'</b></span><span>Atingimento até '+MES3[ult].toLowerCase()+' <b class="'+(at>=1?'ok':'no')+'">'+(at>=1?'▲ ':'▼ ')+pctTxt(at)+'</b></span>' : '')+
        '<span>Do ano <b>'+pctTxt(metaAno? realAno/metaAno : 0)+'</b></span></div>'+
        metaChart(g.k, g.nome, g.meta, g.real)+'</div>';
   });
@@ -757,10 +758,10 @@ function renderMeta(){
     el.addEventListener('mousemove',function(ev){
       var m=g.meta[i], r=g.real[i], p= r!=null&&m? r/m : null;
       tip.innerHTML='<b>'+esc(g.nome)+' · '+MESES[i]+' '+METAS.ano+'</b>'+
-        '<div class="r"><span>Meta</span><span>'+(m!=null?fmtBRL(m):'—')+'</span></div>'+
-        '<div class="r"><span>Realizado</span><span>'+(r!=null?fmtBRL(r):'—')+'</span></div>'+
+        '<div class="r"><span>Meta</span><span>'+(m!=null?fmtM(m):'—')+'</span></div>'+
+        '<div class="r"><span>Realizado</span><span>'+(r!=null?fmtM(r):'—')+'</span></div>'+
         '<div class="r"><span>Atingimento</span><span class="'+(p==null?'':p>=1?'ok':'no')+'">'+(p==null?'—':(p>=1?'▲ ':'▼ ')+pctTxt(p))+'</span></div>'+
-        (p!=null? '<div class="r"><span>'+(r>=m?'Acima da meta':'Faltou')+'</span><span>'+fmtBRL(Math.abs(r-m))+'</span></div>' : '');
+        (p!=null? '<div class="r"><span>'+(r>=m?'Acima da meta':'Faltou')+'</span><span>'+fmtM(Math.abs(r-m))+'</span></div>' : '');
       tip.hidden=false; cr.classList.add('on');
       var c=card.getBoundingClientRect(), xx=ev.clientX-c.left+14, yy=ev.clientY-c.top+14;
       if(xx+tip.offsetWidth>c.width-8) xx=ev.clientX-c.left-tip.offsetWidth-14;

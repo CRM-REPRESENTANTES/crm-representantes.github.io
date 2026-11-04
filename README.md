@@ -6,7 +6,7 @@ Site estático (GitHub Pages) para consultar a carteira de pedidos: busca direta
 
 ## Arquivos
 
-- `index.html` — a página inteira (HTML, CSS e JavaScript em um arquivo). O primeiro bloco é o painel **Meta x Realizado**: lê só a planilha de meta x realizado carregada no botão (aba Dashboard; se não houver, Input ou Plan1) e mostra 3 gráficos — Denim, Sarja e Total consolidado — com as linhas de meta, realizado e % de atingimento. A planilha fica guardada cifrada no navegador com a chave da senha de entrada (localStorage `sd_metas_enc`).
+- `index.html` — a página inteira (HTML, CSS e JavaScript em um arquivo). O primeiro bloco é o painel **Meta x Realizado**: lê só a planilha de meta x realizado carregada no botão (aba Dashboard; se não houver, Input ou Plan1) e mostra 3 gráficos — Denim, Sarja e Total consolidado — com as linhas de meta, realizado (em metros) e % de atingimento. A planilha fica guardada cifrada no navegador com a chave da senha de entrada (localStorage `sd_metas_enc`).
 - `carteira.enc.json` — a carteira **criptografada** (AES-256-GCM; chave derivada da senha de entrada por PBKDF2-SHA256). Sem a senha, o conteúdo não pode ser lido.
 - `tools/atualizar_carteira.py` — converte a planilha `carteira_….xlsx` e regrava `carteira.enc.json`.
 - `reclamacao/` — formulário de reclamação de qualidade (usa a mesma carteira).
