@@ -911,7 +911,7 @@ function gerarPDF(btn, share){
       t.headStyles={fillColor:AZUL, textColor:[255,255,255], fontStyle:'bold', fontSize:7.8}; t.alternateRowStyles={fillColor:[248,249,252]};
       t.didDrawCell=function(d){ if(d.section==='body'&&d.column.index===0){ stroke(LINHA); doc.setLineWidth(.5); doc.line(d.table.settings.margin.left, d.cell.y+d.cell.height, W-d.table.settings.margin.right, d.cell.y+d.cell.height); } if(o.draw) o.draw(d); };
       return t; };
-    doc.autoTable(Object.assign(base({startY:y, draw:function(d){ if(d.section==='body'&&d.column.index===10){ var r=R.res[d.row.index]; selo(d.cell.x+4, d.cell.y+d.cell.height/2-7.5, d.cell.width-8, 15, r.ok?'ok':'fora', r.ok?'CONFORME':'FORA'); } }}), {
+    doc.autoTable(Object.assign(base({startY:y, draw:function(d){ if(d.section==='body'&&d.column.index===10&&R.res[d.row.index]){ var r=R.res[d.row.index]; selo(d.cell.x+4, d.cell.y+d.cell.height/2-7.5, d.cell.width-8, 15, r.ok?'ok':'fora', r.ok?'CONFORME':'FORA'); } }}), {
       head:[['Emissão','NF','Pedido','Cliente','Tecido','Metros','Rolos','Rolos < 80 m','Nuances','OTs','Resultado']],
       body:R.res.map(function(r){ return [fmtDate(r.data), r.nf, String(r.pedido||'—').replace(/^0+/,''), r.cliente, r.artigos.map(tecidoBase).filter(function(v,i,a){ return a.indexOf(v)===i; }).join(' · ')+(r.color?' (Color)':''), fM(r.metros), r.pecas, r.abaixo80+'  ('+(r.pecas?fP(r.abaixo80/r.pecas):'—')+')', r.nNua+' / máx. '+(r.pecaMedia?'livre':r.maxNua), r.nOt, '']; }),
       columnStyles:{0:{cellWidth:62},1:{cellWidth:46, fontStyle:'bold'},2:{cellWidth:46},5:Object.assign({cellWidth:58},Rr),6:Object.assign({cellWidth:36},Rr),7:Object.assign({cellWidth:66},Rr),8:Object.assign({cellWidth:64},Cc),9:Object.assign({cellWidth:30},Cc),10:{cellWidth:74}},
@@ -932,7 +932,7 @@ function gerarPDF(btn, share){
       doc.text(doc.splitTextToSize(limpa(r.cliente+'   ·   Emissão '+fmtDate(r.data)+'   ·   '+r.artigos.join(' · ')+(r.color?' (Denim Color)':'')+'   ·   '+fM(r.metros)+' m em '+r.pecas+' rolos'), W-2*M-150)[0], M+16, y+34);
       selo(W-M-124, y+hh/2-9, 110, 18, st, r.ok?'CONFORME':'FORA DO CRITÉRIO');
       y+=hh+8;
-      doc.autoTable(Object.assign(base({startY:y, draw:function(d){ if(d.section==='body'&&d.column.index===3){ var c=r.crit[d.row.index]; selo(d.cell.x+6, d.cell.y+d.cell.height/2-6.5, d.cell.width-12, 13, c.s, c.s==='ok'?'OK':c.s==='fora'?'FORA':'INFO'); } }}), {
+      doc.autoTable(Object.assign(base({startY:y, draw:function(d){ if(d.section==='body'&&d.column.index===3&&r.crit[d.row.index]){ var c=r.crit[d.row.index]; selo(d.cell.x+6, d.cell.y+d.cell.height/2-6.5, d.cell.width-12, 13, c.s, c.s==='ok'?'OK':c.s==='fora'?'FORA':'INFO'); } }}), {
         head:[['Critério do manual','Exigência','Encontrado no romaneio','Situação']],
         body:r.crit.map(function(c){ return [limpa(c.c), limpa(c.e), limpa(c.r), '']; }),
         columnStyles:{0:{cellWidth:230, fontStyle:'bold'},1:{cellWidth:220},2:{},3:{cellWidth:64}},
