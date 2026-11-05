@@ -304,6 +304,7 @@
   .mtip .ok{color:var(--good); font-weight:700;} .mtip .no{color:var(--rust); font-weight:700;}
 </style>
 <link rel="stylesheet" href="lib/tema.css">
+<script>document.documentElement.setAttribute('data-modo', /[?&]carteira\b/.test(location.search)? 'carteira' : 'painel');</script>
 </head>
 <body>
 
@@ -356,22 +357,26 @@
       <div class="wordmark" aria-label="Studio Denim"><span class="studio">STUDIO</span><span class="denim">DENIM</span></div>
       <div class="divider" aria-hidden="true"></div>
       <div>
-        <h1>Agente de Pesquisa de Carteira</h1>
-        <p class="subtitle">Carteira de pedidos · consulta e acompanhamento</p>
+        <h1 class="so-carteira">Carteira de pedidos</h1>
+        <p class="subtitle so-carteira">Pesquisa, filtros, pedidos atrasados e previsão de atendimento</p>
+        <h1 class="so-painel">Painel geral</h1>
+        <p class="subtitle so-painel" id="pgFonte">Carteira de pedidos, financeiro e meta x realizado</p>
       </div>
     </div>
     <div class="filebox">
       <div class="filechip"><b id="fileName">Nenhuma carteira carregada</b><span id="fileDate">&nbsp;</span></div>
       <div class="fileactions">
         <button class="btn-light" id="btnUpdate" type="button" title="Escolha o arquivo carteira_….xls ou .xlsx baixado do sistema">Carregar carteira (.xls)</button>
-        <button class="btn-light" id="btnPrev" type="button">Previsão de atendimento</button>
-        <button class="btn-light" id="btnNfPdf" type="button" title="Busca as NFs e romaneios da pasta NFs Capricórnio no Google Drive">Notas fiscais (Drive)</button>
+        <button class="btn-light so-painel" id="btnTit" type="button" title="Escolha a carteira de títulos (.xls ou .xlsx) do sistema">Carregar títulos (.xls)</button>
+        <button class="btn-light so-carteira" id="btnPrev" type="button">Previsão de atendimento</button>
+        <button class="btn-light so-carteira" id="btnNfPdf" type="button" title="Busca as NFs e romaneios da pasta NFs Capricórnio no Google Drive">Notas fiscais (Drive)</button>
         <button class="btn-ghost" id="btnLock" type="button">Sair</button>
       </div>
       <div class="filemsg" id="fileMsg" aria-live="polite"></div>
     </div>
     <nav class="modnav" aria-label="Módulos do CRM">
-      <a href="./" aria-current="page">Carteira</a>
+      <a href="./" data-modo-link="painel">Painel geral</a>
+      <a href="./?carteira" data-modo-link="carteira">Carteira</a>
       <a href="calculadora/">Calculadora de consumo</a>
       <a href="tendencias/">Tendências</a>
       <a href="reclamacao/">Reclamação de qualidade</a>
@@ -381,7 +386,10 @@
     </nav>
   </header>
 
-  <section class="card" id="metaCard" aria-labelledby="hMeta">
+  <input type="file" id="titInput" accept=".xls,.xlsx,.csv" hidden>
+  <section class="so-painel pg-resumo" id="pgResumo" aria-label="Resumo"></section>
+
+  <section class="card so-painel" id="metaCard" aria-labelledby="hMeta">
     <div class="mhead">
       <h2 id="hMeta">Meta x Realizado <span id="metaAno">2026</span></h2>
       <div class="mtools">
@@ -398,7 +406,16 @@
     <div class="mtip" id="metaTip" hidden></div>
   </section>
 
-  <section class="card" aria-labelledby="hAsk">
+  <section class="card so-painel" aria-labelledby="hPgCart">
+    <h2 id="hPgCart">Carteira de pedidos</h2>
+    <div id="pgCarteira"></div>
+  </section>
+  <section class="card so-painel" aria-labelledby="hPgFin">
+    <h2 id="hPgFin">Financeiro</h2>
+    <div id="pgFinanceiro"></div>
+  </section>
+
+  <section class="card so-carteira" aria-labelledby="hAsk">
     <h2 id="hAsk">Pesquisa na carteira</h2>
     <form class="askform" id="askForm" autocomplete="off">
       <input type="text" id="q" name="q" placeholder="Buscar na carteira: cliente, pedido, tecido, nota fiscal…" aria-label="Busca na carteira">
@@ -422,7 +439,7 @@
     <div class="thread" id="thread" aria-live="polite"></div>
   </section>
 
-  <section class="card" aria-labelledby="hDash">
+  <section class="card so-carteira" aria-labelledby="hDash">
     <h2 id="hDash">Painel da carteira</h2>
     <div class="filters">
       <label for="monthSel">Mês
@@ -475,7 +492,7 @@
     </div>
   </section>
 
-  <section class="card late" id="lateCard" aria-labelledby="hLate">
+  <section class="card late so-carteira" id="lateCard" aria-labelledby="hLate">
     <div class="latehead">
       <h2 id="hLate">Pedidos atrasados <span class="count" id="lateCount">—</span></h2>
       <div class="lacts"><div class="latesum" id="lateSum">&nbsp;</div><button type="button" class="btn-pdf" id="pdfLate" hidden>Gerar PDF</button><button type="button" class="btn-pdf share" id="pdfLateSh">Compartilhar</button></div>
@@ -484,7 +501,7 @@
     <div class="latebody" id="lateBody"><p class="empty">Nenhuma carteira carregada. Use “Carregar carteira (.xls)” e escolha o arquivo da carteira selecionada.</p></div>
   </section>
 
-  <p class="footnote" id="footnote">
+  <p class="footnote so-carteira" id="footnote">
     <b>Como os números são calculados.</b> Cada pedido conta uma vez, mesmo com várias linhas. <b>Em aberto</b>: pedido com alguma linha não cancelada e saldo a faturar. <b>Faturado</b>: pedido sem saldo e com quantidade faturada. <b>Cancelado</b>: todas as linhas canceladas.
     <b>Valor total</b> = Quantidade × Valor Unitário Líquido das linhas não canceladas; <b>valor faturado</b> = qtde_faturada × Valor Unitário Líquido; <b>valor em aberto</b> = Saldo × Valor Unitário Líquido (a coluna “Valor Total” do arquivo).
     <b>Atrasado</b>: linha não cancelada, com saldo, e Embarque anterior a hoje. <b>Previsão</b>: vem do arquivo (PDF ou Excel) enviado em “Previsão de atendimento”, ligado pelo número do pedido; fica guardada neste navegador até ser removida ou trocada.
@@ -497,6 +514,8 @@
 <script src="lib/nfdocs.js"></script>
 <script src="lib/pdf-capri.js"></script>
 <script src="lib/pedido-pdf.js"></script>
+<script src="lib/titulos.js"></script>
+<script src="lib/painel.js"></script>
 <script>
 (function(){
 'use strict';
@@ -584,7 +603,19 @@ function renderAll(){
   renderLate(k);
   renderLists();
   renderMeta();
+  painel();
 }
+function painel(){ if(window.Painel) Painel.render({rows:S.data? S.data.linhas : null, arquivo:S.data&&S.data.meta.arquivo, isCanc:isCanc, isLate:isLate, grupo:clientGroup, amostra:isSampleClient}); }
+(function(){ var m=document.documentElement.getAttribute('data-modo');
+  [].forEach.call(document.querySelectorAll('[data-modo-link]'),function(a){ if(a.getAttribute('data-modo-link')===m) a.setAttribute('aria-current','page'); });
+  document.title=(m==='painel'? 'Painel geral' : 'Carteira')+' · CRM Studio Denim'; })();
+document.addEventListener('click',function(ev){ var b=ev.target.closest&&ev.target.closest('[data-pg]'); if(!b) return; if(b.getAttribute('data-pg')==='carteira') $('fileInput').click(); else $('titInput').click(); });
+$('btnTit').addEventListener('click',function(){ $('titInput').click(); });
+$('titInput').addEventListener('change',function(){ var f=this.files&&this.files[0]; this.value=''; if(!f) return;
+  setFileMsg('Lendo '+f.name+'…');
+  Titulos.ler(f).then(function(v){ setFileMsg(v.rows.length.toLocaleString('pt-BR')+' títulos carregados. Ficam abertos nesta aba (também no Financeiro).'); painel(); },
+    function(e){ setFileMsg(e&&e.message==='colunas'? 'Não encontrei as colunas da carteira de títulos (precisa ter pelo menos Cliente, Vencimento e Valor).' : e&&e.message==='vazio'? 'A planilha não tem títulos.' : 'Não foi possível ler a carteira de títulos.'); });
+});
 function renderTiles(){
   var all=S.month==='todos';
   var k= all? S.k : compute(S.data.linhas.filter(function(r){ return monthKey(r)===S.month; }));
@@ -658,6 +689,7 @@ function showNoData(msg){
   [].forEach.call(document.querySelectorAll('.tile .sub'),function(e){ e.innerHTML='&nbsp;'; });
   var ms=$('monthSel'); if(ms){ ms.innerHTML='<option value="todos">Todos os meses</option>'; ms.disabled=true; }
   if(typeof renderMeta==='function') renderMeta();
+  if(typeof painel==='function') painel();
 }
 
 /* ---------- Meta x Realizado ---------- */
