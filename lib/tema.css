@@ -1,0 +1,174 @@
+/* Tema Studio Denim — índigo cru, linha de pesponto e ourela.
+   Carregado por último em todas as páginas do CRM: só muda a aparência (cores, tipos, cabeçalho,
+   cartões, tabelas, botões). A lógica e os relatórios em PDF continuam os mesmos. */
+
+:root{
+  --indigo-950:#0F1A30; --indigo-900:#14223D; --indigo-800:#1C2F52; --indigo-700:#26406B; --indigo-500:#3F6399; --indigo-300:#8EA6CC;
+  --weft:#F3F5F9; --weft-2:#E8ECF3; --linha:#D99A2B; --ourela:#B3262E;
+  --bg:var(--weft); --surface:#FFFFFF; --surface-2:#F8F9FC; --ink:#18202E; --muted:#5D6778; --border:#D9DFE9;
+  --title:var(--indigo-900); --accent:var(--indigo-700); --accent-strong:var(--indigo-800); --accent-fg:#FFFFFF; --link:#2C5A9E;
+  --tint:#EDF1F7; --tint-strong:#DCE4F0; --bar:var(--indigo-500);
+  --rust:#B3262E; --rust-light:#FBEBEC; --rust-ink:#8C1D24; --rust-solid:#B3262E; --rust-solid-fg:#FFFFFF; --rust-border:#EDC3C6;
+  --warn:#A2560C; --warn-bg:#FCF1E3; --good:#1F6B47; --good-bg:#E5F2EA;
+  --head-a:var(--indigo-950); --head-b:var(--indigo-900); --head-c:var(--indigo-800); --head-fg:#FFFFFF; --head-muted:#B9C6DD; --stitch:var(--linha); --head-chip:rgba(255,255,255,.08);
+  --font:'Archivo','Segoe UI',Roboto,Arial,sans-serif;
+  --sd-display:'Big Shoulders Display','Archivo Narrow','Arial Narrow',sans-serif;
+  --sarja:repeating-linear-gradient(115deg, rgba(255,255,255,.045) 0 1px, transparent 1px 5px), repeating-linear-gradient(25deg, rgba(0,0,0,.18) 0 1px, transparent 1px 4px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C1322; --surface:#121C30; --surface-2:#16223A; --ink:#E6EBF4; --muted:#9AA7BE; --border:#25344F;
+    --title:#D5E0F2; --accent:#8EA6CC; --accent-strong:#3F6399; --accent-fg:#FFFFFF; --link:#9DBBE8;
+    --tint:#172540; --tint-strong:#1F3254; --bar:#6F92C7;
+    --rust:#F08A8F; --rust-light:#3A171B; --rust-ink:#FFB8BC; --rust-solid:#B3262E; --rust-solid-fg:#FFFFFF; --rust-border:#6A2A2F;
+    --warn:#F0A35E; --warn-bg:#3A2815; --good:#5FCB93; --good-bg:#12301F;
+    --head-a:#080F1D; --head-b:#0F1A30; --head-c:#14223D; --head-muted:#B9C6DD; --head-chip:rgba(255,255,255,.07);
+    color-scheme:dark;
+  }
+}
+
+html{-webkit-font-smoothing:antialiased;}
+body{font-family:var(--font); letter-spacing:0; font-size:14px;}
+::selection{background:var(--linha); color:var(--indigo-950);}
+:focus-visible{outline:2px solid var(--linha); outline-offset:2px;}
+
+/* ---------- cabeçalho: índigo cru com sarja, pesponto e ourela ---------- */
+.top{
+  background-color:var(--indigo-900); background-image:var(--sarja), linear-gradient(160deg, var(--indigo-950), var(--indigo-800));
+  border:0; border-radius:12px 12px 4px 4px; padding:20px 26px 0; box-shadow:0 1px 0 rgba(0,0,0,.08);
+  overflow:hidden;
+}
+.top::after{ /* ourela: faixa crua com o fio vermelho, como na barra da calça */
+  content:""; position:static; display:block; flex-basis:calc(100% + 52px); margin:14px -26px 0; height:9px; border:0; opacity:1;
+  background:linear-gradient(to bottom, #EEE9DF 0 3px, var(--ourela) 3px 5px, #EEE9DF 5px 9px);
+}
+.wordmark{font-family:var(--sd-display); font-weight:800; line-height:.86;}
+.wordmark .studio{display:block; font-family:var(--font); font-size:10.5px; font-weight:600; letter-spacing:5px; color:var(--linha); line-height:1; margin-bottom:5px;}
+.wordmark .denim{font-size:36px; letter-spacing:1.5px; margin-top:2px;}
+.divider{background:var(--linha); opacity:.55; width:2px; height:38px; background:repeating-linear-gradient(to bottom, var(--linha) 0 5px, transparent 5px 9px);}
+.top h1{font-family:var(--sd-display); font-size:27px; font-weight:700; letter-spacing:.4px; line-height:1.05;}
+.top .subtitle{font-size:13px; color:var(--head-muted); margin-top:4px;}
+.filechip{background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.1); border-radius:8px;}
+.btn-light{background:#FFFFFF; color:var(--indigo-900); border-radius:7px; font-weight:700;}
+.btn-light:hover{background:#F1E3C8;}
+.btn-ghost{border-color:rgba(255,255,255,.22); border-radius:7px;}
+
+/* menu de módulos: abas com o pesponto dourado na ativa */
+.modnav{border-top:1px solid rgba(255,255,255,.1); gap:2px; padding:8px 0 0; margin:0 -6px;}
+.modnav a{background:transparent; color:var(--head-muted); border-radius:6px 6px 0 0; padding:10px 14px 12px; font-weight:600; font-size:13.5px; position:relative;}
+.modnav a:hover{background:rgba(255,255,255,.06); color:#fff;}
+.modnav a[aria-current="page"]{background:transparent; color:#fff;}
+.modnav a[aria-current="page"]::after{content:""; position:absolute; left:12px; right:12px; bottom:4px; height:0; border-bottom:2px dashed var(--linha);}
+
+/* ---------- cartões e títulos ---------- */
+.card{border:1px solid var(--border); border-radius:10px; box-shadow:0 1px 2px rgba(20,34,61,.04);}
+.card h2, .latehead h2{
+  font-family:var(--sd-display); text-transform:none; letter-spacing:.3px; font-size:23px; font-weight:700; line-height:1.1;
+  border-bottom:0; padding-bottom:12px; position:relative; color:var(--title);
+}
+.card h2 small, .card h2 span, .card h2 .hint, .card h2 em{font-family:var(--font); font-size:12.5px; font-weight:500; letter-spacing:0; color:var(--muted);}
+.card h2::after{content:""; position:absolute; left:0; bottom:2px; width:46px; border-bottom:2px dashed var(--linha);}
+.latehead h2::after{display:none;}
+
+/* rótulos em caixa normal (menos grito, leitura mais fácil) */
+.filters label, .lfilters label, .rfilters label, .tile .lbl, th, .threadbar span, .listbar span, .resbar span,
+.charthead h3, .charthead label, .lhead h3, .panel .phead h3, .lockbody label, .fnote, .askmeta, label{
+  text-transform:none !important; letter-spacing:0 !important;
+}
+.filters label, .lfilters label, .rfilters label{font-size:12.5px; color:var(--muted); font-weight:600;}
+.lhead h3, .panel .phead h3, .charthead h3{font-size:15px; font-weight:700;}
+
+/* ---------- indicadores: como os cartões dos relatórios em PDF ---------- */
+.tile{background:var(--surface); border:1px solid var(--border); border-radius:9px; position:relative; padding:14px 16px 14px 20px;}
+.tile::before{content:""; position:absolute; left:0; top:12px; bottom:12px; width:4px; border-radius:0 3px 3px 0; background:var(--indigo-500);}
+.tile .lbl{font-size:12.5px; font-weight:600; color:var(--muted);}
+.tile .val{font-family:var(--font); font-weight:800; letter-spacing:-.3px; color:var(--title);}
+.tile.good{background:var(--surface);} .tile.good::before{background:var(--good);} .tile.good .val{color:var(--good);}
+.tile.open{background:var(--surface);} .tile.open::before{background:var(--warn);} .tile.open .val{color:var(--warn);}
+.tile.alert{background:var(--surface); box-shadow:none; border-color:var(--rust-border);} .tile.alert::before{background:var(--rust);}
+.tile.alert.zero{border-color:var(--border);} .tile.alert.zero::before{background:var(--indigo-500);}
+.tile.click:hover, .tile.click.on{box-shadow:inset 0 0 0 2px var(--accent);}
+
+/* ---------- tabelas ---------- */
+table{font-variant-numeric:tabular-nums;}
+th{background:var(--weft-2); color:var(--title); font-size:12px; font-weight:700; border-bottom:1px solid var(--border);}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) th{background:var(--tint);} }
+td{border-bottom-color:var(--border);}
+tbody tr:hover td{background:var(--surface-2);}
+.tablewrap, .rlist, .lres, .panel .pbody{scrollbar-width:thin;}
+.tablewrap thead th, .lres thead th, .panel .pbody thead th, .rlist thead th{position:sticky; top:0; z-index:1;}
+
+/* listas longas não empurram a página: rolam dentro do quadro */
+.latebody{max-height:640px; overflow:auto;}
+.latebody thead th{position:sticky; top:0; z-index:1; background:var(--rust-light);}
+
+/* ---------- botões ---------- */
+.btn{border-radius:8px; letter-spacing:0;}
+.top .badge{background:transparent; border:1px dashed var(--linha); color:#F1E3C8; border-radius:6px;}
+.btn-pdf{border-radius:7px; border-color:var(--border); color:var(--title); background:var(--surface);}
+.btn-pdf:hover{background:var(--tint); border-color:var(--accent);}
+.btn-pdf.share{background:var(--indigo-800); border-color:var(--indigo-800); color:#fff;}
+.btn-pdf.share:hover{background:var(--indigo-700);}
+.chip{border-radius:6px; background:var(--surface); border:1px solid var(--border); color:var(--title); font-weight:600;}
+.chip:hover{border-color:var(--linha); background:#FBF4E6;}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .chip:hover{background:var(--tint);} }
+input[type=text], input[type=date], input[type=number], input[type=password], select, textarea{border-radius:7px;}
+
+/* ---------- atrasados ---------- */
+.card.late{border:1px solid var(--rust-border); border-top:4px solid var(--rust);}
+.latehead{background:var(--surface); border-bottom:1px solid var(--rust-border);}
+.latehead h2{color:var(--rust-ink);}
+.late tbody tr td:first-child{border-left:3px solid var(--rust);}
+
+/* ---------- barras e gráficos ---------- */
+.bfill{background:var(--indigo-500); border-radius:0 3px 3px 0;}
+.btrack{background:var(--weft-2);}
+
+@media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
+@media (max-width:600px){ .top{padding:16px 16px 0;} .top::after{margin:12px -16px 0; flex-basis:calc(100% + 32px);} .wordmark .denim{font-size:30px;} .top h1{font-size:23px;} }
+
+/* ================= capa de entrada: o bolso traseiro ================= */
+.lock.capa{
+  position:fixed; inset:0; z-index:50; min-height:0; display:grid; place-items:center; padding:24px; overflow:auto;
+  background-color:#152440;
+  background-image:
+    radial-gradient(120% 90% at 50% 40%, transparent 40%, rgba(5,10,22,.65) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(115deg, rgba(255,255,255,.05) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(25deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px),
+    linear-gradient(170deg, #1D3460, #101C34);
+}
+.capa .ourela-v{position:absolute; top:0; bottom:0; right:7%; width:16px;
+  background:linear-gradient(to right, #EEE9DF 0 6px, var(--ourela) 6px 9px, #EEE9DF 9px 16px); box-shadow:-6px 0 14px rgba(0,0,0,.35);}
+.capa .ourela-v::before{content:""; position:absolute; top:0; bottom:0; left:-7px; border-left:2px dashed rgba(217,154,43,.8);}
+.capa .rodape{position:absolute; left:28px; bottom:22px; color:#AFC0DC; font-size:12.5px; line-height:1.5; max-width:46ch;}
+.capa .rodape b{color:#F0E3C9; font-weight:600;}
+.bolso{position:relative; width:min(420px, 100%); aspect-ratio:400/520; filter:drop-shadow(0 18px 28px rgba(0,0,0,.45));}
+.bolso svg{position:absolute; inset:0; width:100%; height:100%; overflow:visible;}
+.bolso form{position:absolute; left:14%; right:14%; top:15%; display:flex; flex-direction:column; align-items:stretch; gap:9px; text-align:center;}
+.bolso .marca{font-family:var(--sd-display); color:#F3E7CF; line-height:.85; margin:0 0 10px;}
+.bolso .marca span{display:block; font-family:var(--font); font-size:11px; letter-spacing:6px; font-weight:600; color:var(--linha); margin-bottom:4px;}
+.bolso .marca strong{display:block; font-size:clamp(46px, 14vw, 64px); font-weight:800; letter-spacing:2px; text-shadow:0 1px 0 rgba(0,0,0,.35);}
+.bolso .sub{margin:-2px 0 6px; color:#B9C6DD; font-size:13px; line-height:1.35;}
+.bolso label{color:#D8E0EE; font-size:12.5px; font-weight:600; text-align:left;}
+.bolso input{width:100%; box-sizing:border-box; padding:12px 14px; border-radius:6px; font-size:16px; color:#F3F5F9; background:rgba(8,15,30,.55);
+  border:1px solid rgba(217,154,43,.45); box-shadow:inset 0 2px 4px rgba(0,0,0,.35);}
+.bolso input:focus{outline:2px solid var(--linha); outline-offset:1px; border-color:var(--linha);}
+.bolso button{margin-top:4px; padding:12px 16px; border-radius:6px; border:0; cursor:pointer; font-family:var(--font); font-size:15px; font-weight:700;
+  color:#1A1408; background:linear-gradient(#E7B04C, #C98A22); box-shadow:inset 0 0 0 1px rgba(255,255,255,.25), 0 2px 0 #8A5C12; position:relative;}
+.bolso button::after{content:""; position:absolute; inset:4px; border:1px dashed rgba(60,36,4,.5); border-radius:4px; pointer-events:none;}
+.bolso button:hover{background:linear-gradient(#EFBD5E, #D3952C);}
+.bolso button:disabled{opacity:.7; cursor:progress;}
+.bolso .lockmsg{margin:0; min-height:1.3em; font-size:12.5px; font-weight:600; color:#FFB4B8; text-align:left;}
+/* a costura: o pesponto se desenha uma vez ao abrir */
+.costura{stroke-dasharray:1; stroke-dashoffset:1; animation:costurar 1.7s cubic-bezier(.55,.1,.3,1) .25s forwards;}
+.costura.d2{animation-delay:.55s;} .costura.d3{animation-delay:1.05s; animation-duration:1s;}
+.rebite{opacity:0; transform-box:fill-box; transform-origin:center; animation:rebitar .35s ease-out forwards;}
+.rebite.r1{animation-delay:1.75s;} .rebite.r2{animation-delay:1.9s;}
+@keyframes costurar{to{stroke-dashoffset:0;}}
+@keyframes rebitar{from{opacity:0; transform:scale(.4);} to{opacity:1; transform:scale(1);}}
+.bolso form{animation:surgir .6s ease-out .9s both;}
+@keyframes surgir{from{opacity:0;} to{opacity:1;}}
+@media (prefers-reduced-motion: reduce){ .costura{stroke-dashoffset:0;} .rebite{opacity:1;} }
+@media (max-width:420px){ .bolso form{gap:6px; top:13%;} .bolso .marca{margin-bottom:4px;} .bolso .sub{font-size:12px;} .bolso input{padding:10px 12px;} .bolso button{padding:10px 14px;} }
+@media (max-width:700px){ .capa .ourela-v{right:0;} .capa .rodape{position:static; margin-top:18px; text-align:center;} .lock.capa{grid-template-rows:auto auto; align-content:center;} }

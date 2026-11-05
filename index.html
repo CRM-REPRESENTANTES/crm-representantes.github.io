@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>CRM Studio Denim</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Big+Shoulders+Display:wght@600;700;800&display=swap">
 <style>
   html{-webkit-text-size-adjust:100%;} body{margin:0;} [hidden]{display:none!important;} img{max-width:100%;}
   /* Layout: coluna única — cabeçalho índigo, pesquisa do agente, painel de indicadores, lista de atrasados em destaque. */
@@ -303,22 +303,52 @@
   .mtip b{color:var(--title);} .mtip .r{display:flex; justify-content:space-between; gap:14px; font-variant-numeric:tabular-nums;}
   .mtip .ok{color:var(--good); font-weight:700;} .mtip .no{color:var(--rust); font-weight:700;}
 </style>
+<link rel="stylesheet" href="lib/tema.css">
 </head>
 <body>
 
-<main class="lock" id="lock">
-  <form class="lockcard" id="lockForm" autocomplete="off">
-    <div class="lockhead">
-      <div class="wordmark" aria-label="Studio Denim"><span class="studio">STUDIO</span><span class="denim">DENIM</span></div>
-      <h1>CRM · Agente de Pesquisa de Carteira</h1>
-    </div>
-    <div class="lockbody">
+<main class="lock capa" id="lock">
+  <div class="ourela-v" aria-hidden="true"></div>
+  <div class="bolso">
+    <svg viewBox="0 0 400 520" aria-hidden="true">
+      <defs>
+        <pattern id="sarjaBolso" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-62)">
+          <rect width="6" height="6" fill="#26437A"/><rect width="2" height="6" fill="#2D4E8A"/>
+        </pattern>
+        <radialGradient id="cobre" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#F6D28B"/><stop offset=".55" stop-color="#C98A22"/><stop offset="1" stop-color="#6E4710"/></radialGradient>
+        <mask id="mCostura1"><path class="costura" pathLength="1" d="M34 64 V376 L200 486 L366 376 V64" fill="none" stroke="#fff" stroke-width="20"/></mask>
+        <mask id="mCostura2"><path class="costura d2" pathLength="1" d="M18 40 H382 M18 50 H382" fill="none" stroke="#fff" stroke-width="10"/></mask>
+        <mask id="mCostura3"><path class="costura d3" pathLength="1" d="M152 400 L184 432 M176 400 L208 432 M200 400 L232 432 M224 400 L248 424" fill="none" stroke="#fff" stroke-width="10"/></mask>
+      </defs>
+      <!-- o bolso: sarja 3x1 levemente mais clara que o fundo -->
+      <path d="M14 26 H386 V380 L200 500 L14 380 Z" fill="url(#sarjaBolso)" stroke="#0E1A31" stroke-width="2"/>
+      <path d="M14 26 H386 V60 H14 Z" fill="#000" opacity=".12"/>
+      <!-- pespontos duplos em linha dourada -->
+      <g mask="url(#mCostura1)" fill="none" stroke="#D99A2B" stroke-width="2.2" stroke-dasharray="7 5" stroke-linecap="round">
+        <path d="M30 64 V372 L200 480 L370 372 V64"/>
+        <path d="M40 64 V366 L200 468 L360 366 V64"/>
+      </g>
+      <g mask="url(#mCostura2)" fill="none" stroke="#D99A2B" stroke-width="2.2" stroke-dasharray="7 5" stroke-linecap="round">
+        <path d="M22 40 H378"/><path d="M22 50 H378"/>
+      </g>
+      <!-- bordado do bolso: as diagonais da sarja -->
+      <g mask="url(#mCostura3)" fill="none" stroke="#E7B04C" stroke-width="2.4" stroke-dasharray="6 4" stroke-linecap="round">
+        <path d="M152 400 L184 432"/><path d="M176 400 L208 432"/><path d="M200 400 L232 432"/><path d="M224 400 L248 424"/>
+      </g>
+      <!-- rebites nos cantos -->
+      <g class="rebite r1"><circle cx="30" cy="40" r="9" fill="url(#cobre)"/><circle cx="30" cy="40" r="4" fill="none" stroke="#7A5214" stroke-width="1.2"/></g>
+      <g class="rebite r2"><circle cx="370" cy="40" r="9" fill="url(#cobre)"/><circle cx="370" cy="40" r="4" fill="none" stroke="#7A5214" stroke-width="1.2"/></g>
+    </svg>
+    <form id="lockForm" autocomplete="off">
+      <h1 class="marca"><span>STUDIO</span><strong>DENIM</strong></h1>
+      <p class="sub">CRM dos representantes · Capricórnio Têxtil</p>
       <label for="pw">Senha de entrada</label>
       <input type="password" id="pw" name="pw" autocomplete="current-password" required>
       <p class="lockmsg" id="lockMsg" aria-live="polite"></p>
-      <button class="btn" type="submit">Entrar</button>
-    </div>
-  </form>
+      <button type="submit">Entrar</button>
+    </form>
+  </div>
+  <p class="rodape"><b>Tecidos para jeans.</b> Carteira, qualidade, romaneios e financeiro num só lugar.</p>
 </main>
 
 <div class="wrap" id="app" hidden>
