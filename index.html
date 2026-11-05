@@ -364,7 +364,10 @@
       </div>
     </div>
     <div class="filebox">
-      <div class="filechip"><b id="fileName">Nenhuma carteira carregada</b><span id="fileDate">&nbsp;</span></div>
+      <div class="chips">
+        <div class="filechip"><small class="so-painel">Carteira de vendas</small><b id="fileName">Nenhuma carteira carregada</b><span id="fileDate">&nbsp;</span></div>
+        <div class="filechip so-painel"><small>Carteira financeira</small><b id="titName">Nenhuma carteira de títulos</b><span id="titDate">&nbsp;</span></div>
+      </div>
       <div class="fileactions">
         <button class="btn-light" id="btnUpdate" type="button" title="Escolha o arquivo carteira_….xls ou .xlsx baixado do sistema">Carregar carteira (.xls)</button>
         <button class="btn-light so-painel" id="btnTit" type="button" title="Escolha a carteira de títulos (.xls ou .xlsx) do sistema">Carregar títulos (.xls)</button>
@@ -387,6 +390,7 @@
   </header>
 
   <input type="file" id="titInput" accept=".xls,.xlsx,.csv" hidden>
+  <section class="so-painel pg-filtro" id="pgFiltro" aria-label="Filtro do painel"></section>
   <section class="so-painel pg-resumo" id="pgResumo" aria-label="Resumo"></section>
 
   <section class="card so-painel" id="metaCard" aria-labelledby="hMeta">

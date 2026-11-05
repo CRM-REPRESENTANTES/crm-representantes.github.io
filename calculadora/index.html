@@ -102,6 +102,13 @@
   tr.best td:first-child{border-left:4px solid var(--good); font-weight:700;}
   .tag-best{background:var(--good); color:#fff; font-size:10px; padding:2px 8px; border-radius:10px; margin-left:6px;}
   .fabric-row{display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr 0.6fr; gap:10px; align-items:end; padding:12px; border:1px solid var(--border); border-radius:10px; margin-bottom:10px; background:var(--surface-2);}
+  .fabric-row .fr-tag{grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; font-size:12px; color:var(--muted);}
+  .tag-capri,.tag-conc{font-size:11px; font-weight:700; border-radius:5px; padding:2px 8px;} .tag-capri{background:var(--indigo-800,#1C2F52); color:#fff;} .tag-conc{background:var(--warn-bg); color:var(--warn);}
+  .fr-falta{color:var(--rust); font-weight:600;}
+  .addbar{display:grid; grid-template-columns:2fr 1fr; gap:14px 24px; align-items:end; margin-top:6px;} .addline{display:flex; gap:8px;} .addline input{flex:1; min-width:0;}
+  .addbar label{display:block; margin-bottom:6px;} .addbar .hint{min-height:1em; margin:6px 0 0;}
+  @media (max-width:720px){ .addbar{grid-template-columns:1fr;} }
+  .btn.primary{background:var(--indigo-800,#1C2F52); color:#fff; border-color:var(--indigo-800,#1C2F52);}
   .fabric-row .remove{background:none; border:1px solid #f7941d; color:#c56a00; border-radius:8px; padding:9px 8px; cursor:pointer; font-size:12px; font-weight:600;}
   .btn{background:var(--surface); color:var(--title); border:1px solid var(--accent); padding:10px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;}
   .btn:hover{background:var(--tint);}
@@ -222,7 +229,18 @@
   <div class="card">
     <h2>Tecidos para comparar</h2>
     <div id="fabricList"></div>
-    <button class="btn" type="button" onclick="addFabric()">+ Adicionar tecido</button>
+    <div class="addbar">
+      <div class="addcapri">
+        <label for="capriBusca">Tecido Capricórnio (dados técnicos automáticos)</label>
+        <div class="addline"><input type="text" id="capriBusca" list="capriLista" placeholder="Digite o artigo, ex.: NADAL" autocomplete="off"><button class="btn primary" type="button" onclick="addCapri()">+ Adicionar</button></div>
+        <datalist id="capriLista"></datalist>
+        <p class="hint" id="capriMsg"></p>
+      </div>
+      <div class="addconc">
+        <label>Tecido concorrente (preenchimento manual)</label>
+        <button class="btn" type="button" onclick="addFabric()">+ Adicionar concorrente</button>
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -263,11 +281,13 @@
     <div class="summary-cards" id="summaryCards"></div>
   </div>
 </div>
+<script src="../lib/fichas.js"></script>
 <script>
-let fabrics = [
-  {nome:"Sarkozy Canatiba", largura:1.54, preco:19.20, encolhimento:18},
-  {nome:"Bardem Capricornio", largura:1.70, preco:20.90, encolhimento:18},
-];
+let fabrics = [];
+const FICHAS = (window.FICHAS_CAPRI||[]).slice().sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+/* encolhimento de área = 1 - (1 - urdume)(1 - trama), a partir da ficha técnica */
+function encolhArea(fi){ const u=Math.abs(fi.shU||0)/100, t=Math.abs(fi.shT||0)/100; return Math.round((1-(1-u)*(1-t))*1000)/10; }
+function fichaPorNome(n){ const k=String(n||'').trim().toUpperCase(); return FICHAS.find(f=>f.nome.toUpperCase()===k); }
 
 let areaPadrao = {36:1.40, 38:1.48, 40:1.55, 42:1.62, 44:1.68, 46:1.75, 48:1.82};
 let areaPorTamanho = {};
@@ -306,8 +326,10 @@ function aplicarModelagem(){
 }
 
 function fabricRowHTML(f, i){
+  const capri = f.origem==='capri';
   return `
-  <div class="fabric-row" data-i="${i}">
+  <div class="fabric-row${capri?' capri':''}" data-i="${i}">
+    <div class="fr-tag">${capri? '<span class="tag-capri">Capricórnio</span>' : '<span class="tag-conc">Concorrente</span>'}${f.info? '<span class="fr-info">'+esc(f.info)+'</span>' : ''}${!(f.preco>0)? '<span class="fr-falta">Informe o preço para entrar na comparação</span>' : ''}</div>
     <div>
       <label>Nome do tecido</label>
       <input type="text" value="${esc(f.nome)}" oninput="updateFabric(${i},'nome',this.value)">
@@ -318,7 +340,7 @@ function fabricRowHTML(f, i){
     </div>
     <div>
       <label>Preço (R$/m)</label>
-      <input type="number" value="${f.preco}" step="0.01" oninput="updateFabric(${i},'preco',this.value)">
+      <input type="number" value="${f.preco>0? f.preco : ''}" step="0.01" placeholder="R$/m" oninput="updateFabric(${i},'preco',this.value)">
     </div>
     <div>
       <label>Encolhimento (%)</label>
@@ -329,17 +351,33 @@ function fabricRowHTML(f, i){
 }
 
 function renderFabricList(){
-  document.getElementById('fabricList').innerHTML = fabrics.map((f,i)=>fabricRowHTML(f,i)).join('');
+  document.getElementById('fabricList').innerHTML = fabrics.length? fabrics.map((f,i)=>fabricRowHTML(f,i)).join('') : '<p class="hint" style="margin:0 0 12px">Nenhum tecido ainda. Adicione um tecido Capricórnio (os dados técnicos vêm da ficha) ou um concorrente (preenchido à mão).</p>';
 }
 function updateFabric(i, key, val){
+  const antes = fabrics[i].preco>0;
   fabrics[i][key] = (key==='nome') ? val : parseFloat(val);
+  if(key==='preco' && antes !== (fabrics[i].preco>0)){ const el=document.activeElement, pos=el&&el.selectionStart; renderFabricList(); const novo=document.querySelector('.fabric-row[data-i="'+i+'"] input[placeholder="R$/m"]'); if(novo){ novo.focus(); try{ novo.setSelectionRange(pos,pos); }catch(e){} } }
   calcAll();
 }
 function addFabric(){
-  fabrics.push({nome:"Novo tecido", largura:1.50, preco:20, encolhimento:5});
+  fabrics.push({nome:"Tecido concorrente", largura:1.50, preco:null, encolhimento:0, origem:'conc'});
   renderFabricList();
   calcAll();
 }
+function addCapri(){
+  const inp=document.getElementById('capriBusca'), msg=document.getElementById('capriMsg');
+  const fi=fichaPorNome(inp.value);
+  if(!fi){ msg.textContent = inp.value.trim()? 'Artigo não encontrado nas fichas técnicas. Escolha um da lista.' : 'Digite e escolha um artigo da lista.'; return; }
+  fabrics.push({nome:fi.nome, largura:Math.round(fi.larg)/100, preco:null, encolhimento:encolhArea(fi), origem:'capri',
+    info:`Ficha técnica: largura ${String(fi.larg).replace('.0','')} cm · encolhimento trama ${fi.shT}% e urdume ${fi.shU}% · ${fi.oz} oz · ${fi.comp}`});
+  inp.value=''; msg.textContent=fi.nome+' adicionado com os dados da ficha técnica. Falta só o preço.';
+  renderFabricList(); calcAll();
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const dl=document.getElementById('capriLista');
+  if(dl) dl.innerHTML=FICHAS.map(f=>`<option value="${esc(f.nome)}">${esc(f.familia+' · '+String(f.larg).replace('.0','')+' cm · '+f.oz+' oz')}</option>`).join('');
+  const b=document.getElementById('capriBusca'); if(b) b.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addCapri(); } });
+});
 function removeFabric(i){
   fabrics.splice(i,1);
   renderFabricList();
@@ -382,7 +420,7 @@ function calcAll(){
 
   let results = [];
 
-  fabrics.forEach(f=>{
+  fabrics.filter(f=>f.preco>0 && f.largura>0).forEach(f=>{
     let porTamanho = {};
     let totalGrade = 0;
     sizes.forEach(t=>{
