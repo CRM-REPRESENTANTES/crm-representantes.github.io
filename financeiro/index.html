@@ -880,22 +880,15 @@ function txt(el){ return (el.innerText||el.textContent||'').replace(/[ \t]+/g,' 
 var DL=null;
 if(window.claude&&typeof window.claude.use==='function'){ window.claude.use('downloads').then(function(d){ DL=d; }, function(){}); }
 function baixarBlob(blob, nome){ var u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },4000); }
-function gerarPDF(titulo, filtros, partes, btn, share){
+function gerarPDF(titulo, filtros, partes, btn, share, extra){
+  extra=extra||{};
   var old=btn? btn.textContent : ''; if(btn){ btn.disabled=true; btn.textContent='Gerando…'; }
   return loadJsPDF().then(function(JsPDF){
-    var doc=new JsPDF({orientation:'landscape', unit:'pt', format:'a4'}), W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=CapriPDF.MARGEM, y;
-    y=CapriPDF.cabecalho(doc, titulo, 'Gerado em '+fmtDateTime(new Date().toISOString())+(T.meta? '  ·  Títulos: '+T.meta.arquivo+' ('+fmtDateTime(T.meta.modificadoEm)+')':''));
-    var para=function(t, bold, size){ if(!t) return; doc.setFont('helvetica', bold?'bold':'normal'); doc.setFontSize(size||9.5); doc.setTextColor(bold?0:28, bold?51:28, bold?159:28);
-      doc.splitTextToSize(String(t).replace(/⚠/g,'!'), W-2*M-8).forEach(function(l){ if(y>H-70){ doc.addPage(); y=M+28; } doc.text(l, M+4, y); y+=(size||9.5)*1.35; }); y+=4; doc.setTextColor(28,28,28); };
-    if(filtros&&filtros.length) para('Filtros: '+filtros.join(' · '), true);
-    partes.forEach(function(pt){
-      if(pt.texto) return para(pt.texto, pt.bold, pt.size);
-      var opt=CapriPDF.tabela({startY:y, didParseCell:function(d){ if(d.cell&&d.cell.text) d.cell.text=d.cell.text.map(function(s){ return String(s).replace(/⚠\s*/g,'! '); }); }});
-      if(pt.tabela){ opt.html=pt.tabela; var cs={}; pt.tabela.querySelectorAll('thead th').forEach(function(th,i){ if(th.classList.contains('num')) cs[i]={halign:'right'}; }); opt.columnStyles=cs; }
-      else { opt.head=[pt.head]; opt.body=pt.body; if(pt.colStyles) opt.columnStyles=pt.colStyles; }
-      doc.autoTable(opt); y=doc.lastAutoTable.finalY+14;
-    });
-    CapriPDF.finalizar(doc, 'CRM Studio Denim · Financeiro');
+    var fonte=T.meta? {v:T.meta.arquivo, s:'Títulos de '+fmtDateTime(T.meta.modificadoEm)} : null;
+    var fs=(filtros||[]).filter(function(f){ return f&&String(f).trim(); });
+    var doc=CapriPDF.relatorio(JsPDF, {titulo:titulo, subtitulo:extra.sub||'Carteira de títulos · Capricórnio Têxtil',
+      info:[{l:'Filtros', v:fs.length? fs.join(' · ') : 'Sem filtros', w:2.2}, fonte? {l:'Fonte', v:fonte.v, s:fonte.s, w:1.3} : null, {l:'Emitido em', v:fmtDateTime(new Date().toISOString()), w:.9}],
+      kpis:extra.kpis, aviso:extra.aviso, partes:partes, nota:extra.nota, corrido:fs.join(' · ')});
     var nome=slug(titulo)+'-'+todayISO()+'.pdf', blob=doc.output('blob');
     if(DL) return DL.save({filename:nome, data:blob}).catch(function(){});
     var file=null; try{ file=new File([blob], nome, {type:'application/pdf'}); }catch(e){}
@@ -904,18 +897,20 @@ function gerarPDF(titulo, filtros, partes, btn, share){
   }).catch(function(e){ setMsg(e&&e.message==='libpdfgen'? 'Não foi possível carregar o gerador de PDF. Verifique a conexão.' : 'Não foi possível gerar o PDF.'); })
     .then(function(){ if(btn){ btn.disabled=false; btn.textContent=old; } });
 }
-function pdfDe(titulo, el, filtros, btn, share){
+function pdfDe(titulo, el, filtros, btn, share, extra){
   if(!el||!txt(el)) return; var partes=[];
   el.querySelectorAll('p, table').forEach(function(n){ if(n.closest('table')&&n.tagName!=='TABLE') return; if(n.tagName==='TABLE') partes.push({tabela:NFDocs.cleanTable(n)}); else partes.push({texto:txt(n)}); });
-  gerarPDF(titulo, filtros, partes, btn, share);
+  gerarPDF(titulo, filtros, partes, btn, share, extra);
 }
 function mesTxt(){ return T.month==='todos'? 'Todos os meses' : monthLabel(T.month); }
-onPdf('pdfPagos',function(){ var share=this.classList.contains('share'); pdfDe('Títulos pagos', $('bPagos'), [mesTxt(), $('sPagos').getAttribute('data-v')||''], this, share); });
-onPdf('pdfVenc',function(){ var share=this.classList.contains('share'); pdfDe('Títulos vencidos', $('bVenc'), [mesTxt(), $('sVenc').textContent], this, share); });
+onPdf('pdfPagos',function(){ var share=this.classList.contains('share'); var v=$('sPagos').getAttribute('data-v')||''; pdfDe('Títulos pagos', $('bPagos'), [mesTxt()], this, share, v? {kpis:[{l:'Títulos pagos', v:v, s:mesTxt(), tom:'verde'}]} : null); });
+onPdf('pdfVenc',function(){ var share=this.classList.contains('share'); var v=$('sVenc').textContent; pdfDe('Títulos vencidos', $('bVenc'), [mesTxt()], this, share, v? {kpis:[{l:'Títulos vencidos', v:v.replace(/ em aberto$/,''), s:'em aberto · '+mesTxt(), tom:'verm'}]} : {aviso:{tom:'verde', titulo:'Nenhum título vencido.'}}); });
 onPdf('pdfRank',function(){ var share=this.classList.contains('share'); pdfDe('Clientes - prazo de pagamento', $('rankBody'), ['todos os títulos carregados'], this, share); });
 function pdfSerie(titulo, nota, serie, col, btn, share){
-  var R={halign:'right'};
-  gerarPDF(titulo, [nota], [{head:['Mês', col, 'Valor dos títulos', 'Comissão'], body:serie.map(function(x){ return [monthLabel(x.k), fmtInt(x.o.n), fmtBRL(x.o.base), fmtBRL(x.o.com)]; }), colStyles:{1:R,2:R,3:R}}], btn, share);
+  var R={halign:'right'}, tn=0, tb=0, tc=0; serie.forEach(function(x){ tn+=x.o.n; tb+=x.o.base; tc+=x.o.com; });
+  var body=serie.map(function(x){ return [monthLabel(x.k), fmtInt(x.o.n), fmtBRL(x.o.base), fmtBRL(x.o.com)]; }); body.push(['TOTAL', fmtInt(tn), fmtBRL(tb), fmtBRL(tc)]);
+  gerarPDF(titulo, [], [{texto:String(nota||'').replace(/\s*Clique[^.]*\.?/g,'').trim()}, {secao:'Comissão por mês'}, {head:['Mês', col, 'Valor dos títulos', 'Comissão'], body:body, colStyles:{1:R,2:R,3:R}}], btn, share,
+    {kpis:[{l:col, v:fmtInt(tn)},{l:'Valor dos títulos', v:fmtBRL(tb)},{l:'Comissão', v:fmtBRL(tc), tom:'verde'},{l:'Meses', v:fmtInt(serie.length)}]});
 }
 onPdf('pdfCom',function(){ if(T.serie) pdfSerie('Comissão real', $('comNote').textContent, T.serie, 'Títulos pagos', this, this.classList.contains('share')); });
 onPdf('pdfProj',function(){ if(T.proj) pdfSerie('Comissão futura - projeção', $('projNote').textContent, T.proj, 'Títulos a vencer', this, this.classList.contains('share')); });

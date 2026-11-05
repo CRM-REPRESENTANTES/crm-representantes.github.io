@@ -1462,22 +1462,15 @@ function loadJsPDF(){
 function slug(t){ return norm(t).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)||'relatorio'; }
 function txt(el){ return (el.innerText||el.textContent||'').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim(); }
 /* Monta o PDF: cabeçalho STUDIO DENIM, título, filtros, textos e tabelas na ordem em que aparecem. */
-function gerarPDF(titulo, filtros, partes, btn, share){
+function gerarPDF(titulo, filtros, partes, btn, share, extra){
+  extra=extra||{};
   var old=btn? btn.textContent : ''; if(btn){ btn.disabled=true; btn.textContent='Gerando…'; }
   return loadJsPDF().then(function(JsPDF){
-    var doc=new JsPDF({orientation:'landscape', unit:'pt', format:'a4'}), W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=CapriPDF.MARGEM, y;
-    y=CapriPDF.cabecalho(doc, titulo, 'Gerado em '+fmtDateTime(new Date().toISOString())+(S.data&&S.data.meta.arquivo? '  ·  Carteira: '+S.data.meta.arquivo+' ('+fmtDateTime(S.data.meta.modificadoEm)+')':''));
-    var para=function(t, bold, size){ if(!t) return; doc.setFont('helvetica', bold?'bold':'normal'); doc.setFontSize(size||9.5); doc.setTextColor(bold?0:28, bold?51:28, bold?159:28);
-      doc.splitTextToSize(String(t).replace(/⚠/g,'!'), W-2*M-8).forEach(function(l){ if(y>H-70){ doc.addPage(); y=M+28; } doc.text(l, M+4, y); y+=(size||9.5)*1.35; }); y+=4; doc.setTextColor(28,28,28); };
-    if(filtros&&filtros.length) para('Filtros: '+filtros.join(' · '), true);
-    partes.forEach(function(pt){
-      if(pt.texto) return para(pt.texto, pt.bold, pt.size);
-      var opt=CapriPDF.tabela({startY:y, didParseCell:function(d){ if(d.cell&&d.cell.text) d.cell.text=d.cell.text.map(function(s){ return String(s).replace(/⚠\s*/g,'! '); }); }});
-      if(pt.tabela){ opt.html=pt.tabela; var cs={}; pt.tabela.querySelectorAll('thead th').forEach(function(th,i){ if(th.classList.contains('num')) cs[i]={halign:'right'}; }); opt.columnStyles=cs; }
-      else { opt.head=[pt.head]; opt.body=pt.body; if(pt.colStyles) opt.columnStyles=pt.colStyles; }
-      doc.autoTable(opt); y=doc.lastAutoTable.finalY+14;
-    });
-    CapriPDF.finalizar(doc, 'CRM Studio Denim · Carteira');
+    var fonte=S.data&&S.data.meta.arquivo? {v:S.data.meta.arquivo, s:'Carteira de '+fmtDateTime(S.data.meta.modificadoEm)} : null;
+    var fs=(filtros||[]).filter(function(f){ return f&&String(f).trim(); });
+    var doc=CapriPDF.relatorio(JsPDF, {titulo:titulo, subtitulo:extra.sub||'Carteira de pedidos · Capricórnio Têxtil',
+      info:[{l:'Filtros', v:fs.length? fs.join(' · ') : 'Sem filtros', w:2.2}, fonte? {l:'Fonte', v:fonte.v, s:fonte.s, w:1.3} : null, {l:'Emitido em', v:fmtDateTime(new Date().toISOString()), w:.9}],
+      kpis:extra.kpis, aviso:extra.aviso, partes:partes, nota:extra.nota, corrido:fs.join(' · ')});
     var nome=slug(titulo)+'-'+todayISO()+'.pdf', blob=doc.output('blob');
     if(DL) return DL.save({filename:nome, data:blob}).catch(function(e){ var c=e&&e.code; if(c!=='declined') alertPdf(c==='rate_limited'? 'Já há um arquivo aguardando confirmação. Tente de novo em instantes.' : 'Não foi possível salvar o PDF nesta visualização.'); });
     var file=null; try{ file=new File([blob], nome, {type:'application/pdf'}); }catch(e){}
@@ -1495,7 +1488,7 @@ if(window.claude&&typeof window.claude.use==='function'){ window.claude.use('dow
 function baixarBlob(blob, nome){ var u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },4000); }
 function alertPdf(t){ setFileMsg(t); }
 /* Lê um bloco de resultado (listagem, pesquisa) e transforma em partes do PDF. */
-function pdfBloco(titulo, el, filtros, btn, share){
+function pdfBloco(titulo, el, filtros, btn, share, extra){
   if(!el||!txt(el)) return;
   var partes=[];
   el.querySelectorAll('p, h4, ul, ol, table').forEach(function(n){
@@ -1504,11 +1497,11 @@ function pdfBloco(titulo, el, filtros, btn, share){
     else if(n.tagName==='UL'||n.tagName==='OL') partes.push({texto:Array.prototype.map.call(n.children,function(li){ return '• '+txt(li); }).join('\n')});
     else { var t=txt(n).replace(/Limpar filtros/g,'').trim(); if(t) partes.push({texto:t, bold:n.tagName==='H4'}); }
   });
-  gerarPDF(titulo, filtros, partes, btn, share);
+  gerarPDF(titulo, filtros, partes, btn, share, extra);
 }
 onPdf('pdfLate',function(){ var share=this.classList.contains('share');
   var k=S.k; if(!k) return;
-  pdfBloco('Pedidos atrasados', $('lateBody'), [fmtInt(k.latePeds)+' pedidos · '+$('lateSum').textContent], this, share);
+  pdfBloco('Pedidos atrasados', $('lateBody'), ['Embarque vencido até '+fmtDate(k.today)], this, share, {kpis:[{l:'Pedidos atrasados', v:fmtInt(k.latePeds), s:'com embarque vencido', tom:k.latePeds?'verm':'verde'},{l:'Valor em aberto', v:fmtBRL(k.lateValor), s:'saldo dos itens atrasados', tom:k.latePeds?'verm':'verde'},{l:'Data de referência', v:fmtDate(k.today)}]});
 });
 onPdf('pdfChart',function(){ var share=this.classList.contains('share');
   var k=S.kf; if(!k) return;
@@ -1520,7 +1513,8 @@ onPdf('pdfChart',function(){ var share=this.classList.contains('share');
   body.push(['', 'TOTAL', '', fmtNum(tq), '100%', fmtBRL(tv), '100%']);
   var R={halign:'right'};
   gerarPDF('Compras por cliente', ['Período: '+S.kfLabel, 'ordenado por '+(by==='qtd'?'quantidade':'valor')],
-    [{texto:S.chartTxt||''}, {head:['#','Cliente','Pedidos','Quantidade','% qtd.','Valor (R$)','% valor'], body:body, colStyles:{0:R,2:R,3:R,4:R,5:R,6:R}}], this, share);
+    [{texto:S.chartTxt||''}, {secao:'Ranking de clientes'}, {head:['#','Cliente','Pedidos','Quantidade','% qtd.','Valor (R$)','% valor'], body:body, colStyles:{0:R,2:R,3:R,4:R,5:R,6:R}}], this, share,
+    {kpis:[{l:'Clientes', v:fmtInt(list.length)},{l:'Quantidade', v:fmtNum(tq)},{l:'Valor', v:fmtBRL(tv)}]});
 });
 
 /* ---------- PDF do pedido (Confirmação de Pedido, modelo Capricórnio) ---------- */
