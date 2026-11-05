@@ -425,7 +425,7 @@
   <section class="card" aria-labelledby="hRes" id="resCard" hidden>
     <h2 id="hRes">2. Análise pelo Manual de Qualidade</h2>
     <div class="tiles five" id="tiles"></div>
-    <div class="resbar"><span>Resultado por romaneio · clique na linha para ver nuances, OTs e peças curtas</span><a class="btn-pdf" id="pdfLink" hidden target="_blank" rel="noopener" style="text-decoration:none;background:var(--good-bg);color:var(--good);border-color:var(--good)">Abrir o relatório (PDF)</a><button type="button" class="btn-pdf" id="pdfRes">Gerar PDF</button><button type="button" class="btn-pdf share" id="pdfResSh">Compartilhar</button></div>
+    <div class="resbar"><span>Resultado por romaneio · clique na linha para ver nuances, OTs e peças curtas</span><a class="btn-pdf" id="pdfLink" hidden target="_blank" rel="noopener" style="text-decoration:none;background:var(--good-bg);color:var(--good);border-color:var(--good)">Abrir o relatório (PDF)</a><select id="pdfVersao" class="tipo" title="Versão do relatório" style="font-size:12.5px;padding:5px 6px"><option value="completo">Relatório completo</option><option value="resumido">Relatório resumido</option></select><button type="button" class="btn-pdf" id="pdfRes">Gerar PDF</button><button type="button" class="btn-pdf share" id="pdfResSh">Compartilhar</button></div>
     <div class="progress" id="pdfMsg" aria-live="polite"></div>
     <div class="tablewrap res" id="resBody"></div>
   </section>
@@ -690,13 +690,13 @@ function analisar(nf, rom, info, tec){
   var faixa=metros<=1000?'até 1.000 m':metros<=3500?'de 1.001 a 3.500 m':metros<=5000?'de 3.501 a 5.000 m':'acima de 5.000 m';
   var medOk=!((metros<=lim&&medias.length)||(metros>lim&&mMed>0.10*metros+1e-6));
   if(pecas){
-    crit.push({c:'Rolos abaixo de '+min+' m (peça média, 30 a '+(min-0.1).toLocaleString('pt-BR')+' m)', e: pecaMedia? 'Pedido de peça média' : metros<=lim? 'Não permitido em pedidos de até '+fI(lim)+' m' : 'Até 10% da metragem do pedido',
+    crit.push({k:'media', c:'Rolos abaixo de '+min+' m (peça média, 30 a '+(min-0.1).toLocaleString('pt-BR')+' m)', e: pecaMedia? 'Pedido de peça média' : metros<=lim? 'Não permitido em pedidos de até '+fI(lim)+' m' : 'Até 10% da metragem do pedido',
       r: medias.length? medias.length+(medias.length===1?' rolo':' rolos')+' · '+fM(mMed)+' m ('+fP(metros?mMed/metros:0)+' da metragem)' : 'Nenhum', s: pecaMedia?'info':(medOk?'ok':'fora')});
-    crit.push({c:'Rolos abaixo de 30 m (peça pequena)', e:'Não permitido na 1ª qualidade', r: pequenas.length? pequenas.length+(pequenas.length===1?' rolo':' rolos') : 'Nenhum', s: pequenas.length?'fora':'ok'});
-    crit.push({c:'Quantidade de nuances na NF', e: pecaMedia? 'Sem limite (peça média)' : 'Máximo '+mx2+' (pedido '+faixa+')', r: nNua+(nNua===1?' nuance':' nuances'), s: pecaMedia?'info':(nNua>mx2?'fora':'ok')});
-    if(color){ var menor=Object.keys(nuas).reduce(function(m,k){ return Math.min(m,nuas[k].metros); }, Infinity); crit.push({c:'Metragem por nuance (Denim Color)', e:'Mínimo de 500 m por nuance', r:'Menor nuance: '+fM(menor)+' m', s: Object.keys(pocasNua).length?'fora':'ok'}); }
-    crit.push({c:'Variação de largura entre os rolos', e:'Até 4 cm', r: lg2.length? dlc.toLocaleString('pt-BR')+' cm ('+Math.min.apply(null,lg2).toFixed(2).replace('.',',')+' a '+Math.max.apply(null,lg2).toFixed(2).replace('.',',')+' m)' : '—', s: dlc>4?'fora':'ok'});
-    crit.push({c:'Pontuação de defeitos por rolo', e:'Até 15 pontos/100 m²', r:'Maior: '+ptm.toLocaleString('pt-BR',{maximumFractionDigits:2})+' pontos/100 m²', s: ptm>15?'fora':'ok'});
+    crit.push({k:'pequena', c:'Rolos abaixo de 30 m (peça pequena)', e:'Não permitido na 1ª qualidade', r: pequenas.length? pequenas.length+(pequenas.length===1?' rolo':' rolos') : 'Nenhum', s: pequenas.length?'fora':'ok'});
+    crit.push({k:'nuances', c:'Quantidade de nuances na NF', e: pecaMedia? 'Sem limite (peça média)' : 'Máximo '+mx2+' (pedido '+faixa+')', r: nNua+(nNua===1?' nuance':' nuances'), s: pecaMedia?'info':(nNua>mx2?'fora':'ok')});
+    if(color){ var menor=Object.keys(nuas).reduce(function(m,k){ return Math.min(m,nuas[k].metros); }, Infinity); crit.push({k:'color', c:'Metragem por nuance (Denim Color)', e:'Mínimo de 500 m por nuance', r:'Menor nuance: '+fM(menor)+' m', s: Object.keys(pocasNua).length?'fora':'ok'}); }
+    crit.push({k:'largura', c:'Variação de largura entre os rolos', e:'Até 4 cm', r: lg2.length? dlc.toLocaleString('pt-BR')+' cm ('+Math.min.apply(null,lg2).toFixed(2).replace('.',',')+' a '+Math.max.apply(null,lg2).toFixed(2).replace('.',',')+' m)' : '—', s: dlc>4?'fora':'ok'});
+    crit.push({k:'pontos', c:'Pontuação de defeitos por rolo', e:'Até 15 pontos/100 m²', r:'Maior: '+ptm.toLocaleString('pt-BR',{maximumFractionDigits:2})+' pontos/100 m²', s: ptm>15?'fora':'ok'});
     crit.push({c:'Ordens de tingimento (OT)', e:'Informativo: enfesto por Nuance › OT › ST › SC', r: nOt+(nOt===1?' OT':' OTs'), s:'info'});
   }
   return {nf:nf, tec:tec||'', crit:crit, medOk:medOk, mMed:mMed, nMed:medias.length, pedido:rom.pedido||(info&&info.pedido)||'', cliente:(info&&info.cli)||rom.cliente, razao:rom.cliente, data:(info&&info.data)||'', embarque:rom.embarque,
@@ -842,7 +842,7 @@ if(window.claude&&typeof window.claude.use==='function'){ window.claude.use('dow
 function baixarBlob(blob, nome){ var u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },4000); }
 function filtrosTxt(){ var f=[], fc=$('fCli').value; if($('fDe').value||$('fAte').value) f.push('Período: '+($('fDe').value?fmtDate($('fDe').value):'início')+' a '+($('fAte').value?fmtDate($('fAte').value):'hoje'));
   if(fc.indexOf('g:')===0) f.push('Grupo econômico '+fc.slice(2)+' ('+membrosGrupo(fc.slice(2)).join(', ')+')'); else if(fc.indexOf('c:')===0) f.push('Cliente '+fc.slice(2)); return f; }
-function gerarPDF(btn, share){
+function gerarPDF(btn, share, resumido){
   if(!R.res.length) return; var old=btn.textContent; btn.disabled=true; btn.textContent='Gerando…'; $('pdfMsg').textContent='Gerando o relatório…';
   loadJsPDF().then(function(JsPDF){
     var doc=new JsPDF({orientation:'landscape', unit:'pt', format:'a4'}), W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=CapriPDF.MARGEM, y;
@@ -875,7 +875,7 @@ function gerarPDF(btn, share){
     var tecLbl=$('fTec').value || (Object.keys(tecs).length<=3? Object.keys(tecs).join(' · ') : Object.keys(tecs).length+' tecidos');
 
     /* ---------- capa / resumo ---------- */
-    y=CapriPDF.cabecalho(doc, 'Relatório de conformidade de romaneios', 'Avaliação dos romaneios de faturamento conforme o Manual de Uso - Tecidos Capricórnio')+4;
+    y=CapriPDF.cabecalho(doc, 'Relatório de conformidade de romaneios'+(resumido?' - resumo':''), 'Avaliação dos romaneios de faturamento conforme o Manual de Uso - Tecidos Capricórnio')+4;
     /* quadro de identificação */
     var ph=50; fill(CINZA_F); doc.roundedRect(M, y, W-2*M, ph, 6, 6, 'F');
     var cols=[{l:'CLIENTE', v:cliLbl, s:cliSub, w:.40},{l:'PERÍODO', v:periodo, w:.20},{l:'TECIDO', v:tecLbl||'—', w:.22},{l:'EMITIDO EM', v:fmtDateTime(new Date().toISOString()), w:.18}], cx=M+14;
@@ -920,6 +920,29 @@ function gerarPDF(btn, share){
         if(d.column.index===1&&!r.ok) d.cell.styles.textColor=VERM; }}));
     y=doc.lastAutoTable.finalY+22;
 
+    if(resumido){
+      /* conformidade por critério */
+      var CR=[['media','Rolos de peça média (30 m até o mínimo)','Até 10% da metragem em pedidos acima de 1.000 m (500 m no Color)'],['pequena','Rolos abaixo de 30 m (peça pequena)','Não permitido na 1ª qualidade'],['nuances','Quantidade de nuances na NF','2 / 3 / 4 / 5 conforme a metragem da NF'],['color','Metragem por nuance (Denim Color)','Mínimo de 500 m por nuance'],['largura','Variação de largura entre os rolos','Até 4 cm'],['pontos','Pontuação de defeitos por rolo','Até 15 pontos/100 m²']];
+      var linhas=CR.map(function(c){ var av=0, fo=[]; R.res.forEach(function(r){ var x=r.crit.filter(function(q){ return q.k===c[0]; })[0]; if(!x||x.s==='info') return; av++; if(x.s==='fora') fo.push(r.nf); }); return {c:c, av:av, fo:fo}; }).filter(function(l){ return l.av; });
+      titulo('Conformidade por critério do manual');
+      doc.autoTable(Object.assign(base({startY:y, draw:function(d){ if(d.section==='body'&&d.column.index===5&&linhas[d.row.index]){ var l=linhas[d.row.index], pc=(l.av-l.fo.length)/l.av; selo(d.cell.x+6, d.cell.y+d.cell.height/2-7.5, d.cell.width-12, 15, l.fo.length?'fora':'ok', fP(pc)); } }}), {
+        head:[['Critério','Exigência do manual','Avaliados','Conformes','Não conformes','% conformidade','Romaneios fora (NF)']],
+        body:linhas.map(function(l){ return [l.c[1], l.c[2], l.av, l.av-l.fo.length, l.fo.length, '', l.fo.join(', ')||'-']; }),
+        columnStyles:{0:{cellWidth:170, fontStyle:'bold'},1:{cellWidth:180},2:Object.assign({cellWidth:56},Cc),3:Object.assign({cellWidth:58},Cc),4:Object.assign({cellWidth:70},Cc),5:{cellWidth:86}},
+        didParseCell:function(d){ if(d.section==='head'&&d.column.index>=2&&d.column.index<=4) d.cell.styles.halign='center'; if(d.section!=='body') return; var l=linhas[d.row.index]; if(l&&l.fo.length&&(d.column.index===4||d.column.index===6)){ d.cell.styles.textColor=VERM; d.cell.styles.fontStyle='bold'; } }}));
+      y=doc.lastAutoTable.finalY+22;
+      /* desconformidades encontradas */
+      var desc=[]; R.res.forEach(function(r){ r.crit.forEach(function(c){ if(c.s==='fora') desc.push([r.nf, String(r.pedido||'-').replace(/^0+/,''), r.cliente, limpa(c.c), limpa(c.r), limpa(c.e)]); }); });
+      titulo('Desconformidades encontradas', desc.length? desc.length+(desc.length===1?' ponto fora do critério':' pontos fora do critério')+' em '+fora.length+(fora.length===1?' romaneio.':' romaneios.') : '');
+      if(desc.length){
+        doc.autoTable(Object.assign(base({startY:y, headStyles:{fillColor:VERM}}), {head:[['NF','Pedido','Cliente','Critério','Encontrado no romaneio','Exigência']], body:desc,
+          headStyles:{fillColor:VERM, textColor:[255,255,255], fontStyle:'bold', fontSize:7.8},
+          columnStyles:{0:{cellWidth:50, fontStyle:'bold'},1:{cellWidth:50},2:{cellWidth:150},4:{textColor:VERM, fontStyle:'bold'}}}));
+        y=doc.lastAutoTable.finalY+14;
+      } else { garantir(30); fill(VERDE_F); doc.roundedRect(M, y, W-2*M, 26, 6, 6, 'F'); font('bold',9.5); ink(VERDE); doc.text('Nenhuma desconformidade: todos os romaneios atendem ao Manual de Qualidade.', M+14, y+17); y+=34; }
+      font('normal',7.5); ink(SUAVE); garantir(20);
+      doc.text('Versão resumida. A versão completa traz o checklist de cada romaneio, as nuances e OTs e a lista dos rolos abaixo de 80 m.', M, y+6);
+    } else {
     /* ---------- detalhe de cada romaneio ---------- */
     doc.addPage(); y=topo();
     titulo('Avaliação detalhada por romaneio', 'Cada romaneio é comparado com as exigências do Manual de Qualidade. Os rolos devem ser enfestados respeitando a sequência Nuance > OT > ST > SC indicada no romaneio.');
@@ -973,11 +996,12 @@ function gerarPDF(btn, share){
     font('normal',7.5); ink(SUAVE);
     doc.text(doc.splitTextToSize('Avaliação feita a partir dos romaneios de faturamento emitidos pela Capricórnio Têxtil (metragem, nuance, OT, largura e pontuação informadas rolo a rolo).', W-2*M), M, y);
 
+    }
     /* cabeçalho corrido nas páginas seguintes */
     var n=doc.internal.getNumberOfPages();
     for(var i=2;i<=n;i++){ doc.setPage(i); font('bold',7.5); ink(AZUL); doc.text('Relatório de conformidade de romaneios', M, 34); font('normal',7.5); ink(SUAVE); doc.text(limpa(cliLbl+'  ·  '+periodo), W-M, 34, {align:'right'}); }
     CapriPDF.finalizar(doc, 'Capricórnio Têxtil · Relatório de conformidade de romaneios');
-    var nome='conformidade-romaneios-'+todayISO()+'.pdf', blob=doc.output('blob');
+    var nome='conformidade-romaneios'+(resumido?'-resumo':'')+'-'+todayISO()+'.pdf', blob=doc.output('blob');
     /* link de reserva: se o navegador bloquear o download automático, o relatório abre por aqui */
     try{ var lk=$('pdfLink'); if(lk._u) URL.revokeObjectURL(lk._u); lk._u=URL.createObjectURL(blob); lk.href=lk._u; lk.download=nome; lk.hidden=false; }catch(e){}
     $('pdfMsg').textContent='Relatório gerado ('+doc.internal.getNumberOfPages()+' páginas). Se o download não começou, clique em “Abrir o relatório (PDF)”.';
@@ -987,8 +1011,8 @@ function gerarPDF(btn, share){
     baixarBlob(blob,nome);
   }).catch(function(e){ console.error(e); $('pdfMsg').textContent= e&&e.message==='libpdfgen'? 'Não foi possível carregar o gerador de PDF. Verifique a conexão e tente de novo.' : 'Não foi possível gerar o PDF: '+(e&&e.message||e)+'. Me envie um print desta mensagem.'; }).then(function(){ btn.disabled=false; btn.textContent=old; });
 }
-$('pdfRes').addEventListener('click',function(){ gerarPDF(this,false); });
-$('pdfResSh').addEventListener('click',function(){ gerarPDF(this,true); });
+$('pdfRes').addEventListener('click',function(){ gerarPDF(this,false,$('pdfVersao').value==='resumido'); });
+$('pdfResSh').addEventListener('click',function(){ gerarPDF(this,true,$('pdfVersao').value==='resumido'); });
 
 /* ---------- início ---------- */
 function atualizarFonte(){
