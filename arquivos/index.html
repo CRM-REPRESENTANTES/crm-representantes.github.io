@@ -558,8 +558,10 @@ const btnCrm = document.getElementById("btnCrm");
 btnCrm.addEventListener("click", () => { const abrir = solic.hidden; solic.hidden = !abrir; btnCrm.setAttribute("aria-expanded", String(abrir)); });
 const tabelasEl = document.getElementById("tabelas");
 const TABELAS = [
-  {name:"TABELA DE PREÇOS SP ATÉ JULHO 2026 3", enc:"tabelas/tabela-de-precos-sp-ate-julho-2026-3.pdf.enc2", duplo:true, ext:"pdf", tipo:"PDF", kb:92, mime:"application/pdf"},
-  {name:"TABELA SP SETEMBRO 2", enc:"tabelas/tabela-sp-setembro-2.xlsx.enc2", duplo:true, ext:"xlsx", tipo:"Excel", kb:18, mime:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
+  /* camada:"carteira" = arquivo .enc cifrado só com a chave da carteira; a senha de documentos continua
+     sendo pedida para entrar na aba e abrir. Ao recifrar com as duas camadas (.enc2), troque por duplo:true. */
+  {name:"TABELA DE PREÇOS SP ATÉ JULHO 2026 3", enc:"tabelas/tabela-de-precos-sp-ate-julho-2026-3.pdf.enc", camada:"carteira", ext:"pdf", tipo:"PDF", kb:92, mime:"application/pdf"},
+  {name:"TABELA SP SETEMBRO 2", enc:"tabelas/tabela-sp-setembro-2.xlsx.enc", camada:"carteira", ext:"xlsx", tipo:"Excel", kb:18, mime:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
 ];
 /* Fichas técnicas, tabelas de preço e apostila ficam cifradas no site (AES-256-GCM) com a SENHA DE
    DOCUMENTOS (diferente da senha de entrada). Ela é pedida ao abrir essas telas; a chave fica só na
@@ -601,6 +603,14 @@ async function abrirCifrado(f){
   const r = await fetch(f.enc + "?t=" + Date.now(), {cache:"no-store"}); if(!r.ok) throw new Error("rede");
   const buf = new Uint8Array(await r.arrayBuffer());
   let plain;
+  if(f.camada === "carteira"){
+    let k2 = null; try{ k2 = sessionStorage.getItem("sd_carteira_chave"); }catch(e){}
+    if(!k2) throw new Error("entrada");
+    const kc = await crypto.subtle.importKey("raw", b64d(k2), "AES-GCM", false, ["decrypt"]);
+    try{ plain = new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM", iv:buf.slice(0,12)}, kc, buf.slice(12))); }
+    catch(e){ throw new Error("entrada"); }
+    return new Blob([plain], {type: f.mime || "application/octet-stream"});
+  }
   try{ plain = new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM", iv:buf.slice(0,12)}, key, buf.slice(12))); }
   catch(e){ travarDocs(); throw new Error("chave"); }
   if(f.duplo){

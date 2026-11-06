@@ -47,7 +47,7 @@ Depois, inclua a tabela na lista `TABELAS` de `arquivos/index.html` (campo `enc`
 
 ## Senha de documentos
 
-Fichas técnicas (`arquivos/fichas/**/*.pdf.enc`), tabelas de preço (`arquivos/tabelas/*.enc2`) e a apostila (`arquivos/lavanderia/*.pdf.enc`) ficam cifradas com a **senha de documentos**, diferente da senha de entrada. O cabeçalho é `arquivos/docs.enc.json` (PBKDF2-SHA256, 600 mil iterações). As tabelas têm duas camadas: senha de documentos por fora e chave da carteira por dentro.
+Fichas técnicas (`arquivos/fichas/**/*.pdf.enc`), tabelas de preço (`arquivos/tabelas/*.enc`, cifradas com a chave da carteira; a senha de documentos é pedida para abrir a aba — ao recifrar com as duas camadas, use `.enc2` e `duplo:true`) e a apostila (`arquivos/lavanderia/*.pdf.enc`) ficam cifradas com a **senha de documentos**, diferente da senha de entrada. O cabeçalho é `arquivos/docs.enc.json` (PBKDF2-SHA256, 600 mil iterações). As tabelas têm duas camadas: senha de documentos por fora e chave da carteira por dentro.
 
 ```bash
 DOCS_SENHA='a senha de documentos' python3 tools/cifrar_docs.py caminho/arquivo.pdf arquivos/fichas/original/arquivo.pdf.enc

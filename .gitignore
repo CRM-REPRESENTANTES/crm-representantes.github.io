@@ -1,2 +1,3 @@
 arquivos/tabelas/*
 !arquivos/tabelas/*.enc
+!arquivos/tabelas/*.enc2
