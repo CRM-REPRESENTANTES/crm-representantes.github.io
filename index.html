@@ -461,7 +461,6 @@
       <div class="tile"><div class="lbl">Quantidade vendida</div><div class="val" id="kQtd">—</div><div class="sub" id="kQtdSub">&nbsp;</div></div>
       <div class="tile"><div class="lbl">Valor total dos pedidos</div><div class="val money" id="kValor">—</div><div class="sub" id="kValorSub">&nbsp;</div></div>
       <div class="tile good"><div class="lbl">Valor faturado</div><div class="val money" id="kValorFat">—</div><div class="sub" id="kValorFatSub">&nbsp;</div></div>
-      <div class="tile open"><div class="lbl">Valor em aberto</div><div class="val money" id="kValorAberto">—</div><div class="sub" id="kValorAbertoSub">&nbsp;</div></div>
       <div class="tile"><div class="lbl">Preço médio praticado</div><div class="val money" id="kPreco">—</div><div class="sub" id="kPrecoSub">&nbsp;</div></div>
     </div>
     <div class="lblock t-filtro" id="filterBlock" data-tipo="filtro">
@@ -507,7 +506,7 @@
 
   <p class="footnote so-carteira" id="footnote">
     <b>Como os números são calculados.</b> Cada pedido conta uma vez, mesmo com várias linhas. <b>Em aberto</b>: pedido com alguma linha não cancelada e saldo a faturar. <b>Faturado</b>: pedido sem saldo e com quantidade faturada. <b>Cancelado</b>: todas as linhas canceladas.
-    <b>Valor total</b> = Quantidade × Valor Unitário Líquido das linhas não canceladas; <b>valor faturado</b> = qtde_faturada × Valor Unitário Líquido; <b>valor em aberto</b> = Saldo × Valor Unitário Líquido (a coluna “Valor Total” do arquivo).
+    <b>Valor total</b> = Quantidade × Valor Unitário Líquido das linhas não canceladas; <b>valor faturado</b> = qtde_faturada × Valor Unitário Líquido; <b>preço</b> = Valor Unitário Líquido vendido (R$/m); <b>preço médio</b> = valor dos pedidos ÷ quantidade, sem linhas canceladas e sem preços abaixo de R$ 13 (amostras).
     <b>Atrasado</b>: linha não cancelada, com saldo, e Embarque anterior a hoje. <b>Previsão</b>: vem do arquivo (PDF ou Excel) enviado em “Previsão de atendimento”, ligado pelo número do pedido; fica guardada neste navegador até ser removida ou trocada.
     <b>Filtro de mês</b>: considera só as linhas cuja data de Embarque (ou de Emissão, conforme a escolha) cai no mês selecionado; a lista de pedidos atrasados mostra sempre todos os atrasados.
   </p>
@@ -634,8 +633,6 @@ function renderTiles(){
   $('kValorSub').textContent='linhas não canceladas';
   $('kValorFat').textContent=fmtBRL(k.valorFat);
   $('kValorFatSub').textContent=k.valor? (k.valorFat/k.valor*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'% do valor total' : '';
-  $('kValorAberto').textContent=fmtBRL(k.valorAberto);
-  $('kValorAbertoSub').textContent='saldo a faturar';
   $('kQtd').textContent=fmtNum(k.qtd);
   $('kQtdSub').textContent='faturada '+fmtNum(k.qtdFat)+' · saldo '+fmtNum(k.qtdSaldo);
   $('kPreco').textContent=k.pmQtd>0? fmtBRL(k.pmValor/k.pmQtd) : '—';
@@ -668,8 +665,8 @@ function renderLate(k){
     return;
   }
   card.classList.remove('none'); $('pdfLate').hidden=false;
-  $('lateSum').textContent=fmtBRL(k.lateValor)+' em aberto com embarque vencido · referência '+fmtDate(k.today);
-  var h='<div class="tablewrap"><table><thead><tr><th>Atraso</th><th>Pedido</th><th>Cliente</th><th>Tecido</th><th>Embarque</th><th>Previsão</th><th class="num">Saldo</th><th class="num">Valor em aberto</th><th>Situação</th></tr></thead><tbody>';
+  var lq=0; k.late.forEach(function(r){ lq+=r.saldo; }); $('lateSum').textContent=fmtNum(lq)+' de saldo com embarque vencido · referência '+fmtDate(k.today);
+  var h='<div class="tablewrap"><table><thead><tr><th>Atraso</th><th>Pedido</th><th>Cliente</th><th>Tecido</th><th>Embarque</th><th>Previsão</th><th class="num">Saldo</th><th class="num">Preço (R$/m)</th><th>Situação</th></tr></thead><tbody>';
   k.late.forEach(function(r){
     var d=daysLate(r.embarque,k.today), cls=d>14?'d3':d>7?'d2':'d1';
     var block=norm(r.sit).indexOf('bloq')>=0;
@@ -680,7 +677,7 @@ function renderLate(k){
        '<td>'+fmtDate(r.embarque)+'</td>'+
        '<td class="prevcell">'+prevCell(r,k.today)+'</td>'+
        '<td class="num">'+fmtNum(r.saldo)+'</td>'+
-       '<td class="num"><b>'+fmtBRL(r.saldo*r.unit)+'</b></td>'+
+       '<td class="num"><b>'+fmtBRL(r.unit)+'</b></td>'+
        '<td><span class="pill sit'+(block?' block':'')+'">'+esc(r.sit)+'</span><br><small>'+esc(r.sitLinha)+'</small></td></tr>';
   });
   body.innerHTML=h+'</tbody></table></div>';
@@ -1134,9 +1131,9 @@ function filterRows(f){
   });
 }
 function totals(rows){
-  var t={q:0,f:0,s:0,vp:0,vf:0,va:0}, peds={};
-  rows.forEach(function(r){ peds[r.pedido]=1; t.q+=r.qtd; t.f+=r.fat; t.s+=r.saldo; t.vp+=r.qtd*r.unit; t.vf+=r.fat*r.unit; t.va+=r.saldo*r.unit; });
-  return {linhas:rows.length, pedidos_distintos:Object.keys(peds).length, quantidade:fmtNum(t.q), qtde_faturada:fmtNum(t.f), saldo:fmtNum(t.s), valor_pedido:fmtBRL(t.vp), valor_faturado:fmtBRL(t.vf), valor_em_aberto:fmtBRL(t.va), _raw:t};
+  var t={q:0,f:0,s:0,vp:0,vf:0,va:0,pq:0,pv:0}, peds={};
+  rows.forEach(function(r){ peds[r.pedido]=1; t.q+=r.qtd; t.f+=r.fat; t.s+=r.saldo; t.vp+=r.qtd*r.unit; t.vf+=r.fat*r.unit; t.va+=r.saldo*r.unit; if(r.unit>=PRECO_MIN&&!isCanc(r)){ t.pq+=r.qtd; t.pv+=r.qtd*r.unit; } });
+  return {linhas:rows.length, pedidos_distintos:Object.keys(peds).length, quantidade:fmtNum(t.q), qtde_faturada:fmtNum(t.f), saldo:fmtNum(t.s), valor_pedido:fmtBRL(t.vp), valor_faturado:fmtBRL(t.vf), valor_em_aberto:fmtBRL(t.va), preco_medio:(t.pq>0? fmtBRL(t.pv/t.pq) : '—'), _raw:t};
 }
 function rowOut(r, today){
   var o={'Pedido':r.pedido,'Emissão':fmtDate(r.emissao),'Embarque':fmtDate(r.embarque),'Cliente':r.cliente};
@@ -1345,21 +1342,21 @@ function localSearch(q, ae, lead){
   var act=f.sit_linha? rows : rows.filter(function(r){return !isCanc(r);}), nCanc=rows.length-act.length;
   var tAll=totals(rows), t=totals(act), label=labels.length? labels.join(' · ') : 'toda a carteira';
   if(!rows.length){ ae.innerHTML=h+'<p>Nenhuma linha encontrada para '+esc(label)+'. Tente o nome do cliente, o número do pedido, o tecido ou a nota fiscal.</p>'; return; }
-  h+='<p><strong>'+esc(label.charAt(0).toUpperCase()+label.slice(1))+'</strong>: '+tAll.linhas+' linhas em '+tAll.pedidos_distintos+' pedidos · quantidade '+t.quantidade+' · saldo '+t.saldo+' · valor dos pedidos '+t.valor_pedido+' · faturado '+t.valor_faturado+' · em aberto '+t.valor_em_aberto+'.'+(nCanc? ' Quantidades e valores não incluem '+nCanc+(nCanc>1?' linhas canceladas.':' linha cancelada.'):'')+'</p>';
+  h+='<p><strong>'+esc(label.charAt(0).toUpperCase()+label.slice(1))+'</strong>: '+tAll.linhas+' linhas em '+tAll.pedidos_distintos+' pedidos · quantidade '+t.quantidade+' · saldo '+t.saldo+' · valor dos pedidos '+t.valor_pedido+' · faturado '+t.valor_faturado+' · preço médio '+t.preco_medio+'/m.'+(nCanc? ' Quantidades e valores não incluem '+nCanc+(nCanc>1?' linhas canceladas.':' linha cancelada.'):'')+'</p>';
   if(group){
     var by={}, g=GROUPS[group], names={cliente:'Cliente',descricao:'Tecido',mes_embarque:'Mês de embarque',situacao:'Situação'};
     act.forEach(function(r){ (by[g(r)]=by[g(r)]||[]).push(r); });
-    var metric=(f.somente_com_saldo||f.somente_atrasados)?'va':'vp';
+    var metric='vp';
     var gs=Object.keys(by).map(function(k){ var x=totals(by[k]); x.grupo=k; return x; });
     if(group==='mes_embarque') gs.sort(function(a,b){ var ka=a.grupo.slice(3)+a.grupo.slice(0,2), kb=b.grupo.slice(3)+b.grupo.slice(0,2); return ka<kb?-1:ka>kb?1:0; });
     else gs.sort(function(a,b){ return b._raw[metric]-a._raw[metric]; });
-    h+='<div class="tablewrap"><table><thead><tr><th>'+names[group]+'</th><th class="num">Pedidos</th><th class="num">Quantidade</th><th class="num">Saldo</th><th class="num">Valor dos pedidos</th><th class="num">Faturado</th><th class="num">Em aberto</th></tr></thead><tbody>';
-    gs.forEach(function(x){ h+='<tr><td>'+esc(x.grupo)+'</td><td class="num">'+x.pedidos_distintos+'</td><td class="num">'+x.quantidade+'</td><td class="num">'+x.saldo+'</td><td class="num">'+x.valor_pedido+'</td><td class="num">'+x.valor_faturado+'</td><td class="num">'+x.valor_em_aberto+'</td></tr>'; });
+    h+='<div class="tablewrap"><table><thead><tr><th>'+names[group]+'</th><th class="num">Pedidos</th><th class="num">Quantidade</th><th class="num">Saldo</th><th class="num">Valor dos pedidos</th><th class="num">Faturado</th><th class="num">Preço médio (R$/m)</th></tr></thead><tbody>';
+    gs.forEach(function(x){ h+='<tr><td>'+esc(x.grupo)+'</td><td class="num">'+x.pedidos_distintos+'</td><td class="num">'+x.quantidade+'</td><td class="num">'+x.saldo+'</td><td class="num">'+x.valor_pedido+'</td><td class="num">'+x.valor_faturado+'</td><td class="num">'+x.preco_medio+'</td></tr>'; });
     ae.innerHTML=h+'</tbody></table></div>'; return;
   }
   rows=rows.slice().sort(function(a,b){ return a.embarque<b.embarque?-1:a.embarque>b.embarque?1:0; });
-  h+='<div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Tecido</th><th>Embarque</th><th>Situação</th><th>Sit Linha</th><th>Notas Fiscais</th><th class="num">Quantidade</th><th class="num">Faturado</th><th class="num">Saldo</th><th class="num">Valor em aberto</th></tr></thead><tbody>';
-  rows.slice(0,150).forEach(function(r){ h+='<tr><td>'+'<button type="button" class="pedlink" data-pedpdf="'+esc(r.pedido)+'" title="Gerar PDF do pedido">'+esc(r.pedido)+'</button>'+'</td><td>'+esc(r.cliente)+'</td><td>'+esc(r.desc)+'</td><td>'+fmtDate(r.embarque)+(isLate(r,today)? ' <span class="pill d2">'+daysLate(r.embarque,today)+' d</span>':'')+'</td><td>'+esc(r.sit)+'</td><td>'+esc(r.sitLinha)+'</td><td>'+NFDocs.cell(r.nfs)+'</td><td class="num">'+fmtNum(r.qtd)+'</td><td class="num">'+fmtNum(r.fat)+'</td><td class="num">'+fmtNum(r.saldo)+'</td><td class="num">'+fmtBRL(r.saldo*r.unit)+'</td></tr>'; });
+  h+='<div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Tecido</th><th>Embarque</th><th>Situação</th><th>Sit Linha</th><th>Notas Fiscais</th><th class="num">Quantidade</th><th class="num">Faturado</th><th class="num">Saldo</th><th class="num">Preço (R$/m)</th></tr></thead><tbody>';
+  rows.slice(0,150).forEach(function(r){ h+='<tr><td>'+'<button type="button" class="pedlink" data-pedpdf="'+esc(r.pedido)+'" title="Gerar PDF do pedido">'+esc(r.pedido)+'</button>'+'</td><td>'+esc(r.cliente)+'</td><td>'+esc(r.desc)+'</td><td>'+fmtDate(r.embarque)+(isLate(r,today)? ' <span class="pill d2">'+daysLate(r.embarque,today)+' d</span>':'')+'</td><td>'+esc(r.sit)+'</td><td>'+esc(r.sitLinha)+'</td><td>'+NFDocs.cell(r.nfs)+'</td><td class="num">'+fmtNum(r.qtd)+'</td><td class="num">'+fmtNum(r.fat)+'</td><td class="num">'+fmtNum(r.saldo)+'</td><td class="num">'+fmtBRL(r.unit)+'</td></tr>'; });
   h+='</tbody></table></div>'+(rows.length>150? '<p class="note">Mostrando 150 de '+rows.length+' linhas. Refine a busca.</p>':'');
   ae.innerHTML=h;
 }
@@ -1450,11 +1447,11 @@ function renderList(tipo){
   L.filtros=labels;
   if(!rows.length){ res.innerHTML='<p>Nenhum pedido encontrado'+esc(filtros)+'.'+limpar+'</p>'; return; }
   var act=rows.filter(function(r){return !isCanc(r);}), nCanc=rows.length-act.length, tAll=totals(rows), t=totals(act);
-  var h='<div class="resbar"><span>Relatório desta pesquisa</span><button type="button" class="btn-pdf" data-act="pdf">Gerar PDF</button><button type="button" class="btn-pdf share" data-act="share">Compartilhar</button></div>'+'<p><strong>'+fmtInt(tAll.pedidos_distintos)+(tAll.pedidos_distintos===1?' pedido':' pedidos')+'</strong> em '+fmtInt(tAll.linhas)+' linhas'+esc(filtros)+'.'+limpar+'<br>Quantidade '+t.quantidade+' · faturado '+t.qtde_faturada+' · saldo '+t.saldo+' · valor dos pedidos '+t.valor_pedido+' · valor faturado '+t.valor_faturado+' · em aberto '+t.valor_em_aberto+'.'+(nCanc? ' Quantidades e valores não incluem '+nCanc+(nCanc>1?' linhas canceladas.':' linha cancelada.'):'')+'</p>';
+  var h='<div class="resbar"><span>Relatório desta pesquisa</span><button type="button" class="btn-pdf" data-act="pdf">Gerar PDF</button><button type="button" class="btn-pdf share" data-act="share">Compartilhar</button></div>'+'<p><strong>'+fmtInt(tAll.pedidos_distintos)+(tAll.pedidos_distintos===1?' pedido':' pedidos')+'</strong> em '+fmtInt(tAll.linhas)+' linhas'+esc(filtros)+'.'+limpar+'<br>Quantidade '+t.quantidade+' · faturado '+t.qtde_faturada+' · saldo '+t.saldo+' · valor dos pedidos '+t.valor_pedido+' · valor faturado '+t.valor_faturado+' · preço médio '+t.preco_medio+'/m.'+(nCanc? ' Quantidades e valores não incluem '+nCanc+(nCanc>1?' linhas canceladas.':' linha cancelada.'):'')+'</p>';
   rows=rows.slice().sort(function(a,b){ return a.embarque<b.embarque?-1:a.embarque>b.embarque?1:(+a.pedido||0)-(+b.pedido||0); });
-  h+='<div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Emissão</th><th>Cliente</th><th>Tecido</th><th>Embarque</th><th>Situação</th><th>Sit Linha</th><th>Notas Fiscais</th><th class="num">Quantidade</th><th class="num">Faturado</th><th class="num">Saldo</th><th class="num">Valor do pedido</th><th class="num">Valor em aberto</th></tr></thead><tbody>';
+  h+='<div class="tablewrap"><table><thead><tr><th>Pedido</th><th>Emissão</th><th>Cliente</th><th>Tecido</th><th>Embarque</th><th>Situação</th><th>Sit Linha</th><th>Notas Fiscais</th><th class="num">Quantidade</th><th class="num">Faturado</th><th class="num">Saldo</th><th class="num">Valor do pedido</th><th class="num">Preço (R$/m)</th></tr></thead><tbody>';
   rows.slice(0,400).forEach(function(r){
-    h+='<tr><td>'+'<button type="button" class="pedlink" data-pedpdf="'+esc(r.pedido)+'" title="Gerar PDF do pedido">'+esc(r.pedido)+'</button>'+'</td><td>'+fmtDate(r.emissao)+'</td><td class="cli">'+esc(r.cliente)+(r.remessa? '<small>Entrega: '+esc(r.remessa)+'</small>':'')+'</td><td>'+esc(r.desc)+'</td><td>'+fmtDate(r.embarque)+(isLate(r,today)? ' <span class="pill d2">'+daysLate(r.embarque,today)+' d</span>':'')+'</td><td>'+esc(r.sit)+'</td><td>'+esc(r.sitLinha)+'</td><td>'+NFDocs.cell(r.nfs)+(r.datas? '<br><small>'+esc(r.datas)+'</small>':'')+'</td><td class="num">'+fmtNum(r.qtd)+'</td><td class="num">'+fmtNum(r.fat)+'</td><td class="num">'+fmtNum(r.saldo)+'</td><td class="num">'+fmtBRL(isCanc(r)?0:r.qtd*r.unit)+'</td><td class="num">'+fmtBRL(isCanc(r)?0:r.saldo*r.unit)+'</td></tr>';
+    h+='<tr><td>'+'<button type="button" class="pedlink" data-pedpdf="'+esc(r.pedido)+'" title="Gerar PDF do pedido">'+esc(r.pedido)+'</button>'+'</td><td>'+fmtDate(r.emissao)+'</td><td class="cli">'+esc(r.cliente)+(r.remessa? '<small>Entrega: '+esc(r.remessa)+'</small>':'')+'</td><td>'+esc(r.desc)+'</td><td>'+fmtDate(r.embarque)+(isLate(r,today)? ' <span class="pill d2">'+daysLate(r.embarque,today)+' d</span>':'')+'</td><td>'+esc(r.sit)+'</td><td>'+esc(r.sitLinha)+'</td><td>'+NFDocs.cell(r.nfs)+(r.datas? '<br><small>'+esc(r.datas)+'</small>':'')+'</td><td class="num">'+fmtNum(r.qtd)+'</td><td class="num">'+fmtNum(r.fat)+'</td><td class="num">'+fmtNum(r.saldo)+'</td><td class="num">'+fmtBRL(isCanc(r)?0:r.qtd*r.unit)+'</td><td class="num">'+fmtBRL(r.unit)+'</td></tr>';
   });
   h+='</tbody></table></div>'+(rows.length>400? '<p class="note">Mostrando 400 de '+rows.length+' linhas. Use os filtros para refinar.</p>':'');
   res.innerHTML=h;
@@ -1566,7 +1563,7 @@ function pdfBloco(titulo, el, filtros, btn, share, extra){
 }
 onPdf('pdfLate',function(){ var share=this.classList.contains('share');
   var k=S.k; if(!k) return;
-  pdfBloco('Pedidos atrasados', $('lateBody'), ['Embarque vencido até '+fmtDate(k.today)], this, share, {kpis:[{l:'Pedidos atrasados', v:fmtInt(k.latePeds), s:'com embarque vencido', tom:k.latePeds?'verm':'verde'},{l:'Valor em aberto', v:fmtBRL(k.lateValor), s:'saldo dos itens atrasados', tom:k.latePeds?'verm':'verde'},{l:'Data de referência', v:fmtDate(k.today)}]});
+  pdfBloco('Pedidos atrasados', $('lateBody'), ['Embarque vencido até '+fmtDate(k.today)], this, share, {kpis:[{l:'Pedidos atrasados', v:fmtInt(k.latePeds), s:'com embarque vencido', tom:k.latePeds?'verm':'verde'},{l:'Preço médio', v:(function(){ var q=0,v=0; k.late.forEach(function(r){ if(r.unit>=PRECO_MIN){ q+=r.saldo; v+=r.saldo*r.unit; } }); return q>0? fmtBRL(v/q)+'/m' : '—'; })(), s:'dos itens atrasados'},{l:'Data de referência', v:fmtDate(k.today)}]});
 });
 onPdf('pdfChart',function(){ var share=this.classList.contains('share');
   var k=S.kf; if(!k) return;

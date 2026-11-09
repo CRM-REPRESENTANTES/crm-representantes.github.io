@@ -285,8 +285,12 @@
 <script>
 let fabrics = [];
 const FICHAS = (window.FICHAS_CAPRI||[]).slice().sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
-/* encolhimento de área = 1 - (1 - urdume)(1 - trama), a partir da ficha técnica */
-function encolhArea(fi){ const u=Math.abs(fi.shU||0)/100, t=Math.abs(fi.shT||0)/100; return Math.round((1-(1-u)*(1-t))*1000)/10; }
+/* As fichas informam o encolhimento como valor ± tolerância (ex.: trama -13 ± 2). A calculadora usa o
+   encolhimento MÍNIMO da faixa (valor menos a tolerância, nunca abaixo de zero), não o médio nem o máximo. */
+const TOL_ENCOLH = 2;
+function encolhMin(v){ return Math.max(0, Math.abs(v||0) - TOL_ENCOLH); }
+/* encolhimento de área = 1 - (1 - urdume)(1 - trama), com os mínimos da ficha técnica */
+function encolhArea(fi){ const u=encolhMin(fi.shU)/100, t=encolhMin(fi.shT)/100; return Math.round((1-(1-u)*(1-t))*1000)/10; }
 function fichaPorNome(n){ const k=String(n||'').trim().toUpperCase(); return FICHAS.find(f=>f.nome.toUpperCase()===k); }
 
 let areaPadrao = {36:1.40, 38:1.48, 40:1.55, 42:1.62, 44:1.68, 46:1.75, 48:1.82};
@@ -354,9 +358,14 @@ function renderFabricList(){
   document.getElementById('fabricList').innerHTML = fabrics.length? fabrics.map((f,i)=>fabricRowHTML(f,i)).join('') : '<p class="hint" style="margin:0 0 12px">Nenhum tecido ainda. Adicione um tecido Capricórnio (os dados técnicos vêm da ficha) ou um concorrente (preenchido à mão).</p>';
 }
 function updateFabric(i, key, val){
-  const antes = fabrics[i].preco>0;
   fabrics[i][key] = (key==='nome') ? val : parseFloat(val);
-  if(key==='preco' && antes !== (fabrics[i].preco>0)){ const el=document.activeElement, pos=el&&el.selectionStart; renderFabricList(); const novo=document.querySelector('.fabric-row[data-i="'+i+'"] input[placeholder="R$/m"]'); if(novo){ novo.focus(); try{ novo.setSelectionRange(pos,pos); }catch(e){} } }
+  /* atualiza só o aviso de preço, sem redesenhar a linha: o cursor continua onde está */
+  if(key==='preco'){
+    const tag=document.querySelector('.fabric-row[data-i="'+i+'"] .fr-tag');
+    if(tag){ let av=tag.querySelector('.fr-falta'); const falta=!(fabrics[i].preco>0);
+      if(falta && !av){ av=document.createElement('span'); av.className='fr-falta'; av.textContent='Informe o preço para entrar na comparação'; tag.appendChild(av); }
+      else if(!falta && av){ av.remove(); } }
+  }
   calcAll();
 }
 function addFabric(){
@@ -369,7 +378,7 @@ function addCapri(){
   const fi=fichaPorNome(inp.value);
   if(!fi){ msg.textContent = inp.value.trim()? 'Artigo não encontrado nas fichas técnicas. Escolha um da lista.' : 'Digite e escolha um artigo da lista.'; return; }
   fabrics.push({nome:fi.nome, largura:Math.round(fi.larg)/100, preco:null, encolhimento:encolhArea(fi), origem:'capri',
-    info:`Ficha técnica: largura ${String(fi.larg).replace('.0','')} cm · encolhimento trama ${fi.shT}% e urdume ${fi.shU}% · ${fi.oz} oz · ${fi.comp}`});
+    info:`Ficha técnica: largura ${String(fi.larg).replace('.0','')} cm · encolhimento mínimo trama ${encolhMin(fi.shT)? '-'+encolhMin(fi.shT) : 0}% e urdume ${encolhMin(fi.shU)? '-'+encolhMin(fi.shU) : 0}% (ficha: ${fi.shT}±${TOL_ENCOLH} e ${fi.shU}±${TOL_ENCOLH}) · ${fi.oz} oz · ${fi.comp}`});
   inp.value=''; msg.textContent=fi.nome+' adicionado com os dados da ficha técnica. Falta só o preço.';
   renderFabricList(); calcAll();
 }
