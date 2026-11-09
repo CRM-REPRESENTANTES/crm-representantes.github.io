@@ -286,11 +286,13 @@
 let fabrics = [];
 const FICHAS = (window.FICHAS_CAPRI||[]).slice().sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
 /* As fichas informam o encolhimento como valor ± tolerância (ex.: trama -13 ± 2). A calculadora usa o
-   encolhimento MÍNIMO da faixa (valor menos a tolerância, nunca abaixo de zero), não o médio nem o máximo. */
-const TOL_ENCOLH = 2;
-function encolhMin(v){ return Math.max(0, Math.abs(v||0) - TOL_ENCOLH); }
+   encolhimento MÍNIMO da faixa: valor menos a tolerância da própria ficha (± 2 → tira 2; ± 20 → tira 20),
+   nunca abaixo de zero. A tolerância vem de cada ficha (tolT / tolU). */
+function tolDe(v){ return (typeof v==='number' && v>=0)? v : 2; }
+function encolhMin(v, tol){ return Math.max(0, Math.round((Math.abs(v||0) - tolDe(tol))*10)/10); }
 /* encolhimento de área = 1 - (1 - urdume)(1 - trama), com os mínimos da ficha técnica */
-function encolhArea(fi){ const u=encolhMin(fi.shU)/100, t=encolhMin(fi.shT)/100; return Math.round((1-(1-u)*(1-t))*1000)/10; }
+function encolhArea(fi){ const u=encolhMin(fi.shU,fi.tolU)/100, t=encolhMin(fi.shT,fi.tolT)/100; return Math.round((1-(1-u)*(1-t))*1000)/10; }
+function pctNeg(x){ return x? '-'+String(x).replace('.',',') : '0'; }
 function fichaPorNome(n){ const k=String(n||'').trim().toUpperCase(); return FICHAS.find(f=>f.nome.toUpperCase()===k); }
 
 let areaPadrao = {36:1.40, 38:1.48, 40:1.55, 42:1.62, 44:1.68, 46:1.75, 48:1.82};
@@ -378,7 +380,7 @@ function addCapri(){
   const fi=fichaPorNome(inp.value);
   if(!fi){ msg.textContent = inp.value.trim()? 'Artigo não encontrado nas fichas técnicas. Escolha um da lista.' : 'Digite e escolha um artigo da lista.'; return; }
   fabrics.push({nome:fi.nome, largura:Math.round(fi.larg)/100, preco:null, encolhimento:encolhArea(fi), origem:'capri',
-    info:`Ficha técnica: largura ${String(fi.larg).replace('.0','')} cm · encolhimento mínimo trama ${encolhMin(fi.shT)? '-'+encolhMin(fi.shT) : 0}% e urdume ${encolhMin(fi.shU)? '-'+encolhMin(fi.shU) : 0}% (ficha: ${fi.shT}±${TOL_ENCOLH} e ${fi.shU}±${TOL_ENCOLH}) · ${fi.oz} oz · ${fi.comp}`});
+    info:`Ficha técnica: largura ${String(fi.larg).replace('.0','')} cm · encolhimento mínimo trama ${pctNeg(encolhMin(fi.shT,fi.tolT))}% e urdume ${pctNeg(encolhMin(fi.shU,fi.tolU))}% (ficha: trama ${fi.shT} ± ${tolDe(fi.tolT)}, urdume ${fi.shU} ± ${tolDe(fi.tolU)}) · ${fi.oz} oz · ${fi.comp}`});
   inp.value=''; msg.textContent=fi.nome+' adicionado com os dados da ficha técnica. Falta só o preço.';
   renderFabricList(); calcAll();
 }
