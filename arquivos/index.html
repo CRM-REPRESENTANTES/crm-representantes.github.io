@@ -348,9 +348,11 @@ table.cmp a{color:var(--indigo-2);font-weight:600}
     <div class="fams" role="group" aria-label="Lavanderia">
       <button class="fchip" type="button" id="lavApo" aria-pressed="true">Apostila</button>
       <button class="fchip" type="button" id="lavRec" aria-pressed="false">Receitas</button>
+      <button class="fchip" type="button" id="lavCap" aria-pressed="false">Caprilab desenvolvimentos para clientes</button>
     </div>
     <div class="fam" id="lavApoBox"><div class="list" id="listaLav" style="border-top:0"></div></div>
     <div class="fam" id="lavRecBox" hidden><div class="list" id="listaRec" style="border-top:0"></div></div>
+    <div class="fam" id="lavCapBox" hidden><div class="list" id="listaCap" style="border-top:0"></div></div>
   </section>
 
   <section class="panel" id="imagens" hidden>
@@ -643,7 +645,7 @@ function linhaArquivo(f, alvo){
   const nm = row.querySelector(".nm"); nm.textContent = f.name;
   const s = document.createElement("small"); s.textContent = `${f.tipo} · ${f.kb >= 1024 ? (f.kb/1024).toFixed(1).replace(".",",")+" MB" : f.kb+" KB"}`; nm.appendChild(s);
   const acts = row.querySelector(".acts");
-  if(f.enc && f.ext === "pdf"){ const a = document.createElement("button"); a.className = "b"; a.type = "button"; a.textContent = "Abrir"; a.onclick = () => abrirDoc(f); acts.append(a); }
+  if(f.enc && (f.ext === "pdf" || f.ext === "mp4")){ const a = document.createElement("button"); a.className = "b"; a.type = "button"; a.textContent = "Abrir"; a.onclick = () => abrirDoc(f); acts.append(a); }
   else if(f.path && f.ext === "pdf"){ const a = document.createElement("a"); a.className = "b"; a.href = f.path; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Abrir"; acts.append(a); }
   const d = document.createElement("button"); d.className = "b pri"; d.type = "button"; d.textContent = "Baixar / Enviar"; d.onclick = () => baixar(f, d); acts.append(d);
   if(f.path && !f.enc){ const c = document.createElement("button"); c.className = "b"; c.type = "button"; c.textContent = "Copiar link"; c.onclick = () => copiarLink(f, c); acts.append(c); }
@@ -660,14 +662,22 @@ const RECEITAS = [];
 LAVANDERIA.forEach(f => linhaArquivo(f, document.getElementById("listaLav")));
 if(RECEITAS.length) RECEITAS.forEach(f => linhaArquivo(f, document.getElementById("listaRec")));
 else document.getElementById("listaRec").innerHTML = '<div class="empty">Nenhuma receita incluída ainda. Envie as receitas das lavagens na conversa com o Claude para colocá-las aqui.</div>';
+/* Caprilab: desenvolvimentos para clientes (vídeos e arquivos em lavanderia/caprilab/, cifrados com a senha de documentos). */
+const CAPRILAB = [
+  {name:"CAPRILAB – DESENVOLVIMENTO 04-11-2026 (VÍDEO)", enc:"lavanderia/caprilab/caprilab-video-2026-11-04.mp4.enc", mime:"video/mp4", ext:"mp4", tipo:"Vídeo", kb:8586}
+];
+CAPRILAB.forEach(f => linhaArquivo(f, document.getElementById("listaCap")));
 function lavAba(qual){
   document.getElementById("lavApo").setAttribute("aria-pressed", String(qual==="apo"));
   document.getElementById("lavRec").setAttribute("aria-pressed", String(qual==="rec"));
   document.getElementById("lavApoBox").hidden = qual!=="apo";
   document.getElementById("lavRecBox").hidden = qual!=="rec";
+  document.getElementById("lavCap").setAttribute("aria-pressed", String(qual==="cap"));
+  document.getElementById("lavCapBox").hidden = qual!=="cap";
 }
 document.getElementById("lavApo").addEventListener("click", () => lavAba("apo"));
 document.getElementById("lavRec").addEventListener("click", () => lavAba("rec"));
+document.getElementById("lavCap").addEventListener("click", () => lavAba("cap"));
 document.getElementById("btnLav").addEventListener("click", () => irProtegida("lavanderia", () => lavAba("apo")));
 const listaTab = document.getElementById("listaTab");
 TABELAS.forEach(f => {
