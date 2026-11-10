@@ -561,7 +561,8 @@ const TABELAS = [
   /* camada:"carteira" = arquivo .enc cifrado só com a chave da carteira; a senha de documentos continua
      sendo pedida para entrar na aba e abrir. Ao recifrar com as duas camadas (.enc2), troque por duplo:true. */
   {name:"TABELA DE PREÇOS SP ATÉ JULHO 2026 3", enc:"tabelas/tabela-de-precos-sp-ate-julho-2026-3.pdf.enc", camada:"carteira", ext:"pdf", tipo:"PDF", kb:92, mime:"application/pdf"},
-  {name:"TABELA SP SETEMBRO 2", enc:"tabelas/tabela-sp-setembro-2.xlsx.enc", camada:"carteira", ext:"xlsx", tipo:"Excel", kb:18, mime:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
+  {name:"TABELA SP SETEMBRO 2", enc:"tabelas/tabela-sp-setembro-2.xlsx.enc", camada:"carteira", ext:"xlsx", tipo:"Excel", kb:18, mime:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
+  {name:"TABELA SARJA ATÉ JULHO 2026 - 12", enc:"tabelas/tabela-sarja-ate-julho-2026-12.pdf.enc", ext:"pdf", tipo:"PDF", kb:48, mime:"application/pdf"}
 ];
 /* Fichas técnicas, tabelas de preço e apostila ficam cifradas no site (AES-256-GCM) com a SENHA DE
    DOCUMENTOS (diferente da senha de entrada). Ela é pedida ao abrir essas telas; a chave fica só na
