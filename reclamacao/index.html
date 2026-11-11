@@ -346,7 +346,8 @@
 (function(){
 'use strict';
 var $=function(id){ return document.getElementById(id); };
-var COLS=['Pedido','Emissão','Embarque','Cliente','Cliente Remessa','Pedido Cliente','Cond Pgto','Prazo Medio','Situação','Sit Linha','Motivo Cancel Linha','Notas Fiscais','Datas','Descrição','Quantidade','qtde_faturada','Saldo','Valor Unitário Liquido','Valor Total'];
+/* Mesma ordem de colunas que o CRM grava (index.html): as 24 colunas, incluindo CNPJ e Cód. Produto. */
+var COLS=['Pedido','Emissão','Embarque','Cliente','Cliente Remessa','Pedido Cliente','Cond Pgto','Prazo Medio','Situação','Sit Linha','Motivo Cancel Linha','Notas Fiscais','Datas','Descrição','Quantidade','qtde_faturada','Saldo','Valor Unitário Liquido','Valor Total','CNPJ','Cód. Produto','Ordem de Compra','Grupo Econômico','CNPJ Cliente Remessa'];
 /* Colunas de cadastro que a carteira pode trazer (usadas se existirem no arquivo carregado). */
 var EXTRAS={
   cnpj:['cnpj','cnpj/cpf','cpf/cnpj','cnpj cpf','cgc'],
@@ -370,6 +371,7 @@ function hkey(s){ return norm(s).replace(/[_\s.]+/g,' ').trim(); }
 function pad(n){ return (n<10?'0':'')+n; }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function todayISO(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function fmtDateCurta(iso){ var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m? m[3]+'/'+m[2]+'/'+m[1].slice(2) : String(iso||''); }
 function fmtDate(iso){ var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m? m[3]+'/'+m[2]+'/'+m[1] : String(iso||''); }
 function fmtNum(n,dec){ if(n===''||n==null||isNaN(n)) return ''; return Number(n).toLocaleString('pt-BR',{minimumFractionDigits:dec||0, maximumFractionDigits:dec==null?2:dec}); }
 function nfKey(s){ return String(s==null?'':s).replace(/\D/g,'').replace(/^0+/,''); }
@@ -398,15 +400,28 @@ function splitDatas(v){
   while((m=re.exec(s))) out.push(toISO(m[1]));
   return out;
 }
+/* CNPJ/CPF lido do Excel como número perde o zero da frente: devolve só dígitos, completando 14 (ou 11). */
+function fixDoc(v){
+  var d=String(v==null?'':v).replace(/\.0+$/,'').replace(/\D/g,'');
+  if(!d) return '';
+  if(d.length>11&&d.length<14) d=('00000000000000'+d).slice(-14);
+  else if(d.length>8&&d.length<11) d=('00000000000'+d).slice(-11);
+  return d;
+}
 function mkRow(get, extra){
   var nfs=splitNFs(get('Notas Fiscais'));
+  extra=extra||{};
+  var cnpj=fixDoc(extra.cnpj||get('CNPJ'));
+  if(cnpj) extra.cnpj=cnpj;
+  var sku=String(get('Cód. Produto')==null?'':get('Cód. Produto')).trim();
   return {
+    sku:sku,
     pedido:String(get('Pedido')==null?'':get('Pedido')).trim(),
     cliente:String(get('Cliente')||'').trim(),
     nfs:nfs, nfk:nfs.map(nfKey), datas:splitDatas(get('Datas')),
     desc:String(get('Descrição')||'').trim(),
     qtd:toNum(get('Quantidade')), fat:toNum(get('qtde_faturada')), unit:toNum(get('Valor Unitário Liquido')),
-    extra:extra||{}
+    extra:extra
   };
 }
 function fromArrays(linhas){
@@ -632,20 +647,27 @@ function loadNF(nf){
   fillClient(cli); $('qCli').value=cli; renderChips(cli);
   var arts={}; hits.forEach(function(r){ if(r.desc) arts[r.desc]=1; }); arts=Object.keys(arts);
   if(!$('artigo').value&&arts[0]) setField('artigo',arts[0],true);
-  var lines=readLines(), add=0, cheio=false;
+  if(!$('codigo').value){ var sk=hits.filter(function(r){ return r.sku&&r.desc===(arts[0]||r.desc); })[0]; if(sk) setField('codigo',sk.sku,true); }
+  var lines=readLines(), add=0, cheio=false, multi=false;
   lines=lines.filter(function(l){ return l.nf||l.mts||l.pedido||l.preco; });
   hits.forEach(function(r){
-    var i=r.nfk.indexOf(k), nfTxt=r.nfs[i];
-    var dup=lines.some(function(l){ return nfKey(l.nf)===k && String(l.pedido)===String(r.pedido) && (l._desc||'')===r.desc; });
+    /* a linha do pedido mostra todas as NFs dela, com a data de cada uma (como no formulário),
+       e a metragem faturada da linha (ou a quantidade do pedido, se ainda não houver faturado) */
+    var nfTxt=r.nfs.map(function(n,j){ var dt=r.datas[j]||(r.nfs.length===1? r.datas[0] : ''); return nfKey(n)+(dt? ' - '+fmtDateCurta(dt) : ''); }).join(' * ');
+    var dup=lines.some(function(l){ return String(l.pedido)===String(r.pedido) && (l._desc||'')===r.desc && (l.nf||'').split(/[^0-9]+/).map(nfKey).indexOf(k)>=0; });
     if(dup) return;
     if(lines.length>=MAXL){ cheio=true; return; }
-    lines.push({nf:nfTxt, mts: r.nfs.length===1&&r.fat!==''? fmtNum(r.fat) : '', estab:'', qual:'', pedido:r.pedido, preco: r.unit!==''? fmtNum(r.unit,2) : '', fat: fmtDate(r.datas[i]||r.datas[0]||''), _desc:r.desc, _auto:true});
+    if(r.nfs.length>1) multi=true;
+    var mts= r.fat!==''&&r.fat>0? r.fat : r.qtd;
+    var dts=r.datas.slice().sort(), ultima=dts[dts.length-1]||'';
+    lines.push({nf:nfTxt, mts: mts!==''&&mts!=null? fmtNum(mts) : '', estab:'', qual:'', pedido:r.pedido, preco: r.unit!==''? fmtNum(r.unit,2) : '', fat: fmtDate(ultima), _desc:r.desc, _auto:true});
     add++;
   });
   renderLines(lines);
   var txt='NF '+nf+': '+cli+' — '+add+(add===1?' linha adicionada':' linhas adicionadas')+'.';
   if(arts.length>1) txt+=' A nota tem '+arts.length+' artigos ('+arts.join(' · ')+'); confira o nome comercial.';
-  if(hits.some(function(r){ return r.nfs.length>1; })) txt+=' Algum pedido foi faturado em mais de uma nota: informe a metragem desta NF.';
+  if(multi) txt+=' O pedido foi faturado em mais de uma nota: a linha mostra todas as NFs e a metragem faturada total do pedido.';
+  if(!$('cnpj').value) txt+=' A carteira não trouxe o CNPJ deste cliente.';
   if(cheio) txt+=' Limite de '+MAXL+' linhas atingido.';
   setMsg('lookMsg',txt,'ok');
   $('qNf').value='';
