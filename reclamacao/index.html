@@ -268,7 +268,10 @@
   <!-- Motivo -->
   <section class="card" aria-labelledby="hMot">
     <h2 id="hMot">Motivo da reclamação</h2>
-    <div class="f"><textarea id="motivo" data-k="motivo" aria-labelledby="hMot" placeholder="Descreva o problema encontrado"></textarea></div>
+    <div class="grid">
+      <div class="f s12"><label for="motivo">Motivo <small style="text-transform:none;font-weight:500">(vai no campo “Motivo da reclamação” do formulário)</small></label><input id="motivo" data-k="motivo" placeholder="Ex.: Encolhimento"></div>
+      <div class="f s12"><label for="detalhes">Descrição detalhada <small style="text-transform:none;font-weight:500">(vai abaixo do parecer técnico, um parágrafo por linha)</small></label><textarea id="detalhes" data-k="detalhes" placeholder="Descreva o problema encontrado, testes feitos, onde ficou a amostra…"></textarea></div>
+    </div>
   </section>
 
   <!-- Amostras -->
@@ -329,7 +332,7 @@
     <div class="row">
       <button class="btn" id="btnNew" type="button">Nova</button>
       <button class="btn" id="btnSave" type="button">Salvar</button>
-      <button class="btn primary" id="btnPdf" type="button">Gerar PDF</button>
+      <button class="btn primary" id="btnDocx" type="button">Gerar Word (.docx)</button>
     </div>
   </div>
 
@@ -339,7 +342,6 @@
   </section>
 </div>
 
-<script src="logo.js"></script>
 <script>
 (function(){
 'use strict';
@@ -765,15 +767,15 @@ function renderSaved(){
     if(!l.length){ $('saved').innerHTML='<p class="empty">Nenhuma reclamação salva ainda.</p>'; return; }
     $('saved').innerHTML='<div class="tablewrap"><table class="saved"><thead><tr><th>Chamado</th><th>Cliente</th><th>Artigo</th><th>Abertura</th><th>Parecer</th><th></th></tr></thead><tbody>'+
       l.map(function(r){ return '<tr><td><b>'+esc(r.chamado||'—')+'</b></td><td>'+esc(r.razao||'—')+'</td><td>'+esc(r.artigo||'')+'</td><td>'+fmtDate(r.dtAbertura)+'</td><td>'+esc(r.parecer||'Pendente')+'</td>'+
-        '<td class="acts"><button class="btn small" data-open="'+r.id+'" type="button">Abrir</button> <button class="btn small" data-pdf="'+r.id+'" type="button">PDF</button> <button class="btn small danger" data-rmrq="'+r.id+'" type="button">Excluir</button></td></tr>'; }).join('')+
+        '<td class="acts"><button class="btn small" data-open="'+r.id+'" type="button">Abrir</button> <button class="btn small" data-docx="'+r.id+'" type="button">Word</button> <button class="btn small danger" data-rmrq="'+r.id+'" type="button">Excluir</button></td></tr>'; }).join('')+
       '</tbody></table></div>';
-  },function(){ $('saved').innerHTML='<p class="empty">Este navegador não permite guardar reclamações. Gere o PDF antes de fechar a página.</p>'; });
+  },function(){ $('saved').innerHTML='<p class="empty">Este navegador não permite guardar reclamações. Gere o Word antes de fechar a página.</p>'; });
 }
 $('saved').addEventListener('click',function(ev){
   var b=ev.target.closest('button'); if(!b) return;
-  var id=b.getAttribute('data-open')||b.getAttribute('data-pdf')||b.getAttribute('data-rmrq');
+  var id=b.getAttribute('data-open')||b.getAttribute('data-docx')||b.getAttribute('data-rmrq');
   if(b.hasAttribute('data-open')) rqGet(id).then(function(r){ if(!r) return; S.id=r.id; fill(r); setMsg('actMsg','Reclamação '+(r.chamado||'')+' aberta.','ok'); window.scrollTo({top:0,behavior:'smooth'}); });
-  else if(b.hasAttribute('data-pdf')) rqGet(id).then(function(r){ if(r) makePDF(r); });
+  else if(b.hasAttribute('data-docx')) rqGet(id).then(function(r){ if(r) return makeDOCX(r).then(function(nome){ if(nome) setMsg('actMsg','Word gerado: '+nome+'.','ok'); }); }).then(null,function(e){ console.error(e); setMsg('actMsg','Não foi possível gerar o Word.','err'); });
   else if(b.hasAttribute('data-rmrq')){ confirmar(b,'Confirmar exclusão',function(){ rqDel(id).then(function(){ if(S.id===id) S.id=null; renderSaved(); }); }); }
 });
 function save(quiet){
@@ -784,7 +786,7 @@ function save(quiet){
     d.id=S.id||('rq'+Date.now().toString(36)); S.id=d.id;
     d.atualizadoEm=new Date().toISOString();
     return rqPut(d).then(function(){ if(!quiet) setMsg('actMsg','Reclamação '+ch+' salva neste navegador.','ok'); renderSaved(); return d; },
-      function(){ setMsg('actMsg','Não foi possível salvar neste navegador (as fotos podem ser grandes demais). O PDF ainda pode ser gerado.','err'); return d; });
+      function(){ setMsg('actMsg','Não foi possível salvar neste navegador (as fotos podem ser grandes demais). O Word ainda pode ser gerado.','err'); return d; });
   });
 }
 function confirmar(btn, rotulo, acao){
@@ -799,187 +801,56 @@ function blank(){
 }
 $('btnNew').addEventListener('click',function(){ confirmar(this,'Limpar tudo?',function(){ blank(); setMsg('actMsg',''); window.scrollTo({top:0,behavior:'smooth'}); }); });
 $('btnSave').addEventListener('click',function(){ save(false); });
-$('btnPdf').addEventListener('click',function(){
+$('btnDocx').addEventListener('click',function(){
   var d=collect();
-  if(!d.razao){ setMsg('actMsg','Informe o cliente antes de gerar o PDF.','err'); $('razao').focus(); return; }
+  if(!d.razao){ setMsg('actMsg','Informe o cliente antes de gerar o Word.','err'); $('razao').focus(); return; }
   var btn=this; btn.disabled=true;
-  save(true).then(function(d2){ return makePDF(d2); }).then(function(nome){ if(nome) setMsg('actMsg','PDF gerado: '+nome+'. A reclamação também foi salva.','ok'); })
-    .then(null,function(e){ console.error(e); setMsg('actMsg','Não foi possível gerar o PDF.','err'); }).then(function(){ btn.disabled=false; });
+  save(true).then(function(d2){ return makeDOCX(d2); }).then(function(nome){ if(nome) setMsg('actMsg','Word gerado: '+nome+'. A reclamação também foi salva.','ok'); })
+    .then(null,function(e){ console.error(e); setMsg('actMsg', e&&e.message==='modelo'? 'Não foi possível abrir o modelo do formulário. Verifique a conexão.' : 'Não foi possível gerar o Word.','err'); }).then(function(){ btn.disabled=false; });
 });
 
-/* ---------- PDF no formato da “Solicitação de Atendimento” ---------- */
-function loadJsPDF(){
+/* ---------- Word (.docx) idêntico ao formulário “Solicitação de Atendimento” ----------
+   Usa reclamacao/modelo-solicitacao.docx (o formulário em branco) e preenche os campos.
+   O técnico recebe um Word normal e pode editar à vontade. */
+function loadScript(src, ok){
   return new Promise(function(res,rej){
-    if(window.jspdf) return res(window.jspdf.jsPDF);
-    var s=document.createElement('script'); s.src='jspdf.umd.min.js';
-    s.onload=function(){ window.jspdf? res(window.jspdf.jsPDF) : rej(new Error('lib')); }; s.onerror=function(){ rej(new Error('lib')); };
+    if(ok()) return res();
+    var s=document.createElement('script'); s.src=src;
+    s.onload=function(){ ok()? res() : rej(new Error('lib')); }; s.onerror=function(){ rej(new Error('lib')); };
     document.head.appendChild(s);
   });
 }
+function loadModelo(){
+  return fetch('modelo-solicitacao.docx?v=1',{cache:'no-cache'}).then(function(r){ if(!r.ok) throw new Error('modelo'); return r.arrayBuffer(); },function(){ throw new Error('modelo'); });
+}
 function safeName(s){ return norm(s).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40); }
-function makePDF(d){
-  return loadJsPDF().then(function(JsPDF){
-    var doc=new JsPDF({unit:'mm', format:'a4', orientation:'portrait'});
-    var L=12, W=186, PH=297, BOT=284, y=12;
-    var GRAY=[217,217,217], LINE=[0,0,0];
-    doc.setDrawColor.apply(doc,LINE); doc.setLineWidth(0.2);
-
-    function fit(text,w,size,bold){
-      text=String(text==null?'':text); doc.setFont('helvetica',bold?'bold':'normal');
-      var s=size; doc.setFontSize(s);
-      while(s>5.5&&doc.getTextWidth(text)>w-2){ s-=0.5; doc.setFontSize(s); }
-      if(doc.getTextWidth(text)>w-2){ while(text.length>1&&doc.getTextWidth(text+'…')>w-2) text=text.slice(0,-1); text+='…'; }
-      return text;
-    }
-    function cell(x,yy,w,h,text,o){
-      o=o||{};
-      if(o.fill){ doc.setFillColor.apply(doc,o.fill); doc.rect(x,yy,w,h,'FD'); } else if(o.border!==false) doc.rect(x,yy,w,h);
-      if(text==null||text==='') return;
-      var size=o.size||8, t=fit(text,w,size,o.bold);
-      doc.setTextColor(0,0,0);
-      var tx= o.align==='center'? x+w/2 : o.align==='right'? x+w-1 : x+1;
-      doc.text(t,tx,yy+h/2+ (doc.getFontSize()*0.3528)*0.35,{align:o.align||'left'});
-    }
-    function rowCells(yy,h,spec){ var x=L; spec.forEach(function(c){ cell(x,yy,c[0],h,c[1],c[2]); x+=c[0]; }); }
-    function lab(){ return {fill:GRAY, bold:true, size:7.5}; }
-    function title(t){ ensure(9); doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(0,0,0); doc.text(t,L+1,y+4.5); y+=6; }
-    function ensure(h){ if(y+h>BOT){ doc.addPage(); y=12; } }
-    function X(v){ return v? '( X )' : '(   )'; }
-
-    /* cabeçalho com logo */
-    var logoW=50, hHead=24;
-    doc.rect(L,y,logoW,hHead);
-    if(window.LOGO_CAPRICORNIO){ try{ var lh=hHead-4, lw=lh*216/178; doc.addImage(window.LOGO_CAPRICORNIO,'JPEG',L+(logoW-lw)/2,y+2,lw,lh); }catch(e){} }
-    doc.setFillColor.apply(doc,GRAY); doc.rect(L+logoW,y,W-logoW,hHead,'FD');
-    doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text('SOLICITAÇÃO DE ATENDIMENTO',L+logoW+(W-logoW)/2,y+11,{align:'center'});
-    doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.text('Mercado Interno',L+logoW+(W-logoW)/2,y+17,{align:'center'});
-    y+=hHead+3;
-
-    /* tipo + datas */
-    var h=5.5;
-    doc.rect(L,y,90,h*3);
-    doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
-    doc.text(X(d.tipo!=='Orientação')+' Reclamação',L+3,y+h*1.5+1.2);
-    doc.text(X(d.tipo==='Orientação')+' Orientação',L+48,y+h*1.5+1.2);
-    [['Data Abertura',d.dtAbertura],['Data Fechamento Técnico',d.dtFechTec],['Data Encerramento',d.dtEncerr]].forEach(function(r,i){
-      cell(L+90,y+h*i,50,h,r[0],lab()); cell(L+140,y+h*i,46,h,fmtDate(r[1]),{size:8.5});
-    });
-    y+=h*3+2;
-    rowCells(y,7,[[17,'Técnico',lab()],[47,d.tecnico],[26,'Representante',lab()],[50,d.representante],[22,'N.º Chamado',lab()],[24,d.chamado,{bold:true}]]);
-    y+=7+2;
-
-    /* cliente */
-    title('Informações do cliente');
-    h=5.2;
-    rowCells(y,h,[[30,'RAZÃO SOCIAL:',lab()],[156,d.razao,{bold:true}]]); y+=h;
-    rowCells(y,h,[[30,'CNPJ:',lab()],[96,d.cnpj],[30,'Cód. Cliente:',lab()],[30,d.codCli]]); y+=h;
-    rowCells(y,h,[[30,'ENDEREÇO:',lab()],[96,d.endereco],[30,'BAIRRO:',lab()],[30,d.bairro]]); y+=h;
-    rowCells(y,h,[[30,'CIDADE',lab()],[96,d.cidade],[30,'UF:',lab()],[30,d.uf]]); y+=h;
-    rowCells(y,h,[[30,'TELEFONE:',lab()],[36,d.telefone],[15,'FAX',lab()],[45,d.fax],[25,'CONTATO:',lab()],[35,d.contato]]); y+=h;
-    rowCells(y,h,[[30,'CELULAR:',lab()],[36,d.celular],[15,'E-MAIL',lab()],[105,d.email]]); y+=h+2;
-
-    /* artigo */
-    title('Informações do Artigo');
-    rowCells(y,h,[[30,'Nome Comercial',lab()],[82,d.artigo,{bold:true}],[12,'Cor',lab()],[30,d.cor],[14,'Código',lab()],[18,d.codigo]]); y+=h;
-    var lc=[[24,'NF'],[22,'Mts'],[22,'Estab.'],[20,'Qual.'],[32,'Pedido'],[28,'Preço'],[38,'Fat.']];
-    var keys=['nf','mts','estab','qual','pedido','preco','fat'];
-    rowCells(y,h,lc.map(function(c){ return [c[0],c[1],{fill:GRAY,bold:true,size:7.5,align:'center'}]; })); y+=h;
-    var ls=(d.linhas||[]).slice(0,MAXL); while(ls.length<MAXL) ls.push({});
-    ls.forEach(function(l){ rowCells(y,h,lc.map(function(c,i){ return [c[0],l[keys[i]]||'',{align:'center',size:8}]; })); y+=h; });
-    y+=2;
-
-    /* motivo */
-    doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-    var mot=doc.splitTextToSize(d.motivo||'',W-4), lineH=3.8, boxH=Math.max(16, mot.length*lineH+4);
-    ensure(h+Math.min(boxH,60));
-    rowCells(y,h,[[W,'MOTIVO DA RECLAMAÇÃO',lab()]]); y+=h;
-    var i0=0;
-    while(i0<mot.length||i0===0){
-      var cabe=Math.max(1,Math.floor((BOT-y-4)/lineH)), pedaco=mot.slice(i0,i0+cabe), bh=Math.max(i0===0?16:8, pedaco.length*lineH+4);
-      doc.rect(L,y,W,bh); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-      pedaco.forEach(function(t,j){ doc.text(t,L+2,y+4+j*lineH); });
-      y+=bh; i0+=cabe;
-      if(i0<mot.length){ doc.addPage(); y=12; } else break;
-    }
-    y+=2;
-
-    /* amostras */
-    ensure(30); title('Informações sobre amostras entregues para análise');
-    var tipos=d.tipos||[], gy=y;
-    rowCells(y,h,[[26,'Quantidade',lab()],[40,d.amQtd]]);
-    rowCells(y+h*2,h,[[26,'Marca',lab()],[40,d.amMarca]]);
-    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text('Tipo',L+72,y+3.8);
-    TIPOS.forEach(function(t,i){
-      var col=Math.floor(i/3), row=i%3, x=L+84+col*34, yy=gy+row*h;
-      doc.setFont('helvetica','bold'); doc.setFontSize(8);
-      var lbl=X(tipos.indexOf(t)>=0)+' '+t+(t==='Outros'&&d.amOutros? ':':'');
-      doc.text(lbl,x,yy+3.8);
-      if(t==='Outros'&&d.amOutros){ doc.setFont('helvetica','normal'); doc.text(fit(d.amOutros,186-(x-L)-doc.getTextWidth(lbl)+2,8,false),x+doc.getTextWidth(lbl)+1.5,yy+3.8); }
-    });
-    y=gy+h*3+2;
-
-    /* condições */
-    ensure(16); title('Condições do produto no cliente');
-    rowCells(y,h,[[45,'Metragem utilizados',lab()],[38,d.mtUsados],[5,'',{border:false}],[58,'Qtde de peças produzidas',lab()],[40,d.pcsProd]]); y+=h;
-    rowCells(y,h,[[45,'Metragem não utilizados',lab()],[38,d.mtNaoUsados],[5,'',{border:false}],[58,'Qtde de peças/tecido com problema',lab()],[40,d.pcsProb]]); y+=h+3;
-
-    /* assistência técnica */
-    ensure(40);
-    rowCells(y,h,[[W,'PARA USO DA ASSISTÊNCIA TÉCNICA',{bold:true,size:8,align:'center'}]]); y+=h;
-    rowCells(y,h,[[80,'Data de envio das amostras para a fábrica',lab()],[106,fmtDate(d.dtEnvio)]]); y+=h;
-    rowCells(y,h,[[80,'Data de resposta da fábrica',lab()],[106,fmtDate(d.dtResposta)]]); y+=h+2;
-    doc.setFontSize(7.2); doc.setFont('helvetica','normal');
-    var obs=doc.splitTextToSize('OBS.: Só serão aceitas reclamações até 180 dias (6 meses) da data do faturamento. Com relação à estabilidade dimensional dos artigos (encolhimento) e resistência, só serão atendidas reclamações que estiverem acompanhadas de tecidos em cru que não sofreram NENHUM tipo de beneficiamento. É imprescindível apresentar as etiquetas dos rolos utilizados/reclamados.',W-2);
-    obs.forEach(function(t,j){ doc.text(t,L+1,y+3+j*3.1); }); y+=obs.length*3.1+1;
-    doc.setFont('helvetica','bold'); doc.text('NÃO SERÃO ACEITAS RECLAMAÇÕES SOBRE TECIDOS DE SEGUNDA E TERCEIRA QUALIDADE.',L+1,y+3); y+=6;
-    var pr=d.parecer||'';
-    rowCells(y,h,[[28,'Parecer Técnico',lab()],[10,X(pr==='IMPROCEDENTE'),{align:'center',bold:true}],[34,'IMPROCEDENTE'],[10,X(pr==='PROCEDENTE (INDUSTRIAL)'),{align:'center',bold:true}],[47,'PROCEDENTE (INDUSTRIAL)'],[10,X(pr==='PROCEDENTE (COMERCIAL)'),{align:'center',bold:true}],[47,'PROCEDENTE (COMERCIAL)']]);
-    y+=h;
-
-    /* fotos: 2 colunas x 3 linhas por página */
-    var fotos=d.fotos||[];
-    if(fotos.length){
-      var cw=90, chImg=72, capH=6, gap=6;
-      fotos.forEach(function(p,i){
-        if(i%6===0){
-          doc.addPage(); y=12;
-          doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text('Registro fotográfico',L,y+4);
-          doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-          doc.text(fit('Chamado '+(d.chamado||'')+' · '+(d.razao||'')+(d.artigo?' · '+d.artigo:''),W,8.5,false),L,y+9);
-          y+=13;
-        }
-        var col=i%2, row=Math.floor((i%6)/2), x=L+col*(cw+gap), yy=y+row*(chImg+capH+gap);
-        doc.setDrawColor(180,180,180); doc.rect(x,yy,cw,chImg+capH); doc.setDrawColor(0,0,0);
-        var sc=Math.min((cw-2)/p.w,(chImg-2)/p.h), iw=p.w*sc, ih=p.h*sc;
-        try{ doc.addImage(p.data,'JPEG',x+(cw-iw)/2,yy+1+(chImg-2-ih)/2,iw,ih,undefined,'FAST'); }catch(e){}
-        doc.setFillColor(242,242,242); doc.rect(x,yy+chImg,cw,capH,'F');
-        doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.text('Foto '+(i+1),x+1.5,yy+chImg+4);
-        if(p.legenda){ doc.setFont('helvetica','normal'); doc.text(fit(p.legenda,cw-14,8,false),x+13,yy+chImg+4); }
-      });
-    }
-
-    /* rodapé */
-    var n=doc.getNumberOfPages(), quando=new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
-    for(var pg=1;pg<=n;pg++){
-      doc.setPage(pg); doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(110,110,110);
-      doc.text('Chamado '+(d.chamado||'')+' · gerado em '+quando,L,PH-7);
-      doc.text('Página '+pg+' de '+n,L+W,PH-7,{align:'right'});
-      doc.setTextColor(0,0,0);
-    }
-    var nome='Reclamacao_'+(d.chamado||'sem-numero')+(d.razao?'_'+safeName(d.razao):'')+'.pdf';
-    if(window.__RQ_TEST__){ window.__RQ_TEST__.pdf=doc.output('datauristring'); window.__RQ_TEST__.nome=nome; return nome; }
-    if(window.claude&&window.claude.use){
-      return window.claude.use('downloads').then(function(dl){
-        if(!dl){ doc.save(nome); return nome; }
-        return dl.save({filename:nome, data:doc.output('blob')}).then(function(){ return nome; },function(e){
-          if(e&&e.code==='declined'){ setMsg('actMsg','Download cancelado. A reclamação ficou salva.'); return null; }
-          throw e;
+function makeDOCX(d){
+  return Promise.all([
+    loadScript('../lib/jszip.min.js',function(){ return !!window.JSZip; }),
+    loadScript('docx-rq.js',function(){ return !!window.RQDocx; }),
+    loadModelo()
+  ]).then(function(a){ return window.JSZip.loadAsync(a[2]); })
+    .then(function(zip){ return window.RQDocx.preencher(zip,d); })
+    .then(function(zip){ return zip.generateAsync({type:'blob', compression:'DEFLATE', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}); })
+    .then(function(blob){
+      var nome='Reclamacao_'+(d.chamado||'sem-numero')+(d.razao?'_'+safeName(d.razao):'')+'.docx';
+      if(window.__RQ_TEST__){ window.__RQ_TEST__.blob=blob; window.__RQ_TEST__.nome=nome; return nome; }
+      if(window.claude&&window.claude.use){
+        return window.claude.use('downloads').then(function(dl){
+          if(!dl){ baixar(blob,nome); return nome; }
+          return dl.save({filename:nome, data:blob}).then(function(){ return nome; },function(e){
+            if(e&&e.code==='declined'){ setMsg('actMsg','Download cancelado. A reclamação ficou salva.'); return null; }
+            throw e;
+          });
         });
-      });
-    }
-    doc.save(nome);
-    return nome;
-  });
+      }
+      baixar(blob,nome); return nome;
+    });
+}
+function baixar(blob,nome){
+  var url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=nome; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); },4000);
 }
 
 /* ---------- início ---------- */
