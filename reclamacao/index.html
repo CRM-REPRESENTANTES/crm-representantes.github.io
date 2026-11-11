@@ -222,7 +222,7 @@
       <div class="f s2"><label for="dtFechTec">Fechamento técnico</label><input type="date" id="dtFechTec" data-k="dtFechTec"></div>
       <div class="f s2"><label for="dtEncerr">Encerramento</label><input type="date" id="dtEncerr" data-k="dtEncerr"></div>
       <div class="f s6"><label for="tecnico">Técnico</label><input id="tecnico" data-k="tecnico"></div>
-      <div class="f s6"><label for="representante">Representante</label><input id="representante" data-k="representante" value="Denegri Araújo Representações"></div>
+      <div class="f s6"><label for="representante">Representante</label><input id="representante" data-k="representante" placeholder="Preencher manualmente"></div>
     </div>
   </section>
 
@@ -841,7 +841,7 @@ function confirmar(btn, rotulo, acao){
   setTimeout(function(){ if(btn.getAttribute('data-arm')==='1'){ btn.removeAttribute('data-arm'); btn.textContent=btn.getAttribute('data-txt'); } },4000);
 }
 function blank(){
-  S.id=null; fill({dtAbertura:todayISO(), representante:'Denegri Araújo Representações', tipo:'Reclamação', parecer:'', linhas:[], fotos:[], tipos:[]});
+  S.id=null; fill({dtAbertura:todayISO(), tipo:'Reclamação', parecer:'', linhas:[], fotos:[], tipos:[]});
   $('qCli').value=''; $('qNf').value=''; $('nfChips').hidden=true; setMsg('lookMsg','');
   nextChamado().then(function(c){ if(!$('chamado').value) $('chamado').value=c; });
 }
