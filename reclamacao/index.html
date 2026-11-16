@@ -876,7 +876,7 @@ function loadScript(src, ok){
   });
 }
 function loadModelo(){
-  return fetch('modelo-solicitacao.docx?v=1',{cache:'no-cache'}).then(function(r){ if(!r.ok) throw new Error('modelo'); return r.arrayBuffer(); },function(){ throw new Error('modelo'); });
+  return fetch('modelo-solicitacao.docx?v=2',{cache:'no-cache'}).then(function(r){ if(!r.ok) throw new Error('modelo'); return r.arrayBuffer(); },function(){ throw new Error('modelo'); });
 }
 function safeName(s){ return norm(s).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40); }
 function makeDOCX(d){

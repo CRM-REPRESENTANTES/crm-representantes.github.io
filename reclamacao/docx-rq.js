@@ -6,9 +6,11 @@
 'use strict';
 
 var TIPOS = {'Calça':'Calca','Jaqueta':'Jaqueta','Saia':'Saia','Bermuda':'Bermuda','Corte':'Corte','Tecido Plano':'TecidoPlano','Malha':'Malha','Fios':'Fios','Outros':'Outros'};
-var LBL = {2:'Mts',4:'Estab.',6:'Qual.',8:'Pedido',10:'Preço',12:'Fat.'};
+/* Tabela "Informações do Artigo" igual ao formulário da CDM (o que o sistema da qualidade lê):
+   a 1ª NF vai na 2ª linha da tabela, logo abaixo do "Nome Comercial", com os rótulos fixos do formulário;
+   as demais NFs vão nas linhas de baixo (em branco quando não há mais notas). */
+var LBL = {0:'NF',2:'Mts',4:'.',6:'Qual.',8:'Pedido',10:'Preço',12:'Fat.'};
 var LKEYS = ['nf','mts','estab','qual','pedido','preco','fat'];
-var ROWS_COM_ROTULO = [3,6];          /* no formulário em branco, só estas linhas mostram Mts/Estab/... */
 var EMU_CM = 360000;
 
 function xesc(s){
@@ -23,12 +25,48 @@ function xtext(s){
 function fmtDate(iso){ var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m? m[3]+'/'+m[2]+'/'+m[1] : String(iso||''); }
 function X(v){ return v? '( X )' : '(  )'; }
 
+/* CNPJ/CPF só com números, como no formulário da CDM ("36374035000138").
+   O sistema da carteira grava o CNPJ com 15 dígitos ("044752053000134"): tira o zero extra. */
+function soDigitosDoc(v){
+  var dg=String(v==null?'':v).replace(/\D/g,'');
+  if(dg.length===15&&dg.charAt(0)==='0') dg=dg.slice(1);
+  else if(dg.length>11&&dg.length<14) dg=('00000000000000'+dg).slice(-14);
+  return dg||String(v==null?'':v).trim();
+}
+/* metragem sem separador de milhar: "1.006" -> "1006"; "1.006,50" -> "1006,50" */
+function semMilhar(v){
+  var s=String(v==null?'':v).trim();
+  if(/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) return s.replace(/\./g,'');
+  return s;
+}
+function dataLonga(dt){
+  var m=String(dt||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/); if(!m) return String(dt||'');
+  var y=m[3].length===2? '20'+m[3] : m[3]; return ('0'+m[1]).slice(-2)+'/'+('0'+m[2]).slice(-2)+'/'+y;
+}
+/* Uma NF por linha, só o número (o formulário da CDM traz "396316").
+   Linha do CRM com várias notas ("424171 - 31/08/26 * 424172 - 31/08/26"): a 1ª nota leva
+   metragem, pedido e preço; as outras vêm nas linhas seguintes só com o número e a data. */
+function linhasNF(linhas){
+  var out=[];
+  (linhas||[]).forEach(function(l){
+    if(!l||!LKEYS.some(function(k){ return l[k]; })) return;
+    var nfs=[], re=/(\d{3,})(?:\s*-\s*(\d{1,2}\/\d{1,2}\/\d{2,4}))?/g, m, txt=String(l.nf||'');
+    while((m=re.exec(txt))) nfs.push({nf:m[1].replace(/^0+/,'')||m[1], dt:m[2]? dataLonga(m[2]) : ''});
+    if(!nfs.length) nfs.push({nf:txt.trim(), dt:''});
+    nfs.forEach(function(n,j){
+      if(j===0) out.push({nf:n.nf, mts:semMilhar(l.mts), estab:l.estab||'', qual:l.qual||'', pedido:l.pedido||'', preco:l.preco||'', fat:(nfs.length>1&&n.dt)? n.dt : (l.fat||n.dt)});
+      else out.push({nf:n.nf, mts:'', estab:'', qual:'', pedido:'', preco:'', fat:n.dt});
+    });
+  });
+  return out;
+}
+
 function valores(d){
   var v = {
     xRecl: X(d.tipo!=='Orientação'), xOrie: X(d.tipo==='Orientação'),
     dtAbertura: fmtDate(d.dtAbertura), dtFechTec: fmtDate(d.dtFechTec), dtEncerr: fmtDate(d.dtEncerr),
     tecnico: d.tecnico, representante: d.representante, chamado: d.chamado,
-    razao: d.razao, cnpj: d.cnpj, codCli: d.codCli, endereco: d.endereco, bairro: d.bairro, cidade: d.cidade, uf: d.uf,
+    razao: d.razao, cnpj: soDigitosDoc(d.cnpj), codCli: d.codCli, endereco: d.endereco, bairro: d.bairro, cidade: d.cidade, uf: d.uf,
     telefone: d.telefone, fax: d.fax, contato: d.contato, celular: d.celular, email: d.email,
     artigo: d.artigo, cor: d.cor, codigo: d.codigo,
     motivo: d.motivo,
@@ -39,14 +77,11 @@ function valores(d){
     p_IMP: X(d.parecer==='IMPROCEDENTE'), p_IND: X(d.parecer==='PROCEDENTE (INDUSTRIAL)'), p_COM: X(d.parecer==='PROCEDENTE (COMERCIAL)')
   };
   Object.keys(TIPOS).forEach(function(t){ v['t_'+TIPOS[t]] = X((d.tipos||[]).indexOf(t)>=0); });
-  var ls = (d.linhas||[]).filter(function(l){ return LKEYS.some(function(k){ return l&&l[k]; }); }).slice(0,6);
-  /* até 2 NFs: linhas 3 e 6 (as que já têm os rótulos no formulário); mais que isso: 1 a 6 em ordem */
-  var ordem = ls.length<=2? [3,6] : [1,2,3,4,5,6], porLinha = {};
-  ls.forEach(function(l,j){ porLinha[ordem[j]] = l; });
+  var ls = linhasNF(d.linhas).slice(0,6);
   for(var i=1;i<=6;i++){
-    var l = porLinha[i]||{}, cheia = LKEYS.some(function(k){ return l[k]; });
+    var l = ls[i-1]||{}, cheia = LKEYS.some(function(k){ return l[k]; });
     LKEYS.forEach(function(k){ v['l'+i+'_'+k] = l[k]||''; });
-    Object.keys(LBL).forEach(function(c){ v['l'+i+'_lb'+c] = (cheia||ROWS_COM_ROTULO.indexOf(i)>=0)? LBL[c] : ''; });
+    Object.keys(LBL).forEach(function(c){ v['l'+i+'_lb'+c] = cheia? LBL[c] : ''; });
   }
   return v;
 }
@@ -117,6 +152,6 @@ function preencher(zip, d){
   });
 }
 
-root.RQDocx = {preencher: preencher, valores: valores};
+root.RQDocx = {preencher: preencher, valores: valores, linhasNF: linhasNF};
 if(typeof module!=='undefined' && module.exports) module.exports = root.RQDocx;
 })(typeof window!=='undefined'? window : globalThis);
